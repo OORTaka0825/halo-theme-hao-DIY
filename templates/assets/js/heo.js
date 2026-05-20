@@ -659,25 +659,31 @@ var heo = {
         const closeMobileMusicList = () => {
             if (!isMobileMusic()) return;
             const aplayerList = anMusicPage.querySelector(".aplayer-list");
+            document.body.classList.remove("music-list-open");
             if (aplayerList) {
                 aplayerList.classList.remove("aplayer-list-hide");
             }
             $(".music-mask").hide();
         };
 
+        const openMobileMusicList = () => {
+            if (!isMobileMusic()) return;
+            document.body.classList.add("music-list-open");
+            $(".music-mask").css("display", "block");
+            $(".music-mask").css("animation", "0.5s ease 0s 1 normal none running to_show");
+        };
+
         const syncMobileMusicMask = () => {
             if (!isMobileMusic()) return;
             const aplayerList = anMusicPage.querySelector(".aplayer-list");
             if (aplayerList && aplayerList.classList.contains("aplayer-list-hide")) {
-                $(".music-mask").css("display", "block");
-                $(".music-mask").css("animation", "0.5s ease 0s 1 normal none running to_show");
+                openMobileMusicList();
             } else {
-                $(".music-mask").hide();
+                closeMobileMusicList();
             }
         };
 
-        // 初始化完成后，先强制收起一次列表，再解除 CSS 的初始化隐藏状态。
-        // 这样可以避免手机端刚进入音乐页时，APlayer 默认列表 class 短暂显示在顶部。
+        // 初始化时保持关闭状态。真正是否显示列表，只看 body.music-list-open，避免初始渲染闪烁。
         closeMobileMusicList();
         document.body.classList.add("music-player-ready");
 
@@ -688,7 +694,7 @@ var heo = {
 
         if (aplayerIconMenu) {
             aplayerIconMenu.addEventListener("click", function () {
-                // APlayer 会先切换列表 class，这里延迟同步遮罩，避免再次点菜单关闭时遮罩残留。
+                // APlayer 先切换 aplayer-list-hide，这里下一帧根据状态同步 body.music-list-open。
                 setTimeout(syncMobileMusicMask, 0);
             });
         }

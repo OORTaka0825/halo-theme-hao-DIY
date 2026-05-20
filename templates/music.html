@@ -7,6 +7,24 @@
                 _cover = ${singlePage.spec.cover},
                 _excerpt = ${singlePage.status.excerpt},
                 _type = 'website')}"></th:block>
+    <!-- 音乐页样式前置到 head，避免手机端首次进入时播放器列表/文字先闪出来 -->
+    <style>
+        @media screen and (max-width: 768px) {
+            body[data-type=music] #anMusic-page meting-js .aplayer .aplayer-list {
+                transform: translate3d(0, 110%, 0) !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
+            }
+            body[data-type=music].music-list-open #anMusic-page meting-js .aplayer .aplayer-list {
+                transform: translate3d(0, 0, 0) !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+            }
+        }
+    </style>
+    <link rel="stylesheet" th:href="${assets_link + '/libs/aplayer/music.css'}">
 </th:block>
 <th:block th:fragment="content">
 
@@ -30,9 +48,6 @@
                     </div>
                 </div>
             </div>
-
-
-            <link rel="stylesheet" th:href="${assets_link + '/libs/aplayer/music.css'}" >
 
 
         </main>

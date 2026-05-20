@@ -414,28 +414,35 @@ body[data-type=music] #nav-music {
     }
 
 
-    /* 手机端：播放器初始化完成前先隐藏歌曲列表，避免页面刚进入时列表闪一下压到顶部导航 */
-    body[data-type=music]:not(.music-player-ready) #anMusic-page meting-js .aplayer .aplayer-list{
-        display: none !important;
-        opacity: 0 !important;
-        visibility: hidden !important;
-        pointer-events: none !important;
-    }
-
-    #anMusic-page meting-js .aplayer .aplayer-list {
+    /* 手机端：默认强制收起歌曲列表，只有 body.music-list-open 时才显示。
+       这样可以避免 APlayer/Meting 初始化时列表内容先闪到顶部。 */
+    body[data-type=music] #anMusic-page meting-js .aplayer .aplayer-list {
         position: fixed;
         z-index: 10000;
         width: 100%;
-        bottom: -88%;
+        bottom: 0 !important;
         left: 0;
         background: var(--sidebar-bg);
         height: auto;
         border-radius: 15px 15px 0 0;
-        padding: 15px 0
+        padding: 15px 0;
+        transform: translate3d(0, 110%, 0) !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transition: transform .25s ease, opacity .2s ease;
     }
 
+    body[data-type=music].music-list-open #anMusic-page meting-js .aplayer .aplayer-list {
+        transform: translate3d(0, 0, 0) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+
+    /* 兼容 APlayer 自己切换的 aplayer-list-hide 类，真正显示仍然以 music-list-open 为准 */
     #anMusic-page meting-js .aplayer .aplayer-list.aplayer-list-hide {
-        bottom: 0 !important
+        bottom: 0 !important;
     }
 
     #anMusic-page meting-js .aplayer .aplayer-list ol {
