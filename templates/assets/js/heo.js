@@ -652,20 +652,53 @@ var heo = {
     addEventListenerChangeMusicBg: function () {
         const anMusicPage = document.getElementById("anMusic-page");
         const aplayerIconMenu = anMusicPage.querySelector(".aplayer-info .aplayer-time .aplayer-icon-menu");
+        const isMobileMusic = () => window.matchMedia("(max-width: 768px)").matches;
+
+        const closeMobileMusicList = () => {
+            if (!isMobileMusic()) return;
+            const aplayerList = anMusicPage.querySelector(".aplayer-list");
+            if (aplayerList) {
+                aplayerList.classList.remove("aplayer-list-hide");
+            }
+            $(".music-mask").hide();
+        };
+
+        const syncMobileMusicMask = () => {
+            if (!isMobileMusic()) return;
+            const aplayerList = anMusicPage.querySelector(".aplayer-list");
+            if (aplayerList && aplayerList.classList.contains("aplayer-list-hide")) {
+                $(".music-mask").css("display", "block");
+                $(".music-mask").css("animation", "0.5s ease 0s 1 normal none running to_show");
+            } else {
+                $(".music-mask").hide();
+            }
+        };
 
         anMusicPage.querySelector("meting-js").aplayer.on("loadeddata", function () {
             heo.changeMusicBg();
             console.info("player loadeddata");
         });
 
-        aplayerIconMenu.addEventListener("click", function () {
-            $(".music-mask").css("display","block")
-            $(".music-mask").css("animation","0.5s ease 0s 1 normal none running to_show")
+        if (aplayerIconMenu) {
+            aplayerIconMenu.addEventListener("click", function () {
+                // APlayer 会先切换列表 class，这里延迟同步遮罩，避免再次点菜单关闭时遮罩残留。
+                setTimeout(syncMobileMusicMask, 0);
+            });
+        }
+
+        // 手机端：点击遮罩关闭歌曲列表，避免点到上方博客导航。
+        $(".music-mask").off("click.mobileMusicList").on("click.mobileMusicList", function () {
+            closeMobileMusicList();
         });
-        $(".music-mask").click(function(){
-            anMusicPage.querySelector(".aplayer-list").classList.remove("aplayer-list-hide");
-            $(".music-mask").hide();
-        })
+
+        // 手机端：选择歌曲后自动收起列表，回到播放界面；电脑端不处理。
+        anMusicPage.addEventListener("click", function (event) {
+            if (!isMobileMusic()) return;
+            const musicItem = event.target.closest(".aplayer-list ol li");
+            if (musicItem && anMusicPage.contains(musicItem)) {
+                setTimeout(closeMobileMusicList, 120);
+            }
+        });
     },
 
 };
