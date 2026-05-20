@@ -626,6 +626,8 @@ var heo = {
             const musiccover = document.querySelector("#anMusic-page .aplayer-pic");
             anMusicBg.style.backgroundImage = musiccover.style.backgroundImage;
         } else {
+            // 第一次进入音乐页时，先标记为未就绪，配合 CSS 避免手机端列表初始化闪烁
+            document.body.classList.remove("music-player-ready");
             // 第一次进入，绑定事件，改背景
             let timer = setInterval(() => {
                 const musiccover = document.querySelector("#anMusic-page .aplayer-pic");
@@ -673,6 +675,11 @@ var heo = {
                 $(".music-mask").hide();
             }
         };
+
+        // 初始化完成后，先强制收起一次列表，再解除 CSS 的初始化隐藏状态。
+        // 这样可以避免手机端刚进入音乐页时，APlayer 默认列表 class 短暂显示在顶部。
+        closeMobileMusicList();
+        document.body.classList.add("music-player-ready");
 
         anMusicPage.querySelector("meting-js").aplayer.on("loadeddata", function () {
             heo.changeMusicBg();

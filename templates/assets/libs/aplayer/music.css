@@ -413,6 +413,15 @@ body[data-type=music] #nav-music {
         z-index: auto
     }
 
+
+    /* 手机端：播放器初始化完成前先隐藏歌曲列表，避免页面刚进入时列表闪一下压到顶部导航 */
+    body[data-type=music]:not(.music-player-ready) #anMusic-page meting-js .aplayer .aplayer-list{
+        display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
     #anMusic-page meting-js .aplayer .aplayer-list {
         position: fixed;
         z-index: 10000;
