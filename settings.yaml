@@ -528,7 +528,7 @@ spec:
                 - label: 自定义
                   value: custom
             - $formkit: repeater
-              if: $get(recommendPost).value === custom
+              if: $get(recommendPost).value === 'custom'
               name: recommendPostCustom
               label: 自定义文章
               help: 建议设置六篇文章
@@ -615,7 +615,7 @@ spec:
                 - label: 自定义地址
                   value: customUrl
             - $formkit: url
-              if: $get(navMore).value === customUrl
+              if: $get(navMore).value === 'customUrl'
               name: navMoreCustomUrl
               label: 文章导航更多跳转路径
               value:
