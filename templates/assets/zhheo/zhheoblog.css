@@ -18885,3 +18885,46 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 #aside-content .card-widget.card-tags .card-tag-cloud a.tag-item:hover {
     z-index: 10;
 }
+
+/* 瞬间页面分页按钮 */
+#moment-pagination.moment-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 28px;
+    margin: 2rem auto 1rem;
+    color: var(--heo-fontcolor);
+}
+
+#moment-pagination .moment-page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 86px;
+    height: 38px;
+    padding: 0 18px;
+    border-radius: 20px;
+    border: 1px solid var(--heo-card-border);
+    background: var(--heo-card-bg);
+    color: var(--heo-fontcolor);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+#moment-pagination .moment-page-btn:hover {
+    background: var(--heo-main);
+    color: var(--heo-white);
+    border-color: var(--heo-main);
+}
+
+#moment-pagination .moment-page-btn.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+#moment-pagination .moment-page-num {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--heo-fontcolor);
+}

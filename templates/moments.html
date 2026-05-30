@@ -70,9 +70,34 @@
                             </li>
                         </ul>
                     </section>
-                    <!--  分页还没写 -->
+                                        <!-- 瞬间分页 -->
+                    <nav id="moment-pagination" class="moment-pagination"
+                         th:if="${moments.totalPages > 1}">
+                        <a class="moment-page-btn"
+                           th:classappend="${!moments.hasPrevious} ? ' disabled' : ''"
+                           th:href="${moments.hasPrevious ? moments.prevUrl : 'javascript:void(0)'}">
+                            上一页
+                        </a>
+
+                        <span class="moment-page-num">
+                            <span th:text="${moments.page}">1</span>
+                            <span>/</span>
+                            <span th:text="${moments.totalPages}">1</span>
+                        </span>
+
+                        <a class="moment-page-btn"
+                           th:classappend="${!moments.hasNext} ? ' disabled' : ''"
+                           th:href="${moments.hasNext ? moments.nextUrl : 'javascript:void(0)'}">
+                            下一页
+                        </a>
+                    </nav>
                 </div>
-                <div id="bber-tips" style="color: var(--heo-secondtext);">- 只展示最近30条短文 -</div>
+
+                <div id="bber-tips" style="color: var(--heo-secondtext);"
+                     th:if="${moments.totalPages <= 1}">
+                    - 已展示全部短文 -
+                </div>
+
                 <script>heo.reflashEssayWaterFall();</script>
                 <hr />
                 <!--/* 评论组件 */-->
