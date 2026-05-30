@@ -18858,7 +18858,7 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     position: relative !important;
     inset: auto !important;
 
-    height: 200px;          /* 标签运动区域高度，在这里改 */
+    height: 130px;          /* 标签运动区域高度，在这里改 */
     min-height: 130px;      /* 跟上面保持一致 */
 
     overflow: hidden;
