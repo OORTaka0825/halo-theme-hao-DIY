@@ -9391,7 +9391,7 @@ span.recent-post-top-text {
     background: var(--heo-card-bg);
     border: var(--style-border);
     transition: 0.3s;
-    border-radius: 12px;
+    border-radius: 20px;
     transition: 0.3s;
     position: relative;
     overflow: hidden;
