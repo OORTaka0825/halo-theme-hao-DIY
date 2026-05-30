@@ -49,15 +49,27 @@
                     <div id="article-container">
                         <section class="page-1 loadings">
                             <div class="type-gallery ">
-                                <div class="gallery">
-                                    <div class="fj-gallery-item" th:each="photo : ${photos.items}">
-                                        <div th:if="${theme.config.photos.tagEnable}" class="tag-address">
-                                            [[${photo.spec.displayName}]]</div>
-                                        <img th:src="${photo.spec.url}" th:alt="${photo.spec.description}"
-                                             th:title="${photo.spec.description}">
+                                <div class="gallery photo-page-gallery" data-page-size="20">
+    <div class="fj-gallery-item" th:each="photo : ${photos.items}">
+        <div th:if="${theme.config.photos.tagEnable}" class="tag-address">
+            [[${photo.spec.displayName}]]
+        </div>
+        <img th:src="${photo.spec.url}" th:alt="${photo.spec.description}"
+             th:title="${photo.spec.description}">
+    </div>
+</div>
 
-                                    </div>
-                                </div>
+<nav class="photo-pagination" style="display:none;">
+    <a class="photo-page-btn photo-prev" href="javascript:void(0)">上一页</a>
+
+    <span class="photo-page-num">
+        <span class="photo-current">1</span>
+        <span>/</span>
+        <span class="photo-total">1</span>
+    </span>
+
+    <a class="photo-page-btn photo-next" href="javascript:void(0)">下一页</a>
+</nav>
                             </div>
                         </section>
                     </div>
@@ -215,6 +227,122 @@
                         -user-drag: none
                     }
                 </style>
+
+                <script data-pjax>
+    (function () {
+        function cleanPhotoItem(item) {
+            const clone = item.cloneNode(true);
+
+            clone.removeAttribute('style');
+            clone.querySelectorAll('[style]').forEach(function (el) {
+                el.removeAttribute('style');
+            });
+
+            // 如果图片已经被 fancybox 包过，先还原成普通 img，避免重复包裹
+            clone.querySelectorAll('a.fancybox > img').forEach(function (img) {
+                const a = img.parentNode;
+                a.parentNode.replaceChild(img, a);
+            });
+
+            return clone.outerHTML;
+        }
+
+        function reInitPhotoGallery(gallery) {
+            gallery.className = 'gallery photo-page-gallery';
+            gallery.removeAttribute('style');
+
+            // 重新初始化灯箱
+            if (window.btf && typeof btf.loadLightbox === 'function') {
+                btf.loadLightbox(gallery.querySelectorAll('.fj-gallery-item > img'));
+            }
+
+            // 重新初始化图库瀑布流 / 对齐布局
+            const run = function () {
+                if (window.btf && typeof btf.initJustifiedGallerys === 'function' && window.fjGallery) {
+                    btf.initJustifiedGallerys([gallery]);
+                }
+            };
+
+            setTimeout(run, 100);
+            setTimeout(run, 400);
+            setTimeout(run, 900);
+
+            if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
+                window.lazyLoadInstance.update();
+            }
+        }
+
+        function initPhotoPagination() {
+            document.querySelectorAll('.photo-page-gallery').forEach(function (gallery) {
+                const pagination = gallery.parentElement.querySelector('.photo-pagination');
+                if (!pagination) return;
+
+                const rawItems = Array.from(gallery.querySelectorAll('.fj-gallery-item'));
+                if (!rawItems.length) return;
+
+                const allHtml = rawItems.map(cleanPhotoItem);
+                const pageSize = Number(gallery.dataset.pageSize || 12);
+                const totalPages = Math.ceil(allHtml.length / pageSize);
+
+                let currentPage = 1;
+
+                const prevBtn = pagination.querySelector('.photo-prev');
+                const nextBtn = pagination.querySelector('.photo-next');
+                const currentEl = pagination.querySelector('.photo-current');
+                const totalEl = pagination.querySelector('.photo-total');
+
+                if (totalPages <= 1) {
+                    pagination.style.display = 'none';
+                } else {
+                    pagination.style.display = 'flex';
+                }
+
+                if (totalEl) totalEl.textContent = totalPages;
+
+                function render(page) {
+                    currentPage = Math.max(1, Math.min(page, totalPages));
+
+                    const start = (currentPage - 1) * pageSize;
+                    const end = start + pageSize;
+
+                    gallery.innerHTML = allHtml.slice(start, end).join('');
+
+                    if (currentEl) currentEl.textContent = currentPage;
+
+                    if (prevBtn) {
+                        prevBtn.classList.toggle('disabled', currentPage <= 1);
+                    }
+
+                    if (nextBtn) {
+                        nextBtn.classList.toggle('disabled', currentPage >= totalPages);
+                    }
+
+                    reInitPhotoGallery(gallery);
+                }
+
+                prevBtn && prevBtn.addEventListener('click', function () {
+                    if (currentPage > 1) {
+                        render(currentPage - 1);
+                    }
+                });
+
+                nextBtn && nextBtn.addEventListener('click', function () {
+                    if (currentPage < totalPages) {
+                        render(currentPage + 1);
+                    }
+                });
+
+                render(1);
+            });
+        }
+
+        initPhotoPagination();
+
+        document.addEventListener('pjax:complete', function () {
+            initPhotoPagination();
+        });
+    })();
+</script>
                 <!--/* 评论组件 */-->
                 <th:block th:replace="~{modules/comment :: comment(group = 'content.halo.run',
                   kind = 'SinglePage',
