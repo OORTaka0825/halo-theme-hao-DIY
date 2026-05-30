@@ -338,31 +338,75 @@
                 loading.classList.add('loadings');
             }
         }
+        function waitGalleryImages(gallery, callback) {
+    const imgs = Array.from(gallery.querySelectorAll('img'));
+
+    if (!imgs.length) {
+        callback();
+        return;
+    }
+
+    let rest = imgs.length;
+    let finished = false;
+
+    function doneOne() {
+        if (finished) return;
+
+        rest--;
+
+        if (rest <= 0) {
+            finished = true;
+            callback();
+        }
+    }
+
+    imgs.forEach(function (img) {
+        if (img.complete && img.naturalWidth > 0) {
+            doneOne();
+        } else {
+            img.addEventListener('load', doneOne, { once: true });
+            img.addEventListener('error', doneOne, { once: true });
+        }
+    });
+
+    // 兜底：避免某张图加载失败导致一直不初始化
+    setTimeout(function () {
+        if (!finished) {
+            finished = true;
+            callback();
+        }
+    }, 2500);
+}
 
         function reInitPhotoGallery(gallery) {
-            resetGalleryBeforeLayout(gallery);
+    resetGalleryBeforeLayout(gallery);
 
-            ensureJustifiedGallery(function () {
+    if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
+        window.lazyLoadInstance.update();
+    }
+
+    waitGalleryImages(gallery, function () {
+        ensureJustifiedGallery(function () {
+            function runLayout() {
                 if (window.btf && typeof btf.initJustifiedGallerys === 'function') {
                     btf.initJustifiedGallerys([gallery]);
                 }
+            }
 
-                setTimeout(function () {
-                    initLightbox(gallery);
-                }, 100);
+            // 图片加载完成后再计算图库布局
+            runLayout();
 
-                setTimeout(function () {
-                    if (window.btf && typeof btf.initJustifiedGallerys === 'function') {
-                        btf.initJustifiedGallerys([gallery]);
-                    }
-                    initLightbox(gallery);
-                }, 500);
+            // 再延迟计算几次，防止浏览器刚渲染时尺寸还没稳定
+            setTimeout(runLayout, 200);
+            setTimeout(runLayout, 600);
 
-                if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
-                    window.lazyLoadInstance.update();
-                }
-            });
-        }
+            // 等布局稳定后再初始化灯箱，避免图片被包裹后影响布局计算
+            setTimeout(function () {
+                initLightbox(gallery);
+            }, 800);
+        });
+    });
+}
 
         function initPhotoPagination() {
             document.querySelectorAll('.photo-page-gallery').forEach(function (gallery) {
@@ -442,19 +486,35 @@
             });
         }
 
-        function bootPhotoPagination() {
-            setTimeout(initPhotoPagination, 0);
-            setTimeout(initPhotoPagination, 300);
-            setTimeout(initPhotoPagination, 800);
+        function relayoutPhotoGalleries() {
+    document.querySelectorAll('.photo-page-gallery').forEach(function (gallery) {
+        if (gallery.dataset.photoPaginationReady === 'true') {
+            reInitPhotoGallery(gallery);
         }
+    });
+}
+
+function bootPhotoPagination() {
+    setTimeout(initPhotoPagination, 0);
+    setTimeout(initPhotoPagination, 300);
+    setTimeout(initPhotoPagination, 800);
+
+    // 首次进入页面时，等图片基本加载后再重排一次
+    setTimeout(relayoutPhotoGalleries, 1500);
+    setTimeout(relayoutPhotoGalleries, 3000);
+}
 
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', bootPhotoPagination);
-        } else {
-            bootPhotoPagination();
-        }
+    document.addEventListener('DOMContentLoaded', bootPhotoPagination);
+} else {
+    bootPhotoPagination();
+}
 
-        document.addEventListener('pjax:complete', bootPhotoPagination);
+window.addEventListener('load', function () {
+    setTimeout(relayoutPhotoGalleries, 300);
+}, { once: true });
+
+document.addEventListener('pjax:complete', bootPhotoPagination);
     })();
 </script>
                 <!--/* 评论组件 */-->
