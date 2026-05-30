@@ -18864,7 +18864,7 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     overflow: hidden;
     box-sizing: border-box;
 
-    margin: -19px -24px -19px -25px;
+    margin: -19px -24px -10px -25px;
     padding: 0 25px;
 }
 
