@@ -18865,8 +18865,8 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     box-sizing: border-box;
 
     /* 这两行控制标签区域左右扩展程度 */
-    margin: 0 -16px;
-    padding: 8px 16px;
+    margin: 0 -20px;
+    padding: 8px 20px;
 }
 
 /* 标签本身仍然绝对定位，在 card-tag-cloud 里面飘动 */
