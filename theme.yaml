@@ -45,7 +45,7 @@ spec:
         description: 相册页面
         screenshot:
         file: album.html
-  description: Halo 2.x Theme base on Thymeleaf, Referring to Butterfly and Heo
+  description: Halo 2.x hao个人魔改版
   logo: /themes/theme-hao/assets/images/hao-logo.jpg
   homepage: https://github.com/OORTaka0825/halo-theme-hao-DIY
   issues: https://github.com/OORTaka0825/halo-theme-hao-DIY/issues
