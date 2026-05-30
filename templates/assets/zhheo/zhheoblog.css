@@ -18858,13 +18858,13 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     position: relative !important;
     inset: auto !important;
 
-    height: 200px;
-    min-height: 200px;
+    height: 180px;
+    min-height: 180px;
 
     overflow: hidden;
     box-sizing: border-box;
 
-    margin: -24px -24px -15px -25px;
+    margin: -21px -24px -15px -25px;
     padding: 0 25px;
 }
 
