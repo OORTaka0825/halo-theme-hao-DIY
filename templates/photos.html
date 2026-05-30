@@ -515,6 +515,19 @@ window.addEventListener('load', function () {
 }, { once: true });
 
 document.addEventListener('pjax:complete', bootPhotoPagination);
+let photoResizeTimer = null;
+
+window.addEventListener('resize', function () {
+    clearTimeout(photoResizeTimer);
+
+    photoResizeTimer = setTimeout(function () {
+        document.querySelectorAll('.photo-page-gallery').forEach(function (gallery) {
+            if (gallery.dataset.photoPaginationReady === 'true') {
+                reInitPhotoGallery(gallery);
+            }
+        });
+    }, 300);
+});
     })();
 </script>
                 <!--/* 评论组件 */-->
