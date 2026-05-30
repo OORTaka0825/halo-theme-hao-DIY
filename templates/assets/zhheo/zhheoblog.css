@@ -18998,3 +18998,71 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     font-size: 1rem;
     color: var(--heo-fontcolor);
 }
+/* 图库分页：防止 PJAX 进入时图库初始化前图片变成大图 */
+#article-container .photo-page-gallery {
+    width: 100%;
+}
+
+#article-container .photo-page-gallery .fj-gallery-item {
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+#article-container .photo-page-gallery:not(.fj-gallery) {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+}
+
+#article-container .photo-page-gallery:not(.fj-gallery) .fj-gallery-item {
+    height: 160px;
+}
+
+#article-container .photo-page-gallery:not(.fj-gallery) .fj-gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 图库内容页分页按钮 */
+.photo-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 28px;
+    margin: 2rem auto 1rem;
+    color: var(--heo-fontcolor);
+}
+
+.photo-pagination .photo-page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 86px;
+    height: 38px;
+    padding: 0 18px;
+    border-radius: 20px;
+    border: 1px solid var(--heo-card-border);
+    background: var(--heo-card-bg);
+    color: var(--heo-fontcolor);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.photo-pagination .photo-page-btn:hover {
+    background: var(--heo-main);
+    color: var(--heo-white);
+    border-color: var(--heo-main);
+}
+
+.photo-pagination .photo-page-btn.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.photo-pagination .photo-page-num {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--heo-fontcolor);
+}
