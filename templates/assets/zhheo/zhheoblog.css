@@ -18928,3 +18928,13 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     font-size: 1rem;
     color: var(--heo-fontcolor);
 }
+/* 瞬间分页无刷新加载时的过渡效果 */
+#moments-page-area {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#moments-page-area.is-loading {
+    opacity: 0.45;
+    pointer-events: none;
+    transform: translateY(4px);
+}

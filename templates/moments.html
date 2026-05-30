@@ -27,6 +27,7 @@
         buttonUrl = ${theme.config.moment.buttonUrl},
         buttonTitle = ${theme.config.moment.buttonTitle}
 )}"></div>
+            <div id="moments-page-area">
                 <div id="bber">
                     <section class="timeline page-1">
                         <ul class="list" id="waterfall">
@@ -72,30 +73,143 @@
                     </section>
                                         <!-- 瞬间分页 -->
                     <nav id="moment-pagination" class="moment-pagination"
-                         th:if="${moments.totalPages > 1}">
-                        <a class="moment-page-btn"
-                           th:classappend="${!moments.hasPrevious} ? ' disabled' : ''"
-                           th:href="${moments.hasPrevious ? moments.prevUrl : 'javascript:void(0)'}">
-                            上一页
-                        </a>
+             th:if="${moments.totalPages > 1}">
+            <a class="moment-page-btn"
+               th:classappend="${!moments.hasPrevious} ? ' disabled' : ''"
+               th:href="${moments.hasPrevious ? moments.prevUrl : 'javascript:void(0)'}">
+                上一页
+            </a>
 
-                        <span class="moment-page-num">
-                            <span th:text="${moments.page}">1</span>
-                            <span>/</span>
-                            <span th:text="${moments.totalPages}">1</span>
-                        </span>
+            <span class="moment-page-num">
+                <span th:text="${moments.page}">1</span>
+                <span>/</span>
+                <span th:text="${moments.totalPages}">1</span>
+            </span>
 
-                        <a class="moment-page-btn"
-                           th:classappend="${!moments.hasNext} ? ' disabled' : ''"
-                           th:href="${moments.hasNext ? moments.nextUrl : 'javascript:void(0)'}">
-                            下一页
-                        </a>
-                    </nav>
-                </div>
+            <a class="moment-page-btn"
+               th:classappend="${!moments.hasNext} ? ' disabled' : ''"
+               th:href="${moments.hasNext ? moments.nextUrl : 'javascript:void(0)'}">
+                下一页
+            </a>
+        </nav>
+    </div>
 
-                <div id="bber-tips" style="color: var(--heo-secondtext);">- 已展示当前页短文 -</div>
+    <div id="bber-tips" style="color: var(--heo-secondtext);"
+         th:if="${moments.totalPages <= 1}">
+        - 已展示全部短文 -
+    </div>
+</div>
 
                 <script>heo.reflashEssayWaterFall();</script>
+                <script data-pjax>
+    (function () {
+        function refreshMomentLayout() {
+            if (window.heo && typeof heo.reflashEssayWaterFall === 'function') {
+                heo.reflashEssayWaterFall();
+                setTimeout(() => heo.reflashEssayWaterFall(), 300);
+            }
+
+            if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
+                window.lazyLoadInstance.update();
+            }
+        }
+
+        async function loadMomentPage(url, pushState = true) {
+            const area = document.querySelector('#moments-page-area');
+            if (!area || area.dataset.loading === 'true') return;
+
+            area.dataset.loading = 'true';
+            area.classList.add('is-loading');
+
+            try {
+                const res = await fetch(url, {
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!res.ok) {
+                    window.location.href = url;
+                    return;
+                }
+
+                const html = await res.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const newArea = doc.querySelector('#moments-page-area');
+
+                if (!newArea) {
+                    window.location.href = url;
+                    return;
+                }
+
+                area.innerHTML = newArea.innerHTML;
+
+                if (pushState) {
+                    window.history.pushState({ momentAjax: true }, '', url);
+                }
+
+                refreshMomentLayout();
+
+                const target = document.querySelector('#moments-page-area');
+                if (target) {
+                    const top = target.getBoundingClientRect().top + window.scrollY - 90;
+                    window.scrollTo({
+                        top: top,
+                        behavior: 'smooth'
+                    });
+                }
+            } catch (e) {
+                console.error('瞬间分页加载失败：', e);
+                window.location.href = url;
+            } finally {
+                area.dataset.loading = 'false';
+                area.classList.remove('is-loading');
+            }
+        }
+
+        function bindMomentAjaxPagination() {
+            if (window.__haoMomentAjaxPaginationBinded) return;
+            window.__haoMomentAjaxPaginationBinded = true;
+
+            document.addEventListener('click', function (e) {
+                const link = e.target.closest('#moment-pagination a.moment-page-btn');
+                if (!link) return;
+
+                if (link.classList.contains('disabled')) {
+                    e.preventDefault();
+                    return;
+                }
+
+                const href = link.getAttribute('href');
+                if (!href || href === 'javascript:void(0)') {
+                    e.preventDefault();
+                    return;
+                }
+
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+
+                loadMomentPage(link.href, true);
+            }, true);
+
+            window.addEventListener('popstate', function () {
+                if (location.pathname.includes('/moments')) {
+                    loadMomentPage(location.href, false);
+                }
+            });
+        }
+
+        bindMomentAjaxPagination();
+        refreshMomentLayout();
+
+        document.addEventListener('pjax:complete', function () {
+            bindMomentAjaxPagination();
+            refreshMomentLayout();
+        });
+    })();
+</script>
                 <hr />
                 <!--/* 评论组件 */-->
                 <th:block th:replace="~{modules/comment :: comment(group = 'content.halo.run',
