@@ -45,7 +45,7 @@
                     const tagHeight = tag.offsetHeight || 24;
 
                     const maxX = Math.max(0, cloudWidth - tagWidth - 4);
-                    const maxY = Math.max(0, cloudHeight - tagHeight - 4);
+                    const maxY = Math.max(0, cloudHeight - tagHeight);
 
                     const col = index % cols;
                     const row = Math.floor(index / cols);
@@ -92,7 +92,7 @@
                         if (!data || data.paused) return;
 
                         const maxX = Math.max(0, width - data.width - 4);
-                        const maxY = Math.max(0, height - data.height - 4);
+                        const maxY = Math.max(0, height - data.height);
 
                         data.x += data.vx;
                         data.y += data.vy;
