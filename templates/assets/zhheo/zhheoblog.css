@@ -18865,7 +18865,7 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     box-sizing: border-box;
 
     /* 这两行控制标签区域左右扩展程度 */
-    margin: 0 -25px;
+    margin: 25 -25px;
     padding: 8px 25px;
 }
 
