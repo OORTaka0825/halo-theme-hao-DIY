@@ -18858,7 +18858,7 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     position: relative !important;
     inset: auto !important;
 
-    height: 130px;          /* 标签运动区域高度，在这里改 */
+    height: 200px;          /* 标签运动区域高度，在这里改 */
     min-height: 130px;      /* 跟上面保持一致 */
 
     overflow: hidden;
@@ -18866,7 +18866,7 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 
     /* 这两行控制标签区域左右扩展程度 */
     margin: 0 -25px;
-    padding: 50px 25px;
+    padding: 8px 25px;
 }
 
 /* 标签本身仍然绝对定位，在 card-tag-cloud 里面飘动 */
