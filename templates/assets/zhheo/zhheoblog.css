@@ -18938,3 +18938,20 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     pointer-events: none;
     transform: translateY(4px);
 }
+/* 修复瞬间 AJAX 分页后图片变大的问题 */
+/* 即使图片还没被 fancybox 包裹，也先按小图显示 */
+#bber .bber-container-img > img {
+    height: 100px;
+    width: calc(100% / 4 - 5px);
+    margin-bottom: 10px;
+    border-radius: 8px;
+    object-fit: cover;
+    overflow: hidden;
+    cursor: zoom-in;
+}
+/* 被 fancybox 包裹后，图片填满小图容器 */
+#bber .bber-container-img > a.fancybox img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}

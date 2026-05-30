@@ -104,15 +104,31 @@
                 <script data-pjax>
     (function () {
         function refreshMomentLayout() {
-            if (window.heo && typeof heo.reflashEssayWaterFall === 'function') {
-                heo.reflashEssayWaterFall();
-                setTimeout(() => heo.reflashEssayWaterFall(), 300);
-            }
+    const area = document.querySelector('#moments-page-area') || document;
 
-            if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
-                window.lazyLoadInstance.update();
-            }
-        }
+    // 重新初始化瞬间图片灯箱，让 AJAX 新加载的 img 再次变成小图样式
+    const momentImgs = area.querySelectorAll('.bber-container-img > img');
+
+    if (
+        momentImgs.length &&
+        window.btf &&
+        typeof btf.loadLightbox === 'function'
+    ) {
+        btf.loadLightbox(momentImgs);
+    }
+
+    // 更新懒加载
+    if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
+        window.lazyLoadInstance.update();
+    }
+
+    // 重新计算瀑布流。灯箱包裹图片会改变 DOM，所以延迟执行更稳
+    if (window.heo && typeof heo.reflashEssayWaterFall === 'function') {
+        setTimeout(() => heo.reflashEssayWaterFall(), 100);
+        setTimeout(() => heo.reflashEssayWaterFall(), 500);
+        setTimeout(() => heo.reflashEssayWaterFall(), 1000);
+    }
+}
 
         async function loadMomentPage(url, pushState = true) {
             const area = document.querySelector('#moments-page-area');
