@@ -89,7 +89,11 @@
                     <div id="article-container">
                         <section class="page-1 loadings">
                             <div class="type-gallery ">
-                                <div class="photo-page-gallery" data-page-size="20">
+
+
+                                <div class="gallery photo-page-gallery" data-page-size="20"></div>
+
+<template class="photo-page-source">
     <div class="fj-gallery-item" th:each="photo : ${photos.items}">
         <div th:if="${theme.config.photos.tagEnable}" class="tag-address">
             [[${photo.spec.displayName}]]
@@ -97,7 +101,7 @@
         <img th:src="${photo.spec.url}" th:alt="${photo.spec.description}"
              th:title="${photo.spec.description}">
     </div>
-</div>
+</template>
 
 <nav class="photo-pagination" style="display:none;">
     <a class="photo-page-btn photo-prev" href="javascript:void(0)">上一页</a>
@@ -316,34 +320,53 @@
         }
 
         function layoutGallery(gallery) {
-            resetGallery(gallery);
+    resetGallery(gallery);
 
-            if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
-                window.lazyLoadInstance.update();
+    gallery.classList.add('photo-gallery-loading');
+
+    if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
+        window.lazyLoadInstance.update();
+    }
+
+    waitImages(gallery, function () {
+        function runJustifiedGallery() {
+            gallery.className = 'gallery photo-page-gallery photo-gallery-loading';
+            gallery.removeAttribute('style');
+
+            if (window.btf && typeof btf.initJustifiedGallerys === 'function') {
+                btf.initJustifiedGallerys([gallery]);
+            }
+        }
+
+        function initLightboxAndRelayout() {
+            if (window.btf && typeof btf.loadLightbox === 'function') {
+                unwrapFancybox(gallery);
+                btf.loadLightbox(gallery.querySelectorAll('.fj-gallery-item > img'));
             }
 
-            waitImages(gallery, function () {
-                function runJustifiedGallery() {
-                    gallery.className = 'gallery photo-page-gallery';
-                    gallery.removeAttribute('style');
+            // fancybox 包裹图片后，再重新排一次图库，防止变成大图
+            setTimeout(runJustifiedGallery, 80);
+            setTimeout(runJustifiedGallery, 300);
+            setTimeout(runJustifiedGallery, 700);
 
-                    if (window.btf && typeof btf.initJustifiedGallerys === 'function') {
-                        btf.initJustifiedGallerys([gallery]);
-                    }
-                }
-
-                runJustifiedGallery();
-                setTimeout(runJustifiedGallery, 300);
-                setTimeout(runJustifiedGallery, 800);
-
-                setTimeout(function () {
-                    if (window.btf && typeof btf.loadLightbox === 'function') {
-                        unwrapFancybox(gallery);
-                        btf.loadLightbox(gallery.querySelectorAll('.fj-gallery-item > img'));
-                    }
-                }, 1000);
-            });
+            setTimeout(function () {
+                gallery.classList.remove('photo-gallery-loading');
+            }, 900);
         }
+
+        // 先排版
+        runJustifiedGallery();
+        setTimeout(runJustifiedGallery, 200);
+
+        // 再初始化灯箱，然后重新排版
+        setTimeout(initLightboxAndRelayout, 450);
+
+        // 兜底，避免异常时一直隐藏
+        setTimeout(function () {
+            gallery.classList.remove('photo-gallery-loading');
+        }, 1800);
+    });
+}
 
         function renderPhotoPage(gallery, page) {
             const allHtml = gallery.__photoAllHtml || [];
