@@ -49,7 +49,7 @@
                     <div id="article-container">
                         <section class="page-1 loadings">
                             <div class="type-gallery ">
-                                <div class="gallery photo-page-gallery" data-page-size="20">
+                                <div class="photo-page-gallery" data-page-size="20">
     <div class="fj-gallery-item" th:each="photo : ${photos.items}">
         <div th:if="${theme.config.photos.tagEnable}" class="tag-address">
             [[${photo.spec.displayName}]]
@@ -87,7 +87,7 @@
                     <div id="article-container">
                         <section class="page-1 loadings">
                             <div class="type-gallery ">
-                                <div class="gallery photo-page-gallery" data-page-size="20">
+                                <div class="photo-page-gallery" data-page-size="20">
     <div class="fj-gallery-item" th:each="photo : ${photos.items}">
         <div th:if="${theme.config.photos.tagEnable}" class="tag-address">
             [[${photo.spec.displayName}]]
@@ -321,23 +321,28 @@
         }
 
         function resetGalleryBeforeLayout(gallery) {
-            gallery.className = 'gallery photo-page-gallery';
-            gallery.removeAttribute('style');
+    gallery.className = 'photo-page-gallery';
+    gallery.removeAttribute('style');
 
-            gallery.querySelectorAll('.fj-gallery-item').forEach(function (item) {
-                item.className = 'fj-gallery-item';
-                item.removeAttribute('style');
-            });
+    gallery.querySelectorAll('.fj-gallery-item').forEach(function (item) {
+        item.className = 'fj-gallery-item';
+        item.removeAttribute('style');
+    });
 
-            gallery.querySelectorAll('img').forEach(function (img) {
-                img.removeAttribute('style');
-            });
+    gallery.querySelectorAll('img').forEach(function (img) {
+        img.removeAttribute('style');
+    });
 
-            const loading = gallery.closest('.loadings');
-            if (loading) {
-                loading.classList.add('loadings');
-            }
-        }
+    const section = gallery.closest('section');
+    if (section) {
+        section.classList.remove('loadings');
+    }
+
+    const typeGallery = gallery.closest('.type-gallery');
+    if (typeGallery) {
+        typeGallery.style.opacity = '1';
+    }
+}
         function waitGalleryImages(gallery, callback) {
     const imgs = Array.from(gallery.querySelectorAll('img'));
 
@@ -386,7 +391,16 @@
     }
 
     waitGalleryImages(gallery, function () {
-        ensureJustifiedGallery(function () {
+        // 这里只初始化灯箱，不再调用 btf.initJustifiedGallerys
+        setTimeout(function () {
+            initLightbox(gallery);
+        }, 50);
+
+        setTimeout(function () {
+            initLightbox(gallery);
+        }, 300);
+    });
+}
             function runLayout() {
                 if (window.btf && typeof btf.initJustifiedGallerys === 'function') {
                     btf.initJustifiedGallerys([gallery]);
