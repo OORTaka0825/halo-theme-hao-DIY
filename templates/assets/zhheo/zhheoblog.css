@@ -18845,3 +18845,28 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
   display: none !important;   /* ← 关键：必须隐藏伪元素 */
 }
 
+/* 侧边栏文章标签：固定容器高度 + 飘动标签 */
+#aside-content .card-tags .card-tag-cloud {
+    position: relative;
+    height: 260px;          /* 这里改方框高度 */
+    min-height: 260px;      /* 这里也跟着改 */
+    overflow: hidden;
+    padding: 10px 8px;
+}
+/* 飘动标签本身 */
+#aside-content .card-tags .card-tag-cloud a.tag-item {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    margin: 0;
+    padding: 2px 8px;
+    line-height: 1.8;
+    border-radius: 8px;
+    will-change: transform;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+/* 鼠标悬停时提高层级，避免被其他标签遮住 */
+#aside-content .card-tags .card-tag-cloud a.tag-item:hover {
+    z-index: 10;
+}
