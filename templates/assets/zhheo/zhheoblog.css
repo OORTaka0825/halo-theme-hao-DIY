@@ -18858,8 +18858,8 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     position: relative !important;
     inset: auto !important;
 
-    height: 170px;
-    min-height: 170px;
+    height: 180px;
+    min-height: 180px;
 
     overflow: hidden;
     box-sizing: border-box;
