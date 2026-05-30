@@ -18845,6 +18845,48 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
   display: none !important;   /* ← 关键：必须隐藏伪元素 */
 }
 
+/* 瞬间页面分页按钮 */
+#moment-pagination.moment-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 28px;
+    margin: 2rem auto 1rem;
+    color: var(--heo-fontcolor);
+}
+
+#moment-pagination .moment-page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 86px;
+    height: 38px;
+    padding: 0 18px;
+    border-radius: 20px;
+    border: 1px solid var(--heo-card-border);
+    background: var(--heo-card-bg);
+    color: var(--heo-fontcolor);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+#moment-pagination .moment-page-btn:hover {
+    background: var(--heo-main);
+    color: var(--heo-white);
+    border-color: var(--heo-main);
+}
+
+#moment-pagination .moment-page-btn.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+#moment-pagination .moment-page-num {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--heo-fontcolor);
+}
 /* 修复“标签&归档&统计”小工具中标签和统计重叠的问题 */
 /* 不要把整个 card-tags 卡片设成标签运动区域，因为统计也在里面 */
 #aside-content .card-widget.card-tags {
@@ -18886,53 +18928,45 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     z-index: 10;
 }
 
-/* 图库内容页：分页后的图片网格，不再使用主题自带 JustifiedGallery */
-#article-container .photo-page-gallery {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
-    width: 100%;
-    margin: 0 0 16px;
-    opacity: 1 !important;
+/* 图库内容页分页按钮 */
+.photo-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 28px;
+    margin: 2rem auto 1rem;
+    color: var(--heo-fontcolor);
 }
 
-#article-container .photo-page-gallery .fj-gallery-item {
-    position: relative !important;
-    width: auto !important;
-    height: 240px !important;      /* 图片高度主要改这里 */
-    margin: 0 !important;
-    overflow: hidden;
-    border-radius: 8px;
+.photo-pagination .photo-page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 86px;
+    height: 38px;
+    padding: 0 18px;
+    border-radius: 20px;
+    border: 1px solid var(--heo-card-border);
+    background: var(--heo-card-bg);
+    color: var(--heo-fontcolor);
+    text-decoration: none;
+    transition: all 0.2s ease;
 }
 
-#article-container .photo-page-gallery .fj-gallery-item > img,
-#article-container .photo-page-gallery .fj-gallery-item > a.fancybox,
-#article-container .photo-page-gallery .fj-gallery-item > a.fancybox > img {
-    display: block;
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover;
-    border-radius: 8px;
+.photo-pagination .photo-page-btn:hover {
+    background: var(--heo-main);
+    color: var(--heo-white);
+    border-color: var(--heo-main);
 }
 
-/* 平板 */
-@media screen and (max-width: 768px) {
-    #article-container .photo-page-gallery {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    #article-container .photo-page-gallery .fj-gallery-item {
-        height: 180px !important;
-    }
+.photo-pagination .photo-page-btn.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
-/* 手机 */
-@media screen and (max-width: 480px) {
-    #article-container .photo-page-gallery {
-        grid-template-columns: repeat(1, minmax(0, 1fr));
-    }
-
-    #article-container .photo-page-gallery .fj-gallery-item {
-        height: 200px !important;
-    }
+.photo-pagination .photo-page-num {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--heo-fontcolor);
 }

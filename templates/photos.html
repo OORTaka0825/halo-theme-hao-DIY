@@ -49,7 +49,9 @@
                     <div id="article-container">
                         <section class="page-1 loadings">
                             <div class="type-gallery ">
-                                <div class="photo-page-gallery" data-page-size="20">
+                                <div class="gallery photo-page-gallery" data-page-size="20"></div>
+
+<template class="photo-page-source">
     <div class="fj-gallery-item" th:each="photo : ${photos.items}">
         <div th:if="${theme.config.photos.tagEnable}" class="tag-address">
             [[${photo.spec.displayName}]]
@@ -57,7 +59,7 @@
         <img th:src="${photo.spec.url}" th:alt="${photo.spec.description}"
              th:title="${photo.spec.description}">
     </div>
-</div>
+</template>
 
 <nav class="photo-pagination" style="display:none;">
     <a class="photo-page-btn photo-prev" href="javascript:void(0)">上一页</a>
@@ -249,299 +251,218 @@
             });
         }
 
-        function cleanPhotoItem(item) {
-            const clone = item.cloneNode(true);
+        function waitImages(gallery, callback) {
+            const imgs = Array.from(gallery.querySelectorAll('img'));
 
-            clone.className = 'fj-gallery-item';
-            clone.removeAttribute('style');
-
-            clone.querySelectorAll('[style]').forEach(function (el) {
-                el.removeAttribute('style');
-            });
-
-            unwrapFancybox(clone);
-
-            return clone.outerHTML;
-        }
-
-        function ensureJustifiedGallery(callback) {
-            if (window.fjGallery && window.btf && typeof btf.initJustifiedGallerys === 'function') {
+            if (!imgs.length) {
                 callback();
                 return;
             }
 
-            if (!window.GLOBAL_CONFIG || !GLOBAL_CONFIG.source || !GLOBAL_CONFIG.source.justifiedGallery) {
-                setTimeout(function () {
-                    ensureJustifiedGallery(callback);
-                }, 200);
-                return;
+            let rest = imgs.length;
+            let done = false;
+
+            function finishOne() {
+                if (done) return;
+                rest--;
+
+                if (rest <= 0) {
+                    done = true;
+                    callback();
+                }
             }
 
-            if (!document.querySelector('link[data-photo-jg-css]')) {
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.type = 'text/css';
-                link.href = GLOBAL_CONFIG.source.justifiedGallery.css;
-                link.setAttribute('data-photo-jg-css', 'true');
-                document.head.appendChild(link);
-            }
+            imgs.forEach(function (img) {
+                if (img.complete && img.naturalWidth > 0) {
+                    finishOne();
+                } else {
+                    img.addEventListener('load', finishOne, { once: true });
+                    img.addEventListener('error', finishOne, { once: true });
+                }
+            });
 
-            if (window.__photoJgLoading) {
-                window.__photoJgCallbacks = window.__photoJgCallbacks || [];
-                window.__photoJgCallbacks.push(callback);
-                return;
-            }
-
-            window.__photoJgLoading = true;
-            window.__photoJgCallbacks = [callback];
-
-            if (window.jQuery) {
-                jQuery.getScript(GLOBAL_CONFIG.source.justifiedGallery.js, function () {
-                    window.__photoJgLoading = false;
-                    const callbacks = window.__photoJgCallbacks || [];
-                    window.__photoJgCallbacks = [];
-                    callbacks.forEach(function (fn) {
-                        fn();
-                    });
-                });
-            } else {
-                setTimeout(function () {
-                    window.__photoJgLoading = false;
-                    ensureJustifiedGallery(callback);
-                }, 300);
-            }
+            setTimeout(function () {
+                if (!done) {
+                    done = true;
+                    callback();
+                }
+            }, 2500);
         }
 
-        function initLightbox(gallery) {
+        function resetGallery(gallery) {
+            gallery.className = 'gallery photo-page-gallery';
+            gallery.removeAttribute('style');
+
+            gallery.querySelectorAll('.fj-gallery-item').forEach(function (item) {
+                item.className = 'fj-gallery-item';
+                item.removeAttribute('style');
+            });
+
+            gallery.querySelectorAll('[style]').forEach(function (el) {
+                el.removeAttribute('style');
+            });
+
             unwrapFancybox(gallery);
 
-            if (window.btf && typeof btf.loadLightbox === 'function') {
-                btf.loadLightbox(gallery.querySelectorAll('.fj-gallery-item > img'));
+            const section = gallery.closest('.loadings');
+            if (section) {
+                section.classList.remove('loadings');
+            }
+
+            const typeGallery = gallery.closest('.type-gallery');
+            if (typeGallery) {
+                typeGallery.style.opacity = '1';
             }
         }
 
-        function resetGalleryBeforeLayout(gallery) {
-    gallery.className = 'photo-page-gallery';
-    gallery.removeAttribute('style');
+        function layoutGallery(gallery) {
+            resetGallery(gallery);
 
-    gallery.querySelectorAll('.fj-gallery-item').forEach(function (item) {
-        item.className = 'fj-gallery-item';
-        item.removeAttribute('style');
-    });
-
-    gallery.querySelectorAll('img').forEach(function (img) {
-        img.removeAttribute('style');
-    });
-
-    const section = gallery.closest('section');
-    if (section) {
-        section.classList.remove('loadings');
-    }
-
-    const typeGallery = gallery.closest('.type-gallery');
-    if (typeGallery) {
-        typeGallery.style.opacity = '1';
-    }
-}
-        function waitGalleryImages(gallery, callback) {
-    const imgs = Array.from(gallery.querySelectorAll('img'));
-
-    if (!imgs.length) {
-        callback();
-        return;
-    }
-
-    let rest = imgs.length;
-    let finished = false;
-
-    function doneOne() {
-        if (finished) return;
-
-        rest--;
-
-        if (rest <= 0) {
-            finished = true;
-            callback();
-        }
-    }
-
-    imgs.forEach(function (img) {
-        if (img.complete && img.naturalWidth > 0) {
-            doneOne();
-        } else {
-            img.addEventListener('load', doneOne, { once: true });
-            img.addEventListener('error', doneOne, { once: true });
-        }
-    });
-
-    // 兜底：避免某张图加载失败导致一直不初始化
-    setTimeout(function () {
-        if (!finished) {
-            finished = true;
-            callback();
-        }
-    }, 2500);
-}
-
-        function reInitPhotoGallery(gallery) {
-    resetGalleryBeforeLayout(gallery);
-
-    if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
-        window.lazyLoadInstance.update();
-    }
-
-    waitGalleryImages(gallery, function () {
-        // 这里只初始化灯箱，不再调用 btf.initJustifiedGallerys
-        setTimeout(function () {
-            initLightbox(gallery);
-        }, 50);
-
-        setTimeout(function () {
-            initLightbox(gallery);
-        }, 300);
-    });
-}
-            function runLayout() {
-                if (window.btf && typeof btf.initJustifiedGallerys === 'function') {
-                    btf.initJustifiedGallerys([gallery]);
-                }
+            if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
+                window.lazyLoadInstance.update();
             }
 
-            // 图片加载完成后再计算图库布局
-            runLayout();
+            waitImages(gallery, function () {
+                function runJustifiedGallery() {
+                    gallery.className = 'gallery photo-page-gallery';
+                    gallery.removeAttribute('style');
 
-            // 再延迟计算几次，防止浏览器刚渲染时尺寸还没稳定
-            setTimeout(runLayout, 200);
-            setTimeout(runLayout, 600);
-
-            // 等布局稳定后再初始化灯箱，避免图片被包裹后影响布局计算
-            setTimeout(function () {
-                initLightbox(gallery);
-            }, 800);
-        });
-    });
-}
-
-        function initPhotoPagination() {
-            document.querySelectorAll('.photo-page-gallery').forEach(function (gallery) {
-                if (gallery.dataset.photoPaginationReady === 'true') {
-                    return;
-                }
-
-                const pagination = gallery.parentElement.querySelector('.photo-pagination');
-                if (!pagination) return;
-
-                const rawItems = Array.from(gallery.querySelectorAll('.fj-gallery-item'));
-                if (!rawItems.length) return;
-
-                const allHtml = rawItems.map(cleanPhotoItem);
-                const pageSize = Number(gallery.dataset.pageSize || 20);
-                const totalPages = Math.ceil(allHtml.length / pageSize);
-
-                let currentPage = 1;
-
-                const prevBtn = pagination.querySelector('.photo-prev');
-                const nextBtn = pagination.querySelector('.photo-next');
-                const currentEl = pagination.querySelector('.photo-current');
-                const totalEl = pagination.querySelector('.photo-total');
-
-                gallery.dataset.photoPaginationReady = 'true';
-
-                if (totalEl) {
-                    totalEl.textContent = totalPages;
-                }
-
-                if (totalPages <= 1) {
-                    pagination.style.display = 'none';
-                } else {
-                    pagination.style.display = 'flex';
-                }
-
-                function render(page) {
-                    currentPage = Math.max(1, Math.min(page, totalPages));
-
-                    const start = (currentPage - 1) * pageSize;
-                    const end = start + pageSize;
-
-                    gallery.innerHTML = allHtml.slice(start, end).join('');
-
-                    if (currentEl) {
-                        currentEl.textContent = currentPage;
+                    if (window.btf && typeof btf.initJustifiedGallerys === 'function') {
+                        btf.initJustifiedGallerys([gallery]);
                     }
+                }
 
-                    if (prevBtn) {
-                        prevBtn.classList.toggle('disabled', currentPage <= 1);
+                runJustifiedGallery();
+                setTimeout(runJustifiedGallery, 300);
+                setTimeout(runJustifiedGallery, 800);
+
+                setTimeout(function () {
+                    if (window.btf && typeof btf.loadLightbox === 'function') {
+                        unwrapFancybox(gallery);
+                        btf.loadLightbox(gallery.querySelectorAll('.fj-gallery-item > img'));
                     }
-
-                    if (nextBtn) {
-                        nextBtn.classList.toggle('disabled', currentPage >= totalPages);
-                    }
-
-                    reInitPhotoGallery(gallery);
-                }
-
-                if (prevBtn) {
-                    prevBtn.onclick = function () {
-                        if (currentPage > 1) {
-                            render(currentPage - 1);
-                        }
-                    };
-                }
-
-                if (nextBtn) {
-                    nextBtn.onclick = function () {
-                        if (currentPage < totalPages) {
-                            render(currentPage + 1);
-                        }
-                    };
-                }
-
-                render(1);
+                }, 1000);
             });
         }
 
-        function relayoutPhotoGalleries() {
-    document.querySelectorAll('.photo-page-gallery').forEach(function (gallery) {
-        if (gallery.dataset.photoPaginationReady === 'true') {
-            reInitPhotoGallery(gallery);
+        function renderPhotoPage(gallery, page) {
+            const allHtml = gallery.__photoAllHtml || [];
+            const pageSize = gallery.__photoPageSize || 20;
+            const totalPages = Math.max(1, Math.ceil(allHtml.length / pageSize));
+
+            page = Math.max(1, Math.min(page, totalPages));
+            gallery.__photoCurrentPage = page;
+
+            const start = (page - 1) * pageSize;
+            const end = start + pageSize;
+
+            gallery.innerHTML = allHtml.slice(start, end).join('');
+
+            const wrapper = gallery.parentElement;
+            const pagination = wrapper.querySelector('.photo-pagination');
+
+            if (pagination) {
+                const currentEl = pagination.querySelector('.photo-current');
+                const totalEl = pagination.querySelector('.photo-total');
+                const prevBtn = pagination.querySelector('.photo-prev');
+                const nextBtn = pagination.querySelector('.photo-next');
+
+                if (currentEl) currentEl.textContent = page;
+                if (totalEl) totalEl.textContent = totalPages;
+
+                if (prevBtn) prevBtn.classList.toggle('disabled', page <= 1);
+                if (nextBtn) nextBtn.classList.toggle('disabled', page >= totalPages);
+
+                pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+            }
+
+            layoutGallery(gallery);
         }
-    });
-}
 
-function bootPhotoPagination() {
-    setTimeout(initPhotoPagination, 0);
-    setTimeout(initPhotoPagination, 300);
-    setTimeout(initPhotoPagination, 800);
+        function initPhotoPagination() {
+            document.querySelectorAll('.photo-page-gallery').forEach(function (gallery) {
+                if (gallery.dataset.photoPaginationReady === 'true') return;
 
-    // 首次进入页面时，等图片基本加载后再重排一次
-    setTimeout(relayoutPhotoGalleries, 1500);
-    setTimeout(relayoutPhotoGalleries, 3000);
-}
+                const wrapper = gallery.parentElement;
+                const source = wrapper.querySelector('.photo-page-source');
+                const pagination = wrapper.querySelector('.photo-pagination');
+
+                if (!source || !pagination || !source.content) return;
+
+                const items = Array.from(source.content.querySelectorAll('.fj-gallery-item'));
+                if (!items.length) return;
+
+                gallery.__photoAllHtml = items.map(function (item) {
+                    const clone = item.cloneNode(true);
+                    clone.removeAttribute('style');
+                    clone.querySelectorAll('[style]').forEach(function (el) {
+                        el.removeAttribute('style');
+                    });
+                    unwrapFancybox(clone);
+                    return clone.outerHTML;
+                });
+
+                gallery.__photoPageSize = Number(gallery.dataset.pageSize || 20);
+                gallery.__photoCurrentPage = 1;
+
+                gallery.dataset.photoPaginationReady = 'true';
+
+                renderPhotoPage(gallery, 1);
+            });
+        }
+
+        if (!window.__haoPhotoPaginationBinded) {
+            window.__haoPhotoPaginationBinded = true;
+
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('.photo-pagination .photo-page-btn');
+                if (!btn || btn.classList.contains('disabled')) return;
+
+                e.preventDefault();
+
+                const wrapper = btn.closest('.type-gallery');
+                if (!wrapper) return;
+
+                const gallery = wrapper.querySelector('.photo-page-gallery');
+                if (!gallery) return;
+
+                const current = gallery.__photoCurrentPage || 1;
+
+                if (btn.classList.contains('photo-prev')) {
+                    renderPhotoPage(gallery, current - 1);
+                }
+
+                if (btn.classList.contains('photo-next')) {
+                    renderPhotoPage(gallery, current + 1);
+                }
+            });
+
+            let resizeTimer = null;
+            window.addEventListener('resize', function () {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(function () {
+                    document.querySelectorAll('.photo-page-gallery').forEach(function (gallery) {
+                        if (gallery.dataset.photoPaginationReady === 'true') {
+                            layoutGallery(gallery);
+                        }
+                    });
+                }, 300);
+            });
+        }
+
+        function bootPhotoPagination() {
+            setTimeout(initPhotoPagination, 0);
+            setTimeout(initPhotoPagination, 300);
+            setTimeout(initPhotoPagination, 800);
+        }
 
         if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootPhotoPagination);
-} else {
-    bootPhotoPagination();
-}
+            document.addEventListener('DOMContentLoaded', bootPhotoPagination);
+        } else {
+            bootPhotoPagination();
+        }
 
-window.addEventListener('load', function () {
-    setTimeout(relayoutPhotoGalleries, 300);
-}, { once: true });
-
-document.addEventListener('pjax:complete', bootPhotoPagination);
-let photoResizeTimer = null;
-
-window.addEventListener('resize', function () {
-    clearTimeout(photoResizeTimer);
-
-    photoResizeTimer = setTimeout(function () {
-        document.querySelectorAll('.photo-page-gallery').forEach(function (gallery) {
-            if (gallery.dataset.photoPaginationReady === 'true') {
-                reInitPhotoGallery(gallery);
-            }
-        });
-    }, 300);
-});
+        document.addEventListener('pjax:complete', bootPhotoPagination);
     })();
 </script>
                 <!--/* 评论组件 */-->
