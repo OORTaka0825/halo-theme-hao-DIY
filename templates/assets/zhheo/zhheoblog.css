@@ -18846,12 +18846,38 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 }
 
 /* 侧边栏文章标签：固定容器高度 + 飘动标签 */
-#aside-content .card-tags .card-tag-cloud {
+/* 侧边栏文章标签：让整个绿色卡片成为标签运动区域 */
+#aside-content .card-widget.card-tags {
     position: relative;
-    height: 260px;          /* 这里改方框高度 */
-    min-height: 260px;      /* 这里也跟着改 */
+    height: 301px;          /* 整个绿色方框高度，在这里改 */
+    min-height: 301px;      /* 跟上面保持一致 */
     overflow: hidden;
-    padding: 10px 8px;
+}
+
+/* 标签云容器铺满整个 card-tags 卡片 */
+#aside-content .card-widget.card-tags .card-tag-cloud {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* 标签本身 */
+#aside-content .card-widget.card-tags .card-tag-cloud a.tag-item {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    margin: 0;
+    padding: 2px 8px;
+    line-height: 1.8;
+    border-radius: 8px;
+    will-change: transform;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 /* 飘动标签本身 */
 #aside-content .card-tags .card-tag-cloud a.tag-item {
