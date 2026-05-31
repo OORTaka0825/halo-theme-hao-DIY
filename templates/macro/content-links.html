@@ -120,6 +120,11 @@
                 .link-exchange-panel-title i{
                     color:var(--heo-theme);
                 }
+                .link-exchange-title-note{
+                    font-size:.72rem;
+                    font-weight:600;
+                    color:var(--heo-secondtext);
+                }
                 .link-exchange-row{
                     display:grid;
                     grid-template-columns:72px minmax(0,1fr) 32px;
@@ -244,9 +249,10 @@
                         <span class="link-exchange-value" th:text="${theme.config.link.myBlogInfo.rss}"></span>
                         <button class="link-exchange-copy" type="button" aria-label="复制 RSS" th:attr="data-copy=${theme.config.link.myBlogInfo.rss}" onclick="haoCopyLinkInfo(this)"><i class="haofont hao-icon-copy"></i></button>
                     </div>
+                    <p class="link-exchange-note">欢迎交换友链，请按右侧格式提交信息。我会尽快审核并添加。</p>
                 </div>
                 <div class="link-exchange-panel">
-                    <h2 class="link-exchange-panel-title"><i class="haofont hao-icon-paper-plane1"></i><span>申请友链信息</span></h2>
+                    <h2 class="link-exchange-panel-title"><i class="haofont hao-icon-paper-plane1"></i><span>申请友链信息</span><span class="link-exchange-title-note">（站点可正常访问）</span></h2>
                     <div class="link-exchange-require-list">
                         <div class="link-exchange-require-row">
                             <span class="link-exchange-label">博客名称</span>
@@ -264,12 +270,7 @@
                             <span class="link-exchange-label">博客头像</span>
                             <span class="link-exchange-value">Logo 或头像图片链接</span>
                         </div>
-                        <div class="link-exchange-require-row">
-                            <span class="link-exchange-label">基本要求</span>
-                            <span class="link-exchange-value">站点可正常访问，内容保持更新</span>
-                        </div>
                     </div>
-                    <p class="link-exchange-note">欢迎交换友链，请按以上格式提交信息。我会尽快审核并添加。</p>
                     <a class="link-exchange-action" th:if="${theme.config.link.linkSubmitEnable && pluginFinder.available('link-submit')}" href="javascript:LinkSubmitWidget.open()" rel="external nofollow">
                         <i class="haofont hao-icon-link"></i><span>提交友链</span>
                     </a>
