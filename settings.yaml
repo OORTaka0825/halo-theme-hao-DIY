@@ -2191,8 +2191,8 @@ spec:
           children:
             - $formkit: radio
               name: enable
-              label: 显示信息卡片
-              help: 开启后，在友链列表上方显示“我的博客信息 / 申请友链”双栏提示卡片。
+              label: 显示我的博客信息
+              help: 开启后，会在友链页推荐博客上方显示“我的博客信息 / 申请友链信息”双栏提示。
               value: false
               options:
                 - label: 开启
@@ -2207,10 +2207,11 @@ spec:
               name: url
               label: 网址
               placeholder: 请输入你的博客地址，例如 https://example.com/
-            - $formkit: attachment
+            - $formkit: url
               name: logo
-              label: Logo
-              placeholder: 请输入 Logo 或头像链接
+              label: Logo / 头像地址
+              placeholder: 请输入 Logo 或头像图片链接，例如 https://example.com/avatar.png
+              help: 这里是纯网址输入框，不会在后台显示图片预览；前台也只显示链接文本，不会显示大头像。
             - $formkit: text
               name: description
               label: 描述
