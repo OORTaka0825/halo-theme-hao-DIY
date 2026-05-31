@@ -18929,7 +18929,16 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 }
 
 
-/* 图库内容页分页按钮：只控制按钮，不强行改图片排版 */
+/* 图库内容页分页按钮 */
+#article-container .photo-page-gallery.photo-paging-wait {
+    opacity: 0 !important;
+    min-height: 260px;
+}
+
+#article-container .photo-page-gallery.photo-pagination-ready {
+    opacity: 1 !important;
+}
+
 .photo-pagination {
     display: flex;
     justify-content: center;
