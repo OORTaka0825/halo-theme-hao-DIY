@@ -18928,6 +18928,7 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     z-index: 10;
 }
 
+
 /* 图库内容页分页按钮 */
 .photo-pagination {
     display: flex;
@@ -18969,27 +18970,4 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     font-weight: 600;
     font-size: 1rem;
     color: var(--heo-fontcolor);
-}
-/* 图库分页：排版完成前先隐藏，避免刷新瞬间显示大图 */
-#article-container .photo-page-gallery.photo-gallery-loading {
-    opacity: 0 !important;
-    min-height: 240px;
-}
-
-/* 防止 fancybox 包裹图片后把 JustifiedGallery 撑成大图 */
-#article-container .photo-page-gallery .fj-gallery-item > a.fancybox {
-    display: block;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    border-radius: 8px;
-}
-
-#article-container .photo-page-gallery .fj-gallery-item > a.fancybox > img {
-    display: block;
-    width: 100% !important;
-    height: 100% !important;
-    max-width: none !important;
-    object-fit: cover;
-    border-radius: 8px;
 }
