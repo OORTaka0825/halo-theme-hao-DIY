@@ -18923,60 +18923,7 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     will-change: transform;
     transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
-
 #aside-content .card-widget.card-tags .card-tag-cloud a.tag-item:hover {
     z-index: 10;
 }
 
-
-/* 图库内容页分页按钮 */
-#article-container .photo-page-gallery.photo-paging-wait {
-    opacity: 0 !important;
-    min-height: 260px;
-}
-
-#article-container .photo-page-gallery.photo-pagination-ready {
-    opacity: 1 !important;
-}
-
-.photo-pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 28px;
-    margin: 2rem auto 1rem;
-    color: var(--heo-fontcolor);
-}
-
-.photo-pagination .photo-page-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 86px;
-    height: 38px;
-    padding: 0 18px;
-    border-radius: 20px;
-    border: 1px solid var(--heo-card-border);
-    background: var(--heo-card-bg);
-    color: var(--heo-fontcolor);
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-.photo-pagination .photo-page-btn:hover {
-    background: var(--heo-main);
-    color: var(--heo-white);
-    border-color: var(--heo-main);
-}
-
-.photo-pagination .photo-page-btn.disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-
-.photo-pagination .photo-page-num {
-    font-weight: 600;
-    font-size: 1rem;
-    color: var(--heo-fontcolor);
-}
