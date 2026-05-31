@@ -11,13 +11,21 @@
                     <i class="haofont hao-icon-paper-plane1"></i>
                     <span class="banner-button-text">随机访问</span>
                 </a>
-                <a th:if="${theme.config.link.linkSubmitEnable}" class="banner-button" href="javascript:void(0)"
-                   rel="external nofollow"
-                   onclick="event.preventDefault(); if (typeof openLinksSubmitOverlay === 'function') { openLinksSubmitOverlay(); } else { window.location.href = '#post-comment'; }">
-                    <i class="haofont hao-icon-link"></i>
-                    <span class="banner-button-text">申请友链</span>
-                </a>
-                <a th:unless="${theme.config.link.linkSubmitEnable}" class="banner-button" href="#post-comment" rel="external nofollow">
+                <!-- 友链自助提交插件适配：关闭时保持原评论区申请；开启且插件可用时调用插件作者提供的 JS API -->
+                <th:block th:if="${theme.config.link.linkSubmitEnable}">
+                    <a th:if="${pluginFinder.available('link-submit')}" class="banner-button" href="javascript:LinkSubmitWidget.open()"
+                       title="提交友链" rel="external nofollow">
+                        <i class="haofont hao-icon-link"></i>
+                        <span class="banner-button-text">申请友链</span>
+                    </a>
+                    <a th:unless="${pluginFinder.available('link-submit')}" class="banner-button" href="#post-comment"
+                       title="申请友链" rel="external nofollow">
+                        <i class="haofont hao-icon-link"></i>
+                        <span class="banner-button-text">申请友链</span>
+                    </a>
+                </th:block>
+                <a th:unless="${theme.config.link.linkSubmitEnable}" class="banner-button" href="#post-comment"
+                   title="申请友链" rel="external nofollow">
                     <i class="haofont hao-icon-link"></i>
                     <span class="banner-button-text">申请友链</span>
                 </a>
