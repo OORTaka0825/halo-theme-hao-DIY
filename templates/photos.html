@@ -248,29 +248,39 @@
 
                 <script data-pjax>
     (function () {
-        function unwrapFancybox(root) {
-            root.querySelectorAll('a.fancybox > img').forEach(function (img) {
-                const a = img.parentNode;
-                a.parentNode.replaceChild(img, a);
+        /**
+         * 图库内容页前端分页
+         * 只控制每页显示哪些图片；图片排版继续交给主题原来的 fjGallery / JustifiedGallery。
+         */
+
+        function getItemsFromTemplate(source) {
+            if (!source) return [];
+
+            const nodes = source.content
+                ? source.content.querySelectorAll('.fj-gallery-item')
+                : [];
+
+            return Array.from(nodes).map(function (item) {
+                const clone = item.cloneNode(true);
+
+                clone.className = 'fj-gallery-item';
+                clone.removeAttribute('style');
+
+                clone.querySelectorAll('[style]').forEach(function (el) {
+                    el.removeAttribute('style');
+                });
+
+                // 防止重复包 fancybox
+                clone.querySelectorAll('a.fancybox > img').forEach(function (img) {
+                    const a = img.parentNode;
+                    a.parentNode.replaceChild(img, a);
+                });
+
+                return clone.outerHTML;
             });
         }
 
-        function cleanPhotoItem(item) {
-            const clone = item.cloneNode(true);
-
-            clone.className = 'fj-gallery-item';
-            clone.removeAttribute('style');
-
-            clone.querySelectorAll('[style]').forEach(function (el) {
-                el.removeAttribute('style');
-            });
-
-            unwrapFancybox(clone);
-
-            return clone.outerHTML;
-        }
-
-        function ensureJustifiedGallery(callback) {
+        function ensureFjGallery(callback) {
             if (typeof window.fjGallery === 'function') {
                 callback();
                 return;
@@ -278,45 +288,47 @@
 
             if (!window.GLOBAL_CONFIG || !GLOBAL_CONFIG.source || !GLOBAL_CONFIG.source.justifiedGallery) {
                 setTimeout(function () {
-                    ensureJustifiedGallery(callback);
+                    ensureFjGallery(callback);
                 }, 200);
                 return;
             }
 
-            if (!document.querySelector('link[data-photo-jg-css]')) {
+            const source = GLOBAL_CONFIG.source.justifiedGallery;
+
+            if (source.css && !document.querySelector('link[data-hao-photo-jg-css]')) {
                 const link = document.createElement('link');
                 link.rel = 'stylesheet';
-                link.href = GLOBAL_CONFIG.source.justifiedGallery.css;
-                link.setAttribute('data-photo-jg-css', 'true');
+                link.type = 'text/css';
+                link.href = source.css;
+                link.setAttribute('data-hao-photo-jg-css', 'true');
                 document.head.appendChild(link);
             }
 
-            if (window.__photoJgLoading) {
-                window.__photoJgCallbacks = window.__photoJgCallbacks || [];
-                window.__photoJgCallbacks.push(callback);
-                return;
-            }
+            window.__haoPhotoJgCallbacks = window.__haoPhotoJgCallbacks || [];
+            window.__haoPhotoJgCallbacks.push(callback);
 
-            window.__photoJgLoading = true;
-            window.__photoJgCallbacks = [callback];
+            if (window.__haoPhotoJgLoading) return;
+            window.__haoPhotoJgLoading = true;
 
-            if (window.jQuery) {
-                jQuery.getScript(GLOBAL_CONFIG.source.justifiedGallery.js, function () {
-                    window.__photoJgLoading = false;
+            const script = document.createElement('script');
+            script.src = source.js;
+            script.async = true;
 
-                    const callbacks = window.__photoJgCallbacks || [];
-                    window.__photoJgCallbacks = [];
-
-                    callbacks.forEach(function (fn) {
-                        fn();
-                    });
+            script.onload = function () {
+                window.__haoPhotoJgLoading = false;
+                const callbacks = window.__haoPhotoJgCallbacks || [];
+                window.__haoPhotoJgCallbacks = [];
+                callbacks.forEach(function (fn) {
+                    fn();
                 });
-            } else {
-                setTimeout(function () {
-                    window.__photoJgLoading = false;
-                    ensureJustifiedGallery(callback);
-                }, 300);
-            }
+            };
+
+            script.onerror = function () {
+                window.__haoPhotoJgLoading = false;
+                console.warn('图库排版脚本加载失败：', source.js);
+            };
+
+            document.head.appendChild(script);
         }
 
         function waitImages(gallery, callback) {
@@ -332,7 +344,6 @@
 
             function finishOne() {
                 if (done) return;
-
                 rest--;
 
                 if (rest <= 0) {
@@ -350,6 +361,7 @@
                 }
             });
 
+            // 兜底，避免某张图片异常时页面一直等待
             setTimeout(function () {
                 if (!done) {
                     done = true;
@@ -359,7 +371,7 @@
         }
 
         function resetGallery(gallery) {
-            gallery.className = 'gallery photo-page-gallery';
+            gallery.className = 'gallery photo-page-gallery photo-page-preparing';
             gallery.removeAttribute('style');
 
             gallery.querySelectorAll('.fj-gallery-item').forEach(function (item) {
@@ -371,7 +383,11 @@
                 el.removeAttribute('style');
             });
 
-            unwrapFancybox(gallery);
+            // 如果之前被 fancybox 包过，先还原，避免再次分页时 DOM 越包越多
+            gallery.querySelectorAll('a.fancybox > img').forEach(function (img) {
+                const a = img.parentNode;
+                a.parentNode.replaceChild(img, a);
+            });
 
             const section = gallery.closest('.loadings');
             if (section) {
@@ -384,52 +400,80 @@
             }
         }
 
-        function layoutGallery(gallery) {
-    resetGallery(gallery);
-
-    gallery.classList.add('photo-page-preparing');
-
-    if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
-        window.lazyLoadInstance.update();
-    }
-
-    waitImages(gallery, function () {
-        ensureJustifiedGallery(function () {
-            function runLayout() {
-                gallery.className = 'gallery photo-page-gallery photo-page-preparing';
-                gallery.removeAttribute('style');
-
-                gallery.querySelectorAll('.fj-gallery-item').forEach(function (item) {
-                    item.className = 'fj-gallery-item';
-                    item.removeAttribute('style');
+        function runFjGallery(gallery) {
+            if (typeof window.fjGallery === 'function') {
+                window.fjGallery(gallery, {
+                    itemSelector: '.fj-gallery-item',
+                    rowHeight: 240,
+                    gutter: 4,
+                    onJustify: function () {
+                        this.$container.style.opacity = '1';
+                        this.$container.classList.remove('photo-page-preparing');
+                    }
                 });
+            } else if (window.btf && typeof btf.initJustifiedGallerys === 'function') {
+                btf.initJustifiedGallerys([gallery]);
+                gallery.classList.remove('photo-page-preparing');
+            } else {
+                gallery.classList.remove('photo-page-preparing');
+            }
+        }
 
-                if (window.btf && typeof btf.initJustifiedGallerys === 'function') {
-                    btf.initJustifiedGallerys([gallery]);
-                }
+        function layoutGallery(gallery) {
+            const token = (gallery.__photoLayoutToken || 0) + 1;
+            gallery.__photoLayoutToken = token;
+
+            resetGallery(gallery);
+
+            if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
+                window.lazyLoadInstance.update();
             }
 
-            // 先用主题原来的 JustifiedGallery 排版
-            runLayout();
+            waitImages(gallery, function () {
+                if (token !== gallery.__photoLayoutToken) return;
 
-            setTimeout(runLayout, 300);
-            setTimeout(runLayout, 700);
+                ensureFjGallery(function () {
+                    if (token !== gallery.__photoLayoutToken) return;
 
-            // 排版完成后，再包 fancybox
-            setTimeout(function () {
-                if (window.btf && typeof btf.loadLightbox === 'function') {
-                    // 只包还没被 fancybox 包住的 img
-                    btf.loadLightbox(gallery.querySelectorAll('.fj-gallery-item > img'));
-                }
-            }, 900);
+                    runFjGallery(gallery);
 
-            // 最后显示，避免一开始闪大图
-            setTimeout(function () {
-                gallery.classList.remove('photo-page-preparing');
-            }, 1100);
-        });
-    });
-}
+                    // 图片尺寸、窗口宽度可能稍后稳定，再补排几次
+                    setTimeout(function () {
+                        if (token === gallery.__photoLayoutToken) runFjGallery(gallery);
+                    }, 300);
+
+                    setTimeout(function () {
+                        if (token === gallery.__photoLayoutToken) runFjGallery(gallery);
+                    }, 800);
+
+                    // 保险：如果排版库没有回调，也不要一直隐藏
+                    setTimeout(function () {
+                        if (token === gallery.__photoLayoutToken) {
+                            gallery.classList.remove('photo-page-preparing');
+                        }
+                    }, 1200);
+                });
+            });
+        }
+
+        function updatePagination(gallery, page, totalPages) {
+            const wrapper = gallery.parentElement;
+            const pagination = wrapper ? wrapper.querySelector('.photo-pagination') : null;
+            if (!pagination) return;
+
+            const currentEl = pagination.querySelector('.photo-current');
+            const totalEl = pagination.querySelector('.photo-total');
+            const prevBtn = pagination.querySelector('.photo-prev');
+            const nextBtn = pagination.querySelector('.photo-next');
+
+            if (currentEl) currentEl.textContent = page;
+            if (totalEl) totalEl.textContent = totalPages;
+
+            if (prevBtn) prevBtn.classList.toggle('disabled', page <= 1);
+            if (nextBtn) nextBtn.classList.toggle('disabled', page >= totalPages);
+
+            pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+        }
 
         function renderPhotoPage(gallery, page) {
             const allHtml = gallery.__photoAllHtml || [];
@@ -444,24 +488,7 @@
 
             gallery.innerHTML = allHtml.slice(start, end).join('');
 
-            const wrapper = gallery.parentElement;
-            const pagination = wrapper.querySelector('.photo-pagination');
-
-            if (pagination) {
-                const currentEl = pagination.querySelector('.photo-current');
-                const totalEl = pagination.querySelector('.photo-total');
-                const prevBtn = pagination.querySelector('.photo-prev');
-                const nextBtn = pagination.querySelector('.photo-next');
-
-                if (currentEl) currentEl.textContent = page;
-                if (totalEl) totalEl.textContent = totalPages;
-
-                if (prevBtn) prevBtn.classList.toggle('disabled', page <= 1);
-                if (nextBtn) nextBtn.classList.toggle('disabled', page >= totalPages);
-
-                pagination.style.display = totalPages > 1 ? 'flex' : 'none';
-            }
-
+            updatePagination(gallery, page, totalPages);
             layoutGallery(gallery);
         }
 
@@ -470,15 +497,15 @@
                 if (gallery.dataset.photoPaginationReady === 'true') return;
 
                 const wrapper = gallery.parentElement;
-                const source = wrapper.querySelector('.photo-page-source');
-                const pagination = wrapper.querySelector('.photo-pagination');
+                const source = wrapper ? wrapper.querySelector('.photo-page-source') : null;
+                const pagination = wrapper ? wrapper.querySelector('.photo-pagination') : null;
 
                 if (!source || !pagination || !source.content) return;
 
-                const items = Array.from(source.content.querySelectorAll('.fj-gallery-item'));
-                if (!items.length) return;
+                const allHtml = getItemsFromTemplate(source);
+                if (!allHtml.length) return;
 
-                gallery.__photoAllHtml = items.map(cleanPhotoItem);
+                gallery.__photoAllHtml = allHtml;
                 gallery.__photoPageSize = Number(gallery.dataset.pageSize || 20);
                 gallery.__photoCurrentPage = 1;
                 gallery.dataset.photoPaginationReady = 'true';
@@ -506,9 +533,7 @@
 
                 if (btn.classList.contains('photo-prev')) {
                     renderPhotoPage(gallery, current - 1);
-                }
-
-                if (btn.classList.contains('photo-next')) {
+                } else if (btn.classList.contains('photo-next')) {
                     renderPhotoPage(gallery, current + 1);
                 }
             });
