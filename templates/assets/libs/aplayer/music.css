@@ -26,11 +26,11 @@
     transition: .3s
 }
 
-body {
+body[data-type=music] {
     background: #0d0d0d;
 }
 
-#an_music_bg {
+body[data-type=music] #an_music_bg {
     display: block;
 }
 
@@ -57,12 +57,12 @@ body[data-type=music] #page {
     }
 }
 
-#page-header.not-top-img #nav .back-home-button,
-#page-header.not-top-img #nav a {
+body[data-type=music] #page-header.not-top-img #nav .back-home-button,
+body[data-type=music] #page-header.not-top-img #nav a {
     color:#F7F7FA;
 }
 
-#page-header.not-top-img #nav .back-home-button:hover{
+body[data-type=music] #page-header.not-top-img #nav .back-home-button:hover{
     color: var(--heo-card-bg);
 }
 

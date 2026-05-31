@@ -269,6 +269,78 @@
     
     <script th:src="${assets_link + '/libs/aplayer/Meting2.min.js'}"></script>
     
+
+
+    <!-- 音乐页 PJAX 适配：进入 /music 时补加载音乐页样式，离开 /music 时清理音乐背景，避免样式串页 -->
+    <script th:inline="javascript">
+    (function () {
+        var MUSIC_CSS_ID = 'hao-music-page-style';
+        var MUSIC_CSS_HREF = "[(${assets_link + '/libs/aplayer/music.css' + theme_version})]";
+
+        function isMusicPage() {
+            if (document.querySelector('#anMusic-page')) return true;
+            if (window.GLOBAL_CONFIG && GLOBAL_CONFIG.htmlType === 'music') return true;
+            return location.pathname.replace(/\/+$/, '') === '/music';
+        }
+
+        function findMusicCss() {
+            var links = document.querySelectorAll('link[rel="stylesheet"]');
+            for (var i = 0; i < links.length; i++) {
+                var href = links[i].getAttribute('href') || links[i].href || '';
+                if (href.indexOf('/libs/aplayer/music.css') !== -1) return links[i];
+            }
+            return null;
+        }
+
+        function ensureMusicCss() {
+            var old = document.getElementById(MUSIC_CSS_ID) || findMusicCss();
+            if (old) {
+                old.id = MUSIC_CSS_ID;
+                return;
+            }
+            var link = document.createElement('link');
+            link.id = MUSIC_CSS_ID;
+            link.rel = 'stylesheet';
+            link.href = MUSIC_CSS_HREF;
+            document.head.appendChild(link);
+        }
+
+        function removeMusicCss() {
+            document.querySelectorAll('link[href*="/libs/aplayer/music.css"]').forEach(function (link) {
+                if (link && link.parentNode) link.parentNode.removeChild(link);
+            });
+        }
+
+        function cleanMusicState() {
+            document.body.classList.remove('music-list-open', 'music-player-ready');
+            document.querySelectorAll('.music-mask').forEach(function (mask) {
+                mask.style.display = 'none';
+            });
+            var bg = document.getElementById('an_music_bg');
+            if (bg) {
+                bg.style.backgroundImage = '';
+                bg.style.display = 'none';
+            }
+        }
+
+        window.haoMusicPjaxGuard = function () {
+            if (isMusicPage()) {
+                ensureMusicCss();
+                var bg = document.getElementById('an_music_bg');
+                if (bg) bg.style.display = '';
+            } else {
+                cleanMusicState();
+                removeMusicCss();
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', window.haoMusicPjaxGuard);
+        document.addEventListener('pjax:complete', function () {
+            window.haoMusicPjaxGuard();
+        });
+    })();
+    </script>
+
     <script th:if="${theme.config.other.pjax_enable}"
         th:src="${assets_link + '/libs/pjax/pjax.min.js'}"></script>
 
