@@ -13679,6 +13679,226 @@ figure.gallery-group:hover .gallery-group-name::after {
     color: var(--heo-hovertext);
 }
 
+
+/* 友链信息提示卡片 */
+.link-info-tips-card {
+    margin: 1rem 0 1.2rem;
+    padding: 1rem;
+    border-radius: 18px;
+    border: var(--style-border);
+    background: var(--heo-card-bg);
+    box-shadow: var(--heo-shadow-border);
+}
+
+.link-info-tips-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.link-info-tips-small {
+    color: var(--heo-secondtext);
+    font-size: .78rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: .2rem;
+}
+
+.link-info-tips-head h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    line-height: 1.2;
+    color: var(--heo-fontcolor);
+}
+
+.link-info-tips-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .35rem;
+    height: 38px;
+    padding: 0 .9rem;
+    border-radius: 12px;
+    background: var(--heo-theme);
+    color: var(--heo-white) !important;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: .25s ease;
+    box-shadow: var(--heo-shadow-main);
+}
+
+.link-info-tips-action:hover {
+    transform: translateY(-2px);
+    color: var(--heo-white) !important;
+}
+
+.link-info-tips-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1rem;
+}
+
+.link-info-panel {
+    border-radius: 16px;
+    background: var(--heo-secondbg);
+    border: var(--style-border);
+    padding: 1rem;
+    min-width: 0;
+}
+
+.link-info-panel-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--heo-fontcolor);
+    margin-bottom: .8rem;
+}
+
+.link-info-profile {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: .85rem;
+}
+
+.link-info-logo {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    object-fit: cover;
+    background: var(--heo-card-bg);
+    border: var(--style-border);
+    flex: 0 0 auto;
+}
+
+.link-info-profile-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.link-info-profile-text strong {
+    font-size: 1.2rem;
+    color: var(--heo-fontcolor);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.link-info-profile-text span {
+    margin-top: .25rem;
+    color: var(--heo-secondtext);
+    line-height: 1.4;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.link-info-fields {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+.link-info-row {
+    display: grid;
+    grid-template-columns: 70px minmax(0, 1fr) 30px;
+    align-items: center;
+    min-height: 40px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: var(--style-border);
+    background: var(--heo-card-bg);
+}
+
+.link-info-label {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--heo-card-btn-bg);
+    color: var(--heo-secondtext);
+    font-weight: 700;
+}
+
+.link-info-value {
+    padding: 0 .7rem;
+    color: var(--heo-fontcolor);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.link-info-copy {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--heo-secondtext);
+    cursor: pointer;
+    transition: .2s ease;
+}
+
+.link-info-copy:hover {
+    color: var(--heo-theme);
+    transform: scale(1.08);
+}
+
+.link-info-apply-content {
+    color: var(--heo-fontcolor);
+    line-height: 1.8;
+}
+
+.link-info-apply-content p {
+    margin: .2rem 0 .8rem;
+}
+
+.link-info-apply-content ul {
+    margin: 0 0 .8rem 0;
+    padding-left: 1.1rem;
+}
+
+.link-info-apply-content li::marker {
+    color: var(--heo-theme);
+}
+
+.link-info-apply-content strong {
+    color: var(--heo-fontcolor);
+    background: var(--heo-theme-op);
+    padding: 0 .15rem;
+    border-radius: 4px;
+}
+
+@media screen and (max-width: 768px) {
+    .link-info-tips-card {
+        padding: .8rem;
+        border-radius: 14px;
+    }
+
+    .link-info-tips-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .link-info-tips-action {
+        width: 100%;
+    }
+
+    .link-info-tips-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .link-info-row {
+        grid-template-columns: 58px minmax(0, 1fr) 30px;
+    }
+}
+
 /* 炙焰友链间距 */
 .flink#article-container .flink-list {
     padding: 0;
