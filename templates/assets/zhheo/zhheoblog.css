@@ -17588,13 +17588,13 @@ a#toPageButton.haveValue:hover {
 /*   code样式 */
 code:not([class]) {
     color: var(--heo-white);
-    padding: 0.25rem 0.4rem;
+    padding: 0.01rem 0.01rem;
     border-radius: 4px;
-    margin: 0px 4px;
-    background: var(--heo-pink);
-    line-height: 2;
+    margin: 0px 1px;
+    background: #008e20;
+    line-height: 1;
     box-shadow: var(--heo-shadow-border);
-    font-size: 17.5px;
+    font-size: 14.5px;
     font-family: consolas, Menlo, "PingFang SC", "Microsoft YaHei", sans-serif !important;
 }
 
