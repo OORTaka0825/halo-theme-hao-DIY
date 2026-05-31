@@ -2151,6 +2151,16 @@ spec:
           name: bigTitle
           label: 大标题
           value: 我和我的小伙伴们
+        - $formkit: select
+          name: linkSubmitEnable
+          label: 友链自助提交插件
+          value: false
+          help: 开启后，友链页顶部“申请友链”按钮将调用友链自助提交插件弹窗；关闭则保持跳转到评论区。
+          options:
+            - label: 开启
+              value: true
+            - label: 关闭
+              value: false
         - $formkit: url
           name: fcircleUrl
           value: "/fcircle"

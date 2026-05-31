@@ -11,7 +11,13 @@
                     <i class="haofont hao-icon-paper-plane1"></i>
                     <span class="banner-button-text">随机访问</span>
                 </a>
-                <a class="banner-button" href="#post-comment" rel="external nofollow">
+                <a th:if="${theme.config.link.linkSubmitEnable}" class="banner-button" href="javascript:void(0)"
+                   rel="external nofollow"
+                   onclick="event.preventDefault(); if (typeof openLinksSubmitOverlay === 'function') { openLinksSubmitOverlay(); } else { window.location.href = '#post-comment'; }">
+                    <i class="haofont hao-icon-link"></i>
+                    <span class="banner-button-text">申请友链</span>
+                </a>
+                <a th:unless="${theme.config.link.linkSubmitEnable}" class="banner-button" href="#post-comment" rel="external nofollow">
                     <i class="haofont hao-icon-link"></i>
                     <span class="banner-button-text">申请友链</span>
                 </a>
