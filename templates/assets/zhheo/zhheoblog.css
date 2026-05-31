@@ -18928,16 +18928,6 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     z-index: 10;
 }
 
-/* 图库内容页分页：排版前先隐藏，避免刷新或翻页时闪成大图 */
-#article-container .photo-page-gallery.photo-page-preparing {
-    opacity: 0 !important;
-    min-height: 260px;
-}
-
-/* 图库内容页分页：保留主题原生 fjGallery 排版，不强制改图片宽高 */
-#article-container .photo-page-gallery {
-    width: 100%;
-}
 
 /* 图库内容页分页按钮 */
 .photo-pagination {
@@ -18980,4 +18970,10 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     font-weight: 600;
     font-size: 1rem;
     color: var(--heo-fontcolor);
+}
+
+/* 图库分页：排版前隐藏原始大图，避免翻页/进入时闪成大图 */
+#article-container .photo-page-gallery.photo-page-preparing {
+    opacity: 0 !important;
+    min-height: 260px;
 }
