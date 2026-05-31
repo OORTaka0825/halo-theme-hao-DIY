@@ -385,40 +385,51 @@
         }
 
         function layoutGallery(gallery) {
-            resetGallery(gallery);
+    resetGallery(gallery);
 
-            if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
-                window.lazyLoadInstance.update();
+    gallery.classList.add('photo-page-preparing');
+
+    if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
+        window.lazyLoadInstance.update();
+    }
+
+    waitImages(gallery, function () {
+        ensureJustifiedGallery(function () {
+            function runLayout() {
+                gallery.className = 'gallery photo-page-gallery photo-page-preparing';
+                gallery.removeAttribute('style');
+
+                gallery.querySelectorAll('.fj-gallery-item').forEach(function (item) {
+                    item.className = 'fj-gallery-item';
+                    item.removeAttribute('style');
+                });
+
+                if (window.btf && typeof btf.initJustifiedGallerys === 'function') {
+                    btf.initJustifiedGallerys([gallery]);
+                }
             }
 
-            waitImages(gallery, function () {
-                // 先包 fancybox，再交给主题原来的 JustifiedGallery 排版
+            // 先用主题原来的 JustifiedGallery 排版
+            runLayout();
+
+            setTimeout(runLayout, 300);
+            setTimeout(runLayout, 700);
+
+            // 排版完成后，再包 fancybox
+            setTimeout(function () {
                 if (window.btf && typeof btf.loadLightbox === 'function') {
-                    unwrapFancybox(gallery);
+                    // 只包还没被 fancybox 包住的 img
                     btf.loadLightbox(gallery.querySelectorAll('.fj-gallery-item > img'));
                 }
+            }, 900);
 
-                ensureJustifiedGallery(function () {
-                    function runLayout() {
-                        gallery.className = 'gallery photo-page-gallery';
-                        gallery.removeAttribute('style');
-
-                        gallery.querySelectorAll('.fj-gallery-item').forEach(function (item) {
-                            item.className = 'fj-gallery-item';
-                            item.removeAttribute('style');
-                        });
-
-                        if (window.btf && typeof btf.initJustifiedGallerys === 'function') {
-                            btf.initJustifiedGallerys([gallery]);
-                        }
-                    }
-
-                    runLayout();
-                    setTimeout(runLayout, 300);
-                    setTimeout(runLayout, 800);
-                });
-            });
-        }
+            // 最后显示，避免一开始闪大图
+            setTimeout(function () {
+                gallery.classList.remove('photo-page-preparing');
+            }, 1100);
+        });
+    });
+}
 
         function renderPhotoPage(gallery, page) {
             const allHtml = gallery.__photoAllHtml || [];
