@@ -1,0 +1,309 @@
+<!-- 公共的 head 部分，可以定义部分 links,scripts,styles -->
+<th:block th:fragment="head(htmlType)">
+    <meta charset="UTF-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width,initial-scale=1" name="viewport">
+    <meta content="telephone=no" name="format-detection">
+    <meta content="var(--heo-card-bg)" name="theme-color">
+    <title th:text="${siteTitle}"></title>
+    <link rel="shortcut icon"
+          th:href="@{${#strings.isEmpty(site.favicon) ? assets_link + '/images/hao-logo.jpg' : site.favicon}}"/>
+    <script src="/themes/theme-hao/assets/libs/jquery.min.js"></script>
+
+    <script th:src="${assets_link + '/js/heo.js' + theme_version}"></script>
+
+    <script th:src="${assets_link + '/js/halo.js' + theme_version}"></script>
+
+    <link rel="stylesheet" th:href="${assets_link + '/libs/fancybox/jquery.fancybox.min.css'}">
+
+    <link rel="stylesheet" th:href="${assets_link + '/zhheo/zhheoblog.css' + theme_version}">
+
+    <link rel="stylesheet" th:href="${assets_link + '/zhheo/custom.css' + theme_version}">
+
+    <link rel="stylesheet" th:href="${assets_link + '/zhheo/commentBarrage.css'}">
+
+    <style th:if="${theme.config.other.scrollbarLinearGradientEnable}">
+        *::-webkit-scrollbar-thumb {
+            background-color: var(--heo-main);
+            background-image: -webkit-linear-gradient(45deg,rgba(255,255,255,.4) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.4) 50%,rgba(255,255,255,.4) 75%,transparent 75%,transparent);
+            border-radius: 2em
+        }
+    </style>
+
+    <!-- swiper 在瞬间滚动时会使用 -->
+    <link th:if="${theme.config.top.moment}" rel="stylesheet" href="/themes/theme-hao/assets/libs/swiper-bundle.min.css"/>
+
+    <!-- 右下角通知 -->
+    <link href="/themes/theme-hao/assets/libs/snackbar.min.css"
+          media="print"
+          onload='this.media="all"'
+          rel="stylesheet"
+    />
+
+    <!-- 代码块自动识别语言 -->
+    <th:block th:replace="~{modules/common/code}"/>
+    <!--  代码块-->
+    <th:block th:replace="~{macro/prism-code}"/>
+
+    <!-- 页脚内容-样式一 -->
+    <th:block th:replace="~{modules/common/footer-style-one}"/>
+
+    <script>
+        (win => {
+            win.saveToLocal = {
+                set: function setWithExpiry(key, value, ttl) {
+                    if (ttl === 0) return
+                    const now = new Date()
+                    const expiryDay = ttl * 86400000
+                    const item = {
+                        value: value,
+                        expiry: now.getTime() + expiryDay,
+                    }
+                    localStorage.setItem(key, JSON.stringify(item))
+                },
+
+                get: function getWithExpiry(key) {
+                    const itemStr = localStorage.getItem(key)
+
+                    if (!itemStr) {
+                        return undefined
+                    }
+                    const item = JSON.parse(itemStr)
+                    const now = new Date()
+
+                    if (now.getTime() > item.expiry) {
+                        localStorage.removeItem(key)
+                        return undefined
+                    }
+                    return item.value
+                }
+            }
+
+            win.getScript = url => new Promise((resolve, reject) => {
+                const script = document.createElement('script')
+                script.src = url
+                script.async = true
+                script.onerror = reject
+                script.onload = script.onreadystatechange = function () {
+                    const loadState = this.readyState
+                    if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+                    script.onload = script.onreadystatechange = null
+                    resolve()
+                }
+                document.head.appendChild(script)
+            })
+
+            win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+                const link = document.createElement('link')
+                link.rel = 'stylesheet'
+                link.href = url
+                if (id) link.id = id
+                link.onerror = reject
+                link.onload = link.onreadystatechange = function() {
+                    const loadState = this.readyState
+                    if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+                    link.onload = link.onreadystatechange = null
+                    resolve()
+                }
+                document.head.appendChild(link)
+            })
+
+            win.activateDarkMode = function () {
+                document.documentElement.setAttribute('data-theme', 'dark')
+                document.documentElement.classList.add('color-scheme-dark')
+                heo.initThemeColor()
+            }
+            win.activateLightMode = function () {
+                document.documentElement.setAttribute('data-theme', 'light')
+                document.documentElement.classList.remove('color-scheme-dark')
+                heo.initThemeColor()
+            }
+            const t = saveToLocal.get('theme')
+
+            const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+            const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+            const isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+            const hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+            if (t === undefined) {
+                if (isLightMode) activateLightMode()
+                else if (isDarkMode) activateDarkMode()
+                else if (isNotSpecified || hasNoSupport) {
+                    const now = new Date()
+                    const hour = now.getHours()
+                    const isNight = hour <= 6 || hour >= 18
+                    isNight ? activateDarkMode() : activateLightMode()
+                }
+                window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+                    if (saveToLocal.get('theme') === undefined) {
+                        e.matches ? activateDarkMode() : activateLightMode()
+                    }
+                })
+            } else if (t === 'light') activateLightMode()
+            else activateDarkMode()
+
+            if("[[${theme.config.style.colorScheme}]]" === 'dark')
+                activateDarkMode()
+            if("[[${theme.config.style.colorScheme}]]" === 'light')
+                activateLightMode()
+
+            const asideStatus = saveToLocal.get('aside-status')
+            if (asideStatus !== undefined) {
+                if (asideStatus === 'hide') {
+                    document.documentElement.classList.add('hide-aside')
+                } else {
+                    document.documentElement.classList.remove('hide-aside')
+                }
+            }
+        })(window)
+    </script>
+
+    <!-- 动态加载条 -->
+    <script data-pace-options="{ &quot;restartOnRequestAfter&quot;: false, &quot;eventLag&quot;: false, &quot;restartOnPushState&quot;: false, &quot;startOnPageLoad&quot;: true, &quot;minTime&quot;: 0, &quot;ghostTime&quot;: 0 }"
+            th:src="${assets_link + '/libs/pace/pace.min.js'}"
+            th:if="${theme.config.other.loadingBoxs.loadProgressBar}">
+    </script>
+
+    <!-- 复制 https://githubfast.com/zenorocha/clipboard.js -->
+    <script th:src="${assets_link + '/libs/clipboard/clipboard.min.js'}"></script>
+
+    <!-- 关于统计-->
+    <script th:if="${#strings.contains(theme.config.about.widgets,'statistics-map')}" th:src="${assets_link + '/libs/countup/countup.js'}"></script>
+
+    <!-- 小板报（始终加载脚本，兼容 PJAX）-->
+<th:block th:if="${not #strings.isEmpty(theme.config.sidebar.welcome.key)}">
+  <script data-pjax>
+    (function(){
+      window.GLOBAL_CONFIG = window.GLOBAL_CONFIG || {};
+      GLOBAL_CONFIG.source = GLOBAL_CONFIG.source || {};
+      GLOBAL_CONFIG.source.welcome = {
+        key: "[(${theme.config.sidebar.welcome.key})]",
+        /* ▼ 仅这两行改为“字符串注入” ▼ */
+        locationLng: "[[${theme.config.sidebar.welcome.locationLng}]]",
+        locationLat: "[[${theme.config.sidebar.welcome.locationLat}]]"
+        /* ▲ 仅此两行修改 ▲ */
+      };
+    })();
+  </script>
+  <!-- 小板报-仅引入脚本 -->
+  <script defer th:src="${assets_link + '/libs/welcome/welcome.js'}"></script>
+</th:block>
+   
+    <!-- icon图标 -->
+    <link rel="stylesheet" th:href="${assets_link + '/icon/iconfont.css' + theme_version}">
+    
+    <!-- icon图标--仍用后台的 //at.alicdn.com/... 地址，这里自动转 https 并固定 id -->
+<script id="iconfont-symbol" defer
+        th:src="${#strings.startsWith(theme.config.nav.menus.iconfont_js, '//') 
+                  ? 'https:' + theme.config.nav.menus.iconfont_js 
+                  : theme.config.nav.menus.iconfont_js}"></script>
+<script>
+  (function () {
+    if (window.__ICONFONT_READY__) return;   // 防重复
+    window.__ICONFONT_READY__ = true;
+
+    function getSprite(){ return document.querySelector('[id^="__svg__icons__dom__"]'); }
+    function persistSprite(){
+      var spr = getSprite();
+      if (spr && spr.parentNode !== document.body) document.body.appendChild(spr);
+      return !!spr;
+    }
+    function ensureSprite(){
+      if (persistSprite()) return;
+      var src = document.getElementById('iconfont-symbol')?.getAttribute('src');
+      if (!src) return;
+      var s = document.createElement('script');
+      s.defer = true; s.src = src;
+      s.onload = persistSprite;
+      document.head.appendChild(s);
+    }
+
+    document.addEventListener('DOMContentLoaded', ensureSprite);
+    window.addEventListener('load', ensureSprite);
+    document.addEventListener('pjax:complete', ensureSprite);
+  })();
+</script>
+
+    <th:block th:replace="~{modules/variables/site-config :: site-config}" />
+
+
+    <style id="diy-effects-guard">
+  /* 画布/飘落/灯笼类容器：固定定位 + 不参与点击，避免撑高页面 */
+  body > canvas,
+  body > [id*="universe"], body > [class*="universe"],
+  body > [id*="circle"],   body > [class*="circleMagic"],
+  body > [id*="quantum"],  body > [class*="quantum"],
+  body > [id*="sakura"],   body > [class*="sakura"],
+  body > [id*="snow"],     body > [class*="snow"],
+  body > [class*="lantern"], body > [id*="lantern"]{
+    position: fixed !important;
+    left: 0 !important; top: 0 !important;
+    width: 100vw !important; height: 100vh !important;
+    pointer-events: none !important;
+    z-index: 1;
+  }
+  /* 灯笼自身不挡点击 */
+  .lantern, .lantern * { pointer-events: none !important; }
+</style>
+
+
+
+<!-- === Force font like your old snippet (single font applied globally with !important) === -->
+<link rel="preconnect" href="https://oortaka.top" crossorigin>
+<!-- preload selected font only -->
+<th:block th:switch="${theme.config.style.global_font}">
+  <link th:case="'zhankukuaile'" rel="preload" href="https://oortaka.top/ziti/zhankukuaile.woff2" as="font" type="font/woff2" crossorigin>
+  <link th:case="'zhankuyuyang'" rel="preload" href="https://oortaka.top/ziti/zhankuyuyang.woff2" as="font" type="font/woff2" crossorigin>
+  <link th:case="'zhuziawan'" rel="preload" href="https://oortaka.top/ziti/zhuziawan.woff2" as="font" type="font/woff2" crossorigin>
+  <link th:case="'dingdingjinbuti'" rel="preload" href="https://oortaka.top/ziti/dingdingjinbuti.woff2" as="font" type="font/woff2" crossorigin>
+  <link th:case="'jiangchengyuanti'" rel="preload" href="https://oortaka.top/ziti/jiangchengyuanti.woff2" as="font" type="font/woff2" crossorigin>
+</th:block>
+<!-- build the same effect as: * { font-family: "xxx" !important } -->
+<th:block th:if="${theme.config.style.global_font} != null and ${theme.config.style.global_font} != 'off'">
+  <th:block th:switch="${theme.config.style.global_font}">
+    <style th:case="'zhankukuaile'" id="webfonts-force-all-single">
+      @font-face{font-family:'siteFontForce';src:url('https://oortaka.top/ziti/zhankukuaile.woff2') format('woff2');font-display:swap;}
+      * { font-family:'siteFontForce' !important; }
+    </style>
+
+    <style th:case="'zhankuyuyang'" id="webfonts-force-all-single">
+      @font-face{font-family:'siteFontForce';src:url('https://oortaka.top/ziti/zhankuyuyang.woff2') format('woff2');font-display:swap;}
+      * { font-family:'siteFontForce' !important; }
+    </style>
+
+    <style th:case="'zhuziawan'" id="webfonts-force-all-single">
+      @font-face{font-family:'siteFontForce';src:url('https://oortaka.top/ziti/zhuziawan.woff2') format('woff2');font-display:swap;}
+      * { font-family:'siteFontForce' !important; }
+    </style>
+
+    <style th:case="'dingdingjinbuti'" id="webfonts-force-all-single">
+      @font-face{font-family:'siteFontForce';src:url('https://oortaka.top/ziti/dingdingjinbuti.woff2') format('woff2');font-display:swap;}
+      * { font-family:'siteFontForce' !important; }
+    </style>
+
+    <style th:case="'jiangchengyuanti'" id="webfonts-force-all-single">
+      @font-face{font-family:'siteFontForce';src:url('https://oortaka.top/ziti/jiangchengyuanti.woff2') format('woff2');font-display:swap;}
+      * { font-family:'siteFontForce' !important; }
+    </style>
+  </th:block>
+</th:block>
+
+<!-- keep the force style at the very end to win cascade (also after PJAX) -->
+<script>
+(function(){
+  function keepLast(){
+    var el = document.getElementById('webfonts-force-all-single');
+    if(!el) return;
+    document.head.appendChild(el); // move to the end
+  }
+  keepLast();
+  document.addEventListener('DOMContentLoaded', keepLast);
+  window.addEventListener('load', keepLast);
+  document.addEventListener('pjax:complete', keepLast);
+  document.addEventListener('pjax:success', keepLast);
+  document.addEventListener('page:loaded', keepLast);
+  setTimeout(keepLast, 0); setTimeout(keepLast, 300); setTimeout(keepLast, 800);
+})();
+</script>
+
+</th:block>

@@ -1,0 +1,84 @@
+<div th:fragment="author-content(background, smallTitle, bigTitle, detail,buttonUrl,buttonTitle)"
+     class="author-content author-content-item essayPage single"
+     th:style="'background:url('+${background}+') left 28% / cover no-repeat !important;'">
+    <div class="card-content">
+        <div class="author-content-item-tips" th:text="${smallTitle}"></div>
+        <span class="author-content-item-title" th:text="${bigTitle}"></span>
+        <div class="content-bottom">
+            <div class="tips" th:text="${detail}"></div>
+        </div>
+        <div class="banner-button-group" th:if="${not #strings.isEmpty(buttonUrl)}">
+            <a class="banner-button" target="_blank" th:href="${buttonUrl}">
+                <i class="haofont hao-icon-circle-arrow-right"></i>
+                <span class="banner-button-text" th:text="${buttonTitle}"></span>
+            </a>
+        </div>
+    </div>
+</div>
+<div th:fragment="author-content-video(background, video, smallTitle, bigTitle, detail,buttonUrl,buttonTitle)"
+     class="author-content author-content-item essayPage single author-content-video-banner"
+     th:style="|background:url(${background}) left 28% / cover no-repeat !important;|">
+    <video th:if="${not #strings.isEmpty(video)}"
+           class="author-content-video-bg"
+           autoplay muted loop playsinline webkit-playsinline
+           preload="metadata"
+           th:poster="${background}">
+        <source th:src="${video}" type="video/mp4">
+    </video>
+
+    <div class="card-content">
+        <div class="author-content-item-tips" th:text="${smallTitle}"></div>
+        <span class="author-content-item-title" th:text="${bigTitle}"></span>
+        <div class="content-bottom">
+            <div class="tips" th:text="${detail}"></div>
+        </div>
+        <div class="banner-button-group" th:if="${not #strings.isEmpty(buttonUrl)}">
+            <a class="banner-button"
+   th:href="${buttonUrl}"
+   th:target="${#strings.equals(buttonTitle, '返回') ? '_self' : '_blank'}">
+    <i class="haofont hao-icon-circle-arrow-right"></i>
+    <span class="banner-button-text" th:text="${buttonTitle}"></span>
+</a>
+        </div>
+    </div>
+
+    <style>
+        .author-content-video-banner {
+            position: relative !important;
+            overflow: hidden !important;
+            isolation: isolate;
+        }
+
+        .author-content-video-banner::before,
+        .author-content-video-banner::after {
+            display: none !important;
+            content: none !important;
+            filter: none !important;
+            backdrop-filter: none !important;
+        }
+
+        .author-content-video-bg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: auto;
+            min-width: 100%;
+            min-height: 100%;
+            transform: translate(-50%, -50%) translateZ(0);
+            object-fit: cover;
+            object-position: center center;
+            z-index: 0;
+            pointer-events: none;
+            filter: none !important;
+            backdrop-filter: none !important;
+            opacity: 1 !important;
+        }
+
+        .author-content-video-banner .card-content {
+            position: relative;
+            z-index: 2;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, .55);
+        }
+    </style>
+</div>

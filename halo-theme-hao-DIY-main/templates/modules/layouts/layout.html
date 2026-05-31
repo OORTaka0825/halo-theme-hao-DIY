@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.toLanguageTag}" th:fragment="layout(content, htmlType, title, head)" xmlns:th="http://www.thymeleaf.org"
+      th:with="assets_link=${theme.config.other.staticResource.use == 'custom' ? theme.config.other.staticResource.cdn_link : '/themes/theme-hao/assets'},
+      theme_version = ${ theme.config.other.staticResource.use == 'local' ? '?v='+ theme.spec.version : ''},
+      isLazyload = ${theme.config.other.vanillaLazyload.enable},
+      loadingImg = ${theme.config.other.vanillaLazyload.loadingImg},
+      siteTitle = ${not #strings.isEmpty(title) ?  title  :  #strings.isEmpty(site.subtitle) ? site.title :  site.title +' - ' +site.subtitle }">
+
+<!-- head 中自定义的  -->
+
+<head>
+    <th:block th:replace="~{modules/head :: head(htmlType = ${htmlType})}"/>
+    <link th:if="${#strings.equals(theme.config.comments.use, 'Waline')
+    && not #strings.isEmpty(theme.config.comments.walines.serverURL)}"
+          rel="stylesheet"
+          th:href="${not #strings.isEmpty(theme.config.comments.walines.walinesCss) ? theme.config.comments.walines.walinesCss : 'https://cdn.cbd.int/@waline/client@2.15.7/dist/waline.css' }">
+    <!--  解决 katex pjax问题 -->
+    <script th:if="${pluginFinder.available('plugin-katex')}" defer=""
+            src="/plugins/plugin-katex/assets/static/katex.min.js"></script>
+    <script th:src="${assets_link + '/js/custom.js' + theme_version}"></script>
+    <th:block th:if="${head != null}">
+        <th:block th:replace="${head}"/>
+    </th:block>
+
+</head>
+
+<body>
+
+    <!-- loading 页面 -->
+    <th:block th:replace="~{modules/loading-box}"/>
+    
+    <!-- 网站背景 -->
+    <div id="web_bg">
+    <div th:if="${theme.config.top.global_background.enable_global_background_img}">
+        <div th:if="${theme.config.top.global_background.enable_global_background_above_video == false}"
+             class="global_background_img global_background_img--light"
+             th:style="'background-image: url(' + ${theme.config.top.global_background.global_background_img_light} + ');'">
+        </div>
+        <div th:if="${theme.config.top.global_background.enable_global_background_above_video == false}"
+             class="global_background_img global_background_img--dark"
+             th:style="'background-image: url(' + ${theme.config.top.global_background.global_background_img_dark} + ');'">
+        </div>
+        
+        <video th:if="${theme.config.top.global_background.enable_global_background_above_video}"
+               class="index-video"
+               id="index-video"
+               autoplay=""
+               th:src="${theme.config.top.global_background.global_background_video}"
+               loop=""
+               muted=""
+               playsinline=""
+               webkit-playsinline=""
+               style="display:block;object-fit:cover;width:100%;height:100%;pointer-events:none;">
+        </video>
+    </div>
+</div>
+
+<th:block th:if="${theme.config.top.global_background.enable_global_background_img}">
+    <style>
+        @media screen and (min-width: 1300px) {
+            .global_background_img {
+                width: 100vw;
+                height: 100vh;
+                top: 0;
+                left: 0;
+                position: fixed;
+                z-index: -999;
+                /* 关键渲染设置 */
+                background-size: cover;
+                background-position: center center;
+                background-repeat: no-repeat;
+                /* 强制不显示由于缩放导致的杂边 */
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: high-quality;
+            }
+        }
+        
+        /* 亮暗模式切换显示逻辑 */
+        :root[data-theme='light'] .global_background_img--dark { display: none !important; }
+        :root[data-theme='dark']  .global_background_img--light { display: none !important; }
+        html:not([data-theme='dark']) .global_background_img--dark { display: none !important; }
+        html[data-theme='dark']      .global_background_img--light { display: none !important; }
+    </style>
+</th:block>
+    
+    <script th:inline="javascript"
+    th:with="allPostList=${postFinder.listAll()},
+    randomIndex=${T(java.lang.Math).floor(T(java.lang.Math).random()*#lists.size(allPostList))},
+    postPermalink=${allPostList[randomIndex].status.permalink}">
+  function toRandomPost() {
+    var permalink = /*[[${postPermalink}]]*/ "/";
+    if (window.pjax && typeof pjax.loadUrl === 'function') {
+      // 开启 PJAX：无刷新跳转
+      pjax.loadUrl(permalink);
+    } else {
+      // 关闭 PJAX：整页跳转
+      window.location.href = permalink;
+    }
+  }
+</script>
+    
+    <!-- 网站背景 -->
+    <div id="an_music_bg"></div>
+
+<!-- 控制台 -->
+<div th:replace="~{modules/widgets/console :: console}"></div>
+
+<div th:replace="~{modules/sidebar :: sidebar}"></div>
+
+<!-- 左下角音乐 -->
+<th:block th:if="${theme.config.tool.nav_music.nav_musicEnable}">
+    <div th:replace="~{modules/widgets/nav-music}"/>
+</th:block>
+
+<!-- 内容 -->
+<th:block th:replace="${content}"></th:block>
+
+
+<!-- todo 右下角悬浮操作按钮 -->
+<th:block th:replace="~{modules/common/rightside :: rightside}"></th:block>
+
+
+<div th:replace="~{modules/right-menu :: right-menu}"></div>
+
+<div>
+    <script th:src="${assets_link + '/js/utils.js' + theme_version}"></script>
+    <script th:src="${assets_link + '/js/main.js' + theme_version}"></script>
+    <script charset="utf-8" data-pjax th:src="${assets_link + '/zhheo/blogex.js' + theme_version}"></script>
+    <script th:src="${assets_link + '/js/tw_cn.js' + theme_version}"></script>
+
+<!-- 
+    <!-- ===== Keep PJAX-like behavior when PJAX is OFF (append-only, v5) ===== -->
+    <script th:if="${!theme.config.other.pjax_enable}">
+    (function () {
+      var KEY_PREFIX = 'hao:list:scroll:';
+      var NAV_FLAG = 'hao:from:index_pagination';
+
+      if ('scrollRestoration' in history) try { history.scrollRestoration = 'manual'; } catch (e) {}
+
+      function saveScroll() {
+        try {
+          var key = KEY_PREFIX + location.pathname + location.search;
+          sessionStorage.setItem(key, String(window.scrollY || document.documentElement.scrollTop || 0));
+          // 记录：当前是否为分页页，从而“上一页”跳回首页时也能下滚
+          sessionStorage.setItem(NAV_FLAG, isIndexPagination() ? '1' : '0');
+        } catch (e) {}
+      }
+      addEventListener('beforeunload', saveScroll, { passive: true });
+      addEventListener('pagehide', saveScroll, { passive: true });
+
+      function restoreScrollIfAny() {
+        try {
+          var key = KEY_PREFIX + location.pathname + location.search;
+          var y = sessionStorage.getItem(key);
+          if (y !== null) requestAnimationFrame(function(){ scrollTo(0, parseInt(y,10) || 0); });
+        } catch (e) {}
+      }
+
+      function pickListEl(){
+        var sels = ['#home_top', '#recent-posts', '.recent-posts', '#content-inner'];
+        for (var i=0;i<sels.length;i++){
+          var el = document.querySelector(sels[i]);
+          if (el) return el;
+        }
+        return null;
+      }
+
+      function scrollToListSmooth() {
+        var el = pickListEl();
+        if (!el) return;
+        if (window.btf && typeof window.btf.scrollToDest === 'function') {
+          window.btf.scrollToDest(el.offsetTop, 500); // 主题内部会 -70
+          return;
+        }
+        if (window.heo && window.heo.scroll && typeof window.heo.scroll.homeToList === 'function'){
+          try { window.heo.scroll.homeToList(); return; } catch(e){}
+        }
+        var y = el.getBoundingClientRect().top + pageYOffset - 70;
+        try { scrollTo({ top: Math.max(0, y), behavior: 'smooth' }); }
+        catch (e) { scrollTo(0, Math.max(0, y)); }
+      }
+
+      function isIndexPagination() {
+        if (/\/page\/\d+\/?$/i.test(location.pathname)) return true;
+        if (/[?&]page=\d+/i.test(location.search)) return true;
+        return false;
+      }
+
+      function isHomeLike(){
+        // 首页（上一页可能从 /page/2 跳回 / 或 ?page=1）
+        if (location.pathname === '/' || location.pathname === '') return true;
+        if (/[?&]page=1\b/i.test(location.search)) return true;
+        return false;
+      }
+
+      function cameFromPagination(){
+        try { return sessionStorage.getItem(NAV_FLAG) === '1'; } catch(e){}
+        return false;
+      }
+
+      function clearNavFlag(){ try { sessionStorage.removeItem(NAV_FLAG); } catch(e){} }
+
+      function isBackForwardNav() {
+        try { 
+          var entries = performance.getEntriesByType && performance.getEntriesByType('navigation');
+          if (entries && entries[0]) return entries[0].type === 'back_forward';
+        } catch (e) {}
+        return false;
+      }
+
+      addEventListener('pageshow', function (ev) {
+        // 回退：恢复滚动位置
+        if (ev.persisted || isBackForwardNav()) { restoreScrollIfAny(); clearNavFlag(); return; }
+
+        // 正常进入：分页页直接滚动；或者从分页回到首页也滚动
+        if (isIndexPagination() || (isHomeLike() && cameFromPagination())) {
+          setTimeout(scrollToListSmooth, 60);
+        }
+        clearNavFlag();
+      }, { passive: true });
+
+      document.addEventListener('DOMContentLoaded', function () {
+        if (isIndexPagination() || (isHomeLike() && cameFromPagination())) {
+          setTimeout(scrollToListSmooth, 0);
+        }
+      });
+    })();
+    </script>
+
+    <script src="/themes/theme-hao/assets/libs/instantpage.min.js" type="module"></script>
+
+    <script th:src="${assets_link + '/libs/vanilla-lazyload/lazyload.iife.min.js'}"></script>
+
+    <!-- 右下角通知 /themes/theme-hao/assets/libs/ -->
+    <!-- todo head 中有它的 css，应该可以写一块，并改成后台可配置的功能，代码中应该还有他的 js -->
+    <script src="/themes/theme-hao/assets/libs/snackbar.min.js"></script>
+
+    <!-- 深色模式下添加粒子效果canvas -->
+    <canvas th:if="${theme.config.style.universe}" id="universe" width="1312" height="880"></canvas>
+    <script th:if="${theme.config.style.universe}" async="" th:src="${assets_link + '/libs/canvas/dark.js'}"></script>
+
+    <!-- https://davidshimjs.github.io/qrcodejs/ 生成二维码 -->
+    <!-- 应该是文章页分享使用 -->
+    <script data-pjax defer src="https://cdn.bootcdn.net/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+
+    <!-- 评论 -->
+    <th:block th:if="${theme.config.comments.use!='commentWidget' && theme.config.comments.commentsEnable }"
+              th:with="use = ${theme.config.comments.use}">
+        <th:block th:replace="~{'modules/comment/' + ${use}}"></th:block>
+        <script th:if="${theme.config.comments.visitorMail.visitorMailEnable}">var visitorMail = "[(${theme.config.comments.visitorMail.mail})]";</script>
+    </th:block>
+    <!--  https://raphamorim.io/waterfall.js/  应该是这个 还有相关的 js 代码 是否可以调整-->
+    <script th:src="${assets_link + '/libs/waterfall/waterfall.min.js'}"></script>
+
+    <!-- 获取主色 https://lokeshdhakar.com/projects/color-thief/ -->
+    <!--<script th:src="@{/assets/libs/color-thief/color-thief.umd.js}"></script>-->
+    <script th:src="${assets_link + '/libs/fast-average-color/index.browser.min.js'}"></script>
+
+    <script th:src="${assets_link + '/libs/view-image/view-image.min.js'}"></script>
+
+    <!--音乐-->
+    <script>var meting_api = "[(${theme.config.tool.nav_music.meting_api})]"; </script>
+
+    <link rel="stylesheet" th:href="${assets_link + '/libs/aplayer/APlayer.min.css'}"
+          media="all" onload="this.media='all'">
+
+    <script th:src="${assets_link + '/libs/aplayer/APlayer.min.js'}"></script>
+    
+    <script th:src="${assets_link + '/libs/aplayer/Meting2.min.js'}"></script>
+    
+    <script th:if="${theme.config.other.pjax_enable}"
+        th:src="${assets_link + '/libs/pjax/pjax.min.js'}"></script>
+
+    <!-- swiper 在瞬间滚动时会使用 -->
+    <script th:if="${theme.config.top.moment}" data-pjax  src="/themes/theme-hao/assets/libs/swiper-bundle.min.js"></script>
+
+    <!-- 右键菜单 -->
+    <script th:if="${theme.config.tool.rightMenu.rightMenuEnable}" th:src="${assets_link + '/zhheo/rightmenu.js'}"></script>
+
+    <!-- 评论弹幕 -->
+    <script  th:if="${ ( ( not #strings.isEmpty(theme.config.comments.twikoos.envId)  && not #strings.isEmpty(theme.config.comments.twikoos.accessToken) ) ||
+        ( not #strings.isEmpty(theme.config.comments.artalks.server) && not #strings.isEmpty(theme.config.comments.artalks.siteName)) ||
+          (#strings.equals(theme.config.comments.use, 'Waline') && not #strings.isEmpty(theme.config.comments.walines.serverURL)) )
+        && theme.config.comments.commentBarrageConfig.commentBarrageEnable
+        && theme.config.comments.commentsEnable}"  data-pjax=""
+             th:src="${assets_link + '/zhheo/commentBarrage.js'}"></script>
+
+    <!-- Tocbot 目录生成 start -->
+    <th:block th:replace="~{modules/common/toc-bot :: toc-bot}"></th:block>
+
+    <!-- 51统计 -->
+    <th:block th:replace="~{modules/common/51-la}"/>
+
+    <!--官方评论插件js-->
+    <script th:if="${pluginFinder.available('PluginCommentWidget')}" src="/plugins/PluginCommentWidget/assets/static/comment-widget.iife.js"></script>
+
+    <div class="js-pjax">
+        <!-- 动态标题 -->
+        <script th:replace="~{modules/common/diytitle :: diytitle}"></script>
+    </div>
+
+    <script th:if="${theme.config.envelope_comment.enable_danmu}" th:src="${assets_link + '/libs/twikoo/easy-Danmaku.min.js'}" id="Danmaku"></script>
+
+
+
+    <th:block th:if="${theme.config.other.pjax_enable}"><script>
+        let pjaxSelectors = ['title', '#config-diff', '#body-wrap', '#rightside-config-hide', '#rightside-config-show', '.js-pjax', '#site-config']
+        
+        pjaxSelectors.unshift('meta[property="og:type"]', 'meta[property="og:image"]', 'meta[property="og:title"]', 'meta[property="og:url"]', 'meta[property="og:description"]'
+                , 'meta[name="twitter:title"]', 'meta[name="twitter:url"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]')
+        
+        var pjax = new Pjax({
+            elements: 'a:not([target="_blank"])',
+            selectors: pjaxSelectors,
+            cacheBust: false,
+            analytics: false,
+            scrollRestoration: false
+        })
+        
+        document.addEventListener('pjax:send', function () {
+            
+            // removeEventListener toc scroll
+            window.removeEventListener('scroll', window.tocScrollFn)
+            
+            typeof preloader === 'object' && preloader.initLoading()
+            
+            if (window.aplayers) {
+                for (let i = 0; i < window.aplayers.length; i++) {
+                    if (!window.aplayers[i].options.fixed) {
+                        window.aplayers[i].destroy()
+                    }
+                }
+            }
+            
+            typeof typed === 'object' && typed.destroy()
+            
+            //reset readmode
+            const $bodyClassList = document.body.classList
+            $bodyClassList.contains('read-mode') && $bodyClassList.remove('read-mode')
+        })
+        
+        document.addEventListener('pjax:complete', function () {
+            window.refreshFn()
+            
+            document.querySelectorAll('script[data-pjax]').forEach(item => {
+                        const newScript = document.createElement('script')
+                        const content = item.text || item.textContent || item.innerHTML || ""
+                        Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+                        newScript.appendChild(document.createTextNode(content))
+                        item.parentNode.replaceChild(newScript, item)
+                    }
+            )
+            
+            GLOBAL_CONFIG.lazyload.enable && window.lazyLoadInstance.update()
+            
+            typeof chatBtnFn === 'function' && chatBtnFn()
+            typeof panguInit === 'function' && panguInit()
+            
+            // google analytics
+            typeof gtag === 'function' && gtag('config', '', {
+                'page_path': window.location.pathname
+            });
+            
+            // baidu analytics
+            typeof _hmt === 'object' && _hmt.push(['_trackPageview', window.location.pathname]);
+            
+            typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+            
+            // Analytics
+            if (false) {
+                MtaH5.pgv()
+            }
+            
+            // prismjs
+            typeof Prism === 'object' && Prism.highlightAll()
+            
+            typeof preloader === 'object' && preloader.endLoading()
+        })
+        
+        document.addEventListener('pjax:error', (e) => {
+                    if (e.request.status === 404 || e.request.status === 500) {
+                        window.location.href = e.request.responseURL;
+                    }
+                }
+        )
+    </script></th:block>
+
+
+</div>
+
+<!-- 根据配置设置 css 变量值，全局 css 通过变量值进行处理 -->
+<th:block th:replace="~{'modules/variables/layout'}"></th:block>
+
+<script data-pjax="">
+
+    if ([[${ theme.config.other.loadingBoxs.loadingBoxEnable }]]) {
+        // 移除加载动画
+        removeLoading();
+    }
+    //页脚友联
+    GLOBAL_CONFIG.isFriendLinksInFooter && heo.addFriendLinksInFooter()
+    //音乐页面切换歌曲调用
+    if(GLOBAL_CONFIG.isMusic){
+        heo.changeMusicBg(false);
+    }
+    //代码块
+    if (GLOBAL_CONFIG.prism.enable) {
+        (function waitPrismToolbar(retry) {
+            if (window.Prism && Prism.plugins && Prism.plugins.toolbar) {
+                halo.addPrismTool();
+                halo.dataCodeTheme();
+                return;
+            }
+
+            if (retry > 0) {
+                setTimeout(function () {
+                    waitPrismToolbar(retry - 1);
+                }, 100);
+            } else {
+                halo.dataCodeTheme();
+                console.warn('[Hao] Prism Toolbar 未加载，已跳过代码工具栏初始化');
+            }
+        })(20);
+    }
+    if(document.querySelector('#danmu') &&
+        document.body.clientWidth > 768 &&
+        [[${theme.config.envelope_comment.enable_danmu}]]){
+        halo.addScript("Danmaku", "[[${assets_link + '/libs/twikoo/easy-Danmaku.min.js'}]]", halo.danmu())
+    }
+</script>
+
+<script>
+(function(){
+  if (window._haoScrollNoFlashInit) return;
+  window._haoScrollNoFlashInit = true;
+
+  var POS_PREFIX = 'hao:scroll:';          // 每个 path 的位置
+  var STATE_KEY  = 'hao:restore_state';    // 是否处于“正在恢复”状态：'1'|'0'
+  var CURRENT_KEY = null;
+  var isPop = false;
+  var restoring = false;
+  var saveTicking = false;
+  var rafId = 0;
+  var timeoutIds = [];
+
+  function pageKey(){ return location.pathname + location.search; }
+  function getY(){ return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0; }
+  function setPos(k,v){ try{ sessionStorage.setItem(POS_PREFIX + k, String(v)); }catch(e){} }
+  function getPos(k){ try{ return sessionStorage.getItem(POS_PREFIX + k); }catch(e){ return null; } }
+  function rmPos(k){ try{ sessionStorage.removeItem(POS_PREFIX + k); }catch(e){} }
+  function setState(v){ try{ sessionStorage.setItem(STATE_KEY, v ? '1':'0'); }catch(e){} }
+  function getState(){ try{ return sessionStorage.getItem(STATE_KEY) === '1'; }catch(e){ return false; } }
+
+  function isListPage(){
+    var bw = document.getElementById('body-wrap');
+    return !!(bw && bw.classList && bw.classList.contains('page'));
+  }
+  function isPostPage(){
+    var bw = document.getElementById('body-wrap');
+    return !!(bw && bw.classList && bw.classList.contains('post'));
+  }
+
+  function throttledSave(){
+    if (!isListPage()) return;     // 只在列表页保存
+    if (restoring) return;
+    if (saveTicking) return;
+    saveTicking = true;
+    requestAnimationFrame(function(){
+      var k = CURRENT_KEY || pageKey();
+      setPos(k, getY());
+      saveTicking = false;
+    });
+  }
+
+  function hardWrapScrollHelpers(){
+    try{
+      if (typeof window.scrollToPost === 'function' && !window._scrollToPostWrappedNoFlash){
+        var orig = window.scrollToPost;
+        window.scrollToPost = function(){
+          if (getState()) return;  // 仅在“正在恢复”时拦截；平时不拦
+          return orig.apply(this, arguments);
+        };
+        window._scrollToPostWrappedNoFlash = true;
+      }
+    }catch(e){}
+    try{
+      if (window.btf && typeof window.btf.scrollToDest === 'function' && !window.btf._scrollToDestWrappedNoFlash){
+        var orig2 = window.btf.scrollToDest;
+        window.btf.scrollToDest = function(){
+          if (getState()) return;
+          return orig2.apply(this, arguments);
+        };
+        window.btf._scrollToDestWrappedNoFlash = true;
+      }
+    }catch(e){}
+  }
+
+  function patchPjaxLoadUrl(){
+    try{
+      if (window.pjax && !window.pjax._haoSavePatchedNoFlash){
+        var orig = window.pjax.loadUrl;
+        window.pjax.loadUrl = function(url){
+          try{ if (isListPage()) setPos(pageKey(), getY()); }catch(e){}
+          cancelRestore(true);     // 新导航前取消任何恢复
+          setState(false);         // 普通前进导航，确保不拦截 scrollToPost
+          return orig.apply(this, arguments);
+        };
+        window.pjax._haoSavePatchedNoFlash = true;
+      }
+    }catch(e){}
+  }
+
+  function cancelRestore(fromNav){
+    restoring = false;
+    if (rafId) { try{ cancelAnimationFrame(rafId); }catch(e){} rafId = 0; }
+    while (timeoutIds.length) { try{ clearTimeout(timeoutIds.pop()); }catch(e){} }
+    // 只在“非用户主动操作”时还原 scroll-behavior；用户操作取消恢复会立即允许平滑滚动
+    if (!fromNav) { try { document.documentElement.style.scrollBehavior = ''; } catch(e){} }
+    setState(false);
+  }
+
+  // 用户主动滚动/键盘时，立即取消恢复，避免“抢拉动”感
+  ['wheel','touchstart','touchmove','keydown','mousedown'].forEach(function(evt){
+    window.addEventListener(evt, function(){
+      if (restoring) cancelRestore(false);
+    }, {passive:true});
+  });
+
+  // 检测浏览器后退/前进
+  window.addEventListener('popstate', function(){ isPop = true; }, true);
+
+  // 滚动保存（仅列表页）
+  window.addEventListener('scroll', throttledSave, {passive:true});
+
+  // 离开前再保存一次（仅列表页）
+  window.addEventListener('beforeunload', function(){ if (isListPage()) setPos(pageKey(), getY()); });
+
+  document.addEventListener('pjax:send', function(){
+    cancelRestore(true);   // 导航前取消遗留恢复，避免文章页打开在中间
+  });
+
+  document.addEventListener('pjax:complete', function(){
+    CURRENT_KEY = pageKey();
+    patchPjaxLoadUrl();
+    hardWrapScrollHelpers();
+
+    if (isPostPage()){
+      if (!location.hash){
+        window.scrollTo(0,0);
+        timeoutIds.push(setTimeout(function(){ window.scrollTo(0,0); }, 60));
+      }
+      return;
+    }
+
+    if (!isListPage()) return;
+
+    if (isPop){
+      var v = getPos(CURRENT_KEY);
+      if (v != null){
+        startRestore(parseInt(v,10) || 0);
+        rmPos(CURRENT_KEY);
+      }
+      isPop = false;
+    }
+  });
+
+  // 支持 BFCache
+  window.addEventListener('pageshow', function(ev){
+    CURRENT_KEY = pageKey();
+    patchPjaxLoadUrl();
+    hardWrapScrollHelpers();
+
+    if (isPostPage()){
+      if (!location.hash){
+        window.scrollTo(0,0);
+        timeoutIds.push(setTimeout(function(){ window.scrollTo(0,0); }, 60));
+      }
+      return;
+    }
+
+    if (!isListPage()) return;
+    if (ev && ev.persisted){
+      var v = getPos(CURRENT_KEY);
+      if (v != null){
+        startRestore(parseInt(v,10) || 0);
+        rmPos(CURRENT_KEY);
+      }
+    }
+  });
+
+  function startRestore(y){
+    restoring = true;
+    setState(true);  // 在恢复阶段屏蔽主题滚动动画
+
+    var prevBehavior = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = 'auto';
+
+    var start = performance.now();
+    var lastHeight = document.body.scrollHeight;
+    var stableFrames = 0;
+    var EPS = 2;          // 误差阈值（像素）
+    var MAX_MS = 1200;    // 最长恢复时间
+    var MAX_RAF = 40;     // 最多帧数
+
+    function done(){
+      document.documentElement.style.scrollBehavior = prevBehavior || '';
+      restoring = false;
+      setState(false);
+      if (rafId) { try{ cancelAnimationFrame(rafId); }catch(e){} rafId = 0; }
+      while (timeoutIds.length) { try{ clearTimeout(timeoutIds.pop()); }catch(e){} }
+    }
+
+    function rafTick(){
+      var now = performance.now();
+      var cur = getY();
+      var h = document.body.scrollHeight;
+
+      // 若内容高度稳定且位置已接近目标，提前结束（避免继续“抢动”）
+      if (Math.abs(cur - y) <= EPS){
+        stableFrames++;
+        if (stableFrames >= 3){ return done(); }
+      } else {
+        stableFrames = 0;
+      }
+
+      // 若页面高度变化，说明懒加载/布局在动，继续校正
+      if (h !== lastHeight){
+        lastHeight = h;
+        stableFrames = 0;
+      }
+
+      window.scrollTo(0, y);
+
+      if ((now - start) >= MAX_MS) return done();
+      if (--MAX_RAF <= 0) return done();
+
+      rafId = requestAnimationFrame(rafTick);
+    }
+
+    rafId = requestAnimationFrame(rafTick);
+
+    // 少量兜底（不影响提前结束）：
+    [200, 500, 900].forEach(function(ms){
+      var tid = setTimeout(function(){
+        if (restoring) window.scrollTo(0, y);
+      }, ms);
+      timeoutIds.push(tid);
+    });
+  }
+
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  CURRENT_KEY = pageKey();
+  patchPjaxLoadUrl();
+  hardWrapScrollHelpers();
+  setState(false);
+})();
+</script>
+
+
+    <!-- DIY × PLUS 一体化 Loader · v12-merge + DreamConfig + SnowRebuildByIdRange -->
+<script th:inline="javascript">
+(function(){
+  /* ========= 基础 ========= */
+  const THEME_VER  = /*[[${theme.spec.version}]]*/ '';
+  const RAW_ASSETS = /*[[${assets_link}]]*/ '';
+
+  function detectAssetBases(){
+    const set = new Set();
+    if (RAW_ASSETS){
+      const a = String(RAW_ASSETS).replace(/\/+$/,'');
+      set.add(a); set.add(a + '/assets');
+    }
+    document.querySelectorAll('link[href*="/themes/"],script[src*="/themes/"]').forEach(n=>{
+      const u = n.getAttribute('href') || n.getAttribute('src') || '';
+      const m1 = u.match(/(\/themes\/[^/]+)\/assets\//);
+      if (m1 && m1[1]) set.add(m1[1] + '/assets');
+      const m2 = u.match(/(\/themes\/[^/]+)\//);
+      if (m2 && m2[1]) set.add(m2[1] + '/assets');
+    });
+    const arr = Array.from(set).filter(Boolean);
+    return arr.length ? arr : ['/themes/halo-theme-hao/assets'];
+  }
+  const ASSET_BASES  = detectAssetBases();
+  const FIRST_ASSETS = ASSET_BASES[0].replace(/\/+$/,'');
+
+  /* ========= 读取配置（enhance 优先，style 兜底） ========= */
+  const _e = {
+    cursor_style: /*[[${theme.config.enhance.cursor_style}]]*/ null,
+    cursor_move:  /*[[${theme.config.enhance.cursor_move}]]*/ null,
+    cursor_click: /*[[${theme.config.enhance.cursor_click}]]*/ null,
+    effects_lantern_mode:             /*[[${theme.config.enhance.effects_lantern_mode}]]*/ null,
+    effects_sakura_mode:              /*[[${theme.config.enhance.effects_sakura_mode}]]*/ null,
+    effects_snowflake_mode:           /*[[${theme.config.enhance.effects_snowflake_mode}]]*/ null,
+    effects_universe_mode:            /*[[${theme.config.enhance.effects_universe_mode}]]*/ null,
+    effects_circle_magic_mode:        /*[[${theme.config.enhance.effects_circle_magic_mode}]]*/ null,
+    effects_quantum_silk_thread_mode: /*[[${theme.config.enhance.effects_quantum_silk_thread_mode}]]*/ null,
+    effects_lantern_left:  /*[[${theme.config.enhance.effects_lantern.effects_lantern_left}]]*/ null,
+    effects_lantern_right: /*[[${theme.config.enhance.effects_lantern.effects_lantern_right}]]*/ null
+  };
+  const _s = {
+    cursor_style: /*[[${theme.config.style.cursor_style}]]*/ null,
+    cursor_move:  /*[[${theme.config.style.cursor_move}]]*/ null,
+    cursor_click: /*[[${theme.config.style.cursor_click}]]*/ null,
+    effects_lantern_mode:             /*[[${theme.config.style.effects_lantern_mode}]]*/ null,
+    effects_sakura_mode:              /*[[${theme.config.style.effects_sakura_mode}]]*/ null,
+    effects_snowflake_mode:           /*[[${theme.config.style.effects_snowflake_mode}]]*/ null,
+    effects_universe_mode:            /*[[${theme.config.style.effects_universe_mode}]]*/ null,
+    effects_circle_magic_mode:        /*[[${theme.config.style.effects_circle_magic_mode}]]*/ null,
+    effects_quantum_silk_thread_mode: /*[[${theme.config.style.effects_quantum_silk_thread_mode}]]*/ null,
+    effects_lantern_left:  /*[[${theme.config.style.effects_lantern.effects_lantern_left}]]*/ null,
+    effects_lantern_right: /*[[${theme.config.style.effects_lantern.effects_lantern_right}]]*/ null
+  };
+  const pick = (a,b,d)=> (a||b||d);
+  const normalizeMode = m => (!m||m==='none') ? '' : (m==='light'?'day':(m==='dark'?'night':m));
+
+  const CFG = {
+    cursor_style: pick(_e.cursor_style,_s.cursor_style,'none'),
+    cursor_move:  pick(_e.cursor_move,_s.cursor_move,'none'),
+    cursor_click: pick(_e.cursor_click,_s.cursor_click,'none'),
+    effects_lantern_mode:             normalizeMode(pick(_e.effects_lantern_mode,_s.effects_lantern_mode,'none')),
+    effects_sakura_mode:              normalizeMode(pick(_e.effects_sakura_mode,_s.effects_sakura_mode,'none')),
+    effects_snowflake_mode:           normalizeMode(pick(_e.effects_snowflake_mode,_s.effects_snowflake_mode,'none')),
+    effects_universe_mode:            normalizeMode(pick(_e.effects_universe_mode,_s.effects_universe_mode,'none')),
+    effects_circle_magic_mode:        normalizeMode(pick(_e.effects_circle_magic_mode,_s.effects_circle_magic_mode,'none')),
+    effects_quantum_silk_thread_mode: normalizeMode(pick(_e.effects_quantum_silk_thread_mode,_s.effects_quantum_silk_thread_mode,'none')),
+    effects_lantern_left:  pick(_e.effects_lantern_left,_s.effects_lantern_left,''),
+    effects_lantern_right: pick(_e.effects_lantern_right,_s.effects_lantern_right,'')
+  };
+
+  /* ========= DreamConfig（给 PLUS 脚本读取） ========= */
+  const DreamConfig = window.DreamConfig || (window.DreamConfig = {});
+  DreamConfig.theme_version = THEME_VER || '';
+  DreamConfig.assets_base   = FIRST_ASSETS + '/js';
+  DreamConfig.cursor_style  = (CFG.cursor_style && CFG.cursor_style!=='none') ? CFG.cursor_style : '';
+  DreamConfig.cursor_move   = (CFG.cursor_move  && CFG.cursor_move  !=='none') ? CFG.cursor_move  : '';
+  DreamConfig.cursor_click  = (CFG.cursor_click && CFG.cursor_click !=='none') ? CFG.cursor_click : '';
+  DreamConfig.effects_lantern_mode             = CFG.effects_lantern_mode;
+  DreamConfig.effects_sakura_mode              = CFG.effects_sakura_mode;
+  DreamConfig.effects_snowflake_mode           = CFG.effects_snowflake_mode;
+  DreamConfig.effects_universe_mode            = CFG.effects_universe_mode;
+  DreamConfig.effects_circle_magic_mode        = CFG.effects_circle_magic_mode;
+  DreamConfig.effects_quantum_silk_thread_mode = CFG.effects_quantum_silk_thread_mode;
+  DreamConfig.effects_lantern_left             = CFG.effects_lantern_left;
+  DreamConfig.effects_lantern_right            = CFG.effects_lantern_right;
+
+  /* ========= 明暗兼容 ========= */
+  function syncNightClass(){
+    const html = document.documentElement;
+    const dark = html.getAttribute('data-theme')==='dark';
+    html.classList.toggle('night', dark);
+    window.specialEfficacyScheme = dark ? 'dark' : 'light';
+  }
+  syncNightClass();
+  new MutationObserver(function(){
+    const was = document.documentElement.classList.contains('night');
+    syncNightClass();
+    const now = document.documentElement.classList.contains('night');
+    if (was !== now) window.dispatchEvent(new Event('hao:mode-change'));
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class']});
+
+  /* ========= 工具 ========= */
+  function loadFromBases(id, relList){
+    const exists = document.getElementById(id);
+    if (exists) return;
+    const cand = [];
+    ASSET_BASES.forEach(base=>{
+      relList.forEach(rp=>{
+        const p = (base.replace(/\/+$/,'') + '/' + rp.replace(/^\/+/,'')).replace(/\/{2,}/g,'/');
+        cand.push(p.replace(/\.js$/,'') + '.min.js');
+        cand.push(p.replace(/\.js$/,'') + '.js');
+      });
+    });
+    let i=0, s=document.createElement('script'); s.defer=true; s.id=id;
+    function tryNext(){
+      if(i>=cand.length) return;
+      s.src = cand[i++] + '?v=' + encodeURIComponent(DreamConfig.theme_version) + '&r=' + Date.now();
+      document.body.appendChild(s);
+    }
+    s.onerror=function(){ s.remove(); s=document.createElement('script'); s.defer=true; s.id=id; tryNext(); };
+    tryNext();
+  }
+  const isMobile = ()=> /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const shouldLoad = (mode)=>{
+    if (!mode) return false;
+    const dark = document.documentElement.classList.contains('night');
+    if (mode==='all') return true;
+    if (mode==='day')   return !dark;
+    if (mode==='night') return dark;
+    return true;
+  };
+
+  /* ========= 鼠标风格（精准文件表） ========= */
+    /* 只替换这个函数，其它代码一律不动 */
+    /* 只替换这个函数，其它代码一律不动 */
+    /* 只替换这个函数，其它代码一律不动（V5：恢复稳定 CSS 方案；使用 assets_link 基准 + 精确映射） */
+    /* 只替换这个函数，其它代码一律不动（Overwatch 专项加强 + .ani 兼容 + contenteditable 选择器） */
+    /* 只替换这个函数，其它代码一律不动（对标 PLUS：overwatch 三态统一用 pointer.cur） */
+  function applyCursorStyle(){ /* removed by request: mouse-style disabled */ }
+
+
+
+
+
+
+
+  /* ========= 只修“雪花加速” —— 计时器 ID 区间法 ========= */
+  const SnowRange = (function(){
+    let last = null; // {intStart,intEnd, toutStart, toutEnd}
+
+    function getMaxIntervalId(){
+      const id = setInterval(function(){},  0);
+      clearInterval(id);
+      return id;
+    }
+    function getMaxTimeoutId(){
+      const id = setTimeout (function(){},  0);
+      clearTimeout(id);
+      return id;
+    }
+    function clearRange(r){
+      if (!r) return;
+      for (let i = r.intStart + 1; i <= r.intEnd; i++) { try{ clearInterval(i); }catch(e){} }
+      for (let i = r.toutStart + 1; i <= r.toutEnd; i++) { try{ clearTimeout(i); }catch(e){} }
+      // 清 DOM 与旧脚本
+      document.querySelectorAll('#Snow,[id*="snow"],[class*="snow"]').forEach(el=>{ try{ el.remove(); }catch(e){} });
+      const tag = document.getElementById('fx-snow'); if (tag) try{ tag.remove(); }catch(e){}
+      // 保险：删除任何 src 含 snowflake 的脚本标签
+      document.querySelectorAll('script[src*="snowflake"]').forEach(s=>{ try{s.remove();}catch(e){} });
+    }
+
+    function start(){
+      // 1) 不需要 → 清掉上一个并返回
+      if (!shouldLoad(DreamConfig.effects_snowflake_mode)) { clearRange(last); return; }
+
+      // 2) 清上一次
+      clearRange(last);
+
+      // 3) 标记“本次构建前”的最大 ID
+      const intStart  = getMaxIntervalId();
+      const toutStart = getMaxTimeoutId();
+
+      // 4) 重新加载雪花脚本
+      loadFromBases('fx-snow', ['js/effects/snowflake','effects/snowflake']);
+
+      // 5) 在脚本完成初始化后记录“本次构建后的最大 ID”
+      //    用两段延时取最大值，保证慢网速也能覆盖到
+      function snapshot(){
+        const intEnd  = getMaxIntervalId();
+        const toutEnd = getMaxTimeoutId();
+        if (!last) last = { intStart, intEnd, toutStart, toutEnd };
+        else {
+          // 记录一个“并集”区间（向上取最大），清理更稳
+          last.intStart  = Math.min(last.intStart,  intStart);
+          last.intEnd    = Math.max(last.intEnd,    intEnd);
+          last.toutStart = Math.min(last.toutStart, toutStart);
+          last.toutEnd   = Math.max(last.toutEnd,   toutEnd);
+        }
+      }
+      setTimeout(snapshot, 350);   // 大多数脚本 100~300ms 完成
+      setTimeout(snapshot, 1200);  // 兜底再取一次
+    }
+
+    return { start };
+  })();
+
+  /* ========= 其它公共 ========= */
+  function cleanEffectLayers(){
+    // 不动雪花（交给 SnowRange 管），其它清理
+    document.querySelectorAll('.canvas_effects,#universe_canvas,#quantum_c_n,.j-china-lantern,[id^=sakura]')
+      .forEach(el=>{ try{ el.remove(); }catch(e){} });
+    ['fx-sakura','fx-universe','fx-circle','fx-quantum','fx-lantern'].forEach(id=>{
+      const s = document.getElementById(id); if (s) s.remove();
+    });
+  }
+
+  function initCursorEffects(){
+    if (isMobile()) return;
+    if (DreamConfig.cursor_move)  loadFromBases('cursor-move',  ['js/cursor/move/'  + DreamConfig.cursor_move]);
+    if (DreamConfig.cursor_click) loadFromBases('cursor-click', ['js/cursor/click/' + DreamConfig.cursor_click]);
+  }
+  function initCanvasEffects(){
+    if (isMobile()) return;
+    if (shouldLoad(DreamConfig.effects_lantern_mode))             loadFromBases('fx-lantern',['js/effects/lantern','effects/lantern']);
+    if (shouldLoad(DreamConfig.effects_sakura_mode))              loadFromBases('fx-sakura', ['js/effects/sakura','effects/sakura']);
+    SnowRange.start();                                           // ★ 雪花：重建但不叠速
+    if (shouldLoad(DreamConfig.effects_universe_mode))            loadFromBases('fx-universe',['js/effects/universe','effects/universe']);
+    if (shouldLoad(DreamConfig.effects_circle_magic_mode))        loadFromBases('fx-circle',  ['js/effects/circleMagic','effects/circleMagic']);
+    if (shouldLoad(DreamConfig.effects_quantum_silk_thread_mode)) loadFromBases('fx-quantum', ['js/effects/quantum','effects/quantum']);
+  }
+
+  function initAll(){
+    initCursorEffects();
+    initCanvasEffects();
+  }
+
+  document.addEventListener('DOMContentLoaded', initAll);
+  window.addEventListener('pjax:complete', ()=>{ syncNightClass(); initAll(); });
+  window.addEventListener('hao:mode-change', ()=>{
+    cleanEffectLayers();
+    initCanvasEffects();   // 每次切换：先清旧区间，再重建新雪花 → 速度恒定
+  });
+
+  try{
+    console.log('[Hao Effects bases]', ASSET_BASES);
+    console.log('[Hao Effects DreamConfig]', JSON.parse(JSON.stringify(DreamConfig)));
+  }catch(e){}
+})();
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<!-- 标签 -->
+<th:block th:fragment="tags-contain"
+          th:with="tags = ${tagFinder.listAll()}, tagQuantity = ${#conversions.convert(theme.config.sidebar.tagQuantity, 'java.lang.Integer')}">
+
+    <div class="item-headline"></div>
+    <div class="card-tag-cloud">
+        <a class="tag-item" style="font-size:1em" th:each="tag,iterStat : ${tags}"
+           th:href="@{${tag.status.permalink}}"
+           th:if="${tagQuantity >= 0 && iterStat.index < tagQuantity || tagQuantity < 0}"
+           th:title="${tag.spec.displayName}">
+            <!-- 角标 -->
+            [[${tag.spec.displayName}]]<sup th:text="${tag.status.visiblePostCount}"></sup>
+        </a>
+    </div>
+    <script data-pjax>
+    (function () {
+        function initAsideFloatingTags() {
+            const clouds = document.querySelectorAll('#aside-content .card-tags .card-tag-cloud');
+
+            // 每次重新初始化时，让旧动画自动停止，避免 PJAX 后重复动画
+            window.__haoFloatingTagCloudToken = (window.__haoFloatingTagCloudToken || 0) + 1;
+            const token = window.__haoFloatingTagCloudToken;
+
+            clouds.forEach(function (cloud) {
+                const tags = Array.from(cloud.querySelectorAll('a.tag-item'));
+                if (!tags.length) return;
+
+                const cloudWidth = cloud.clientWidth;
+                const cloudHeight = cloud.clientHeight || 260;
+
+                const cols = Math.max(1, Math.ceil(Math.sqrt(tags.length * cloudWidth / cloudHeight)));
+                const rows = Math.max(1, Math.ceil(tags.length / cols));
+                const cellWidth = cloudWidth / cols;
+                const cellHeight = cloudHeight / rows;
+
+                tags.forEach(function (tag, index) {
+                    tag.style.left = '0';
+                    tag.style.top = '0';
+                    tag.style.margin = '0';
+                    tag.style.position = 'absolute';
+
+                    const tagWidth = tag.offsetWidth || 60;
+                    const tagHeight = tag.offsetHeight || 24;
+
+                    const maxX = Math.max(0, cloudWidth - tagWidth - 4);
+                    const maxY = Math.max(0, cloudHeight - tagHeight - 4);
+
+                    const col = index % cols;
+                    const row = Math.floor(index / cols);
+
+                    const baseX = col * cellWidth;
+                    const baseY = row * cellHeight;
+
+                    const x = Math.min(maxX, baseX + Math.random() * Math.max(4, cellWidth - tagWidth));
+                    const y = Math.min(maxY, baseY + Math.random() * Math.max(4, cellHeight - tagHeight));
+
+                    const speedX = (Math.random() > 0.5 ? 1 : -1) * (0.16 + Math.random() * 0.22);
+                    const speedY = (Math.random() > 0.5 ? 1 : -1) * (0.12 + Math.random() * 0.18);
+
+                    tag.__floatData = {
+                        x: x,
+                        y: y,
+                        vx: speedX,
+                        vy: speedY,
+                        width: tagWidth,
+                        height: tagHeight,
+                        paused: false
+                    };
+
+                    // 鼠标放上去，这一个标签停止；移开后继续动
+                    tag.onmouseenter = function () {
+                        if (tag.__floatData) tag.__floatData.paused = true;
+                    };
+
+                    tag.onmouseleave = function () {
+                        if (tag.__floatData) tag.__floatData.paused = false;
+                    };
+
+                    tag.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
+                });
+
+                function animate() {
+                    if (token !== window.__haoFloatingTagCloudToken) return;
+
+                    const width = cloud.clientWidth;
+                    const height = cloud.clientHeight || 260;
+
+                    tags.forEach(function (tag) {
+                        const data = tag.__floatData;
+                        if (!data || data.paused) return;
+
+                        const maxX = Math.max(0, width - data.width - 4);
+                        const maxY = Math.max(0, height - data.height - 4);
+
+                        data.x += data.vx;
+                        data.y += data.vy;
+
+                        if (data.x <= 0 || data.x >= maxX) {
+                            data.vx *= -1;
+                            data.x = Math.min(Math.max(data.x, 0), maxX);
+                        }
+
+                        if (data.y <= 0 || data.y >= maxY) {
+                            data.vy *= -1;
+                            data.y = Math.min(Math.max(data.y, 0), maxY);
+                        }
+
+                        tag.style.transform = 'translate3d(' + data.x + 'px,' + data.y + 'px,0)';
+                    });
+
+                    requestAnimationFrame(animate);
+                }
+
+                animate();
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAsideFloatingTags, { once: true });
+        } else {
+            initAsideFloatingTags();
+        }
+
+        if (!window.__haoFloatingTagCloudBinded) {
+            window.__haoFloatingTagCloudBinded = true;
+            document.addEventListener('pjax:complete', initAsideFloatingTags);
+        }
+    })();
+</script>
+<script th:if="${theme.config.other.tagRandomColorEnable}" data-pjax>
+    document.querySelectorAll('#aside-content .card-tags .tag-item').forEach(function (tag) {
+        let randomColor = "#" + ((1 << 24) * Math.random() | 0).toString(16);
+        tag.style.color = randomColor;
+    });
+</script>
+    <script th:if="${theme.config.other.tagRandomColorEnable}">
+        for (const tag of document.getElementsByClassName('tag-item')) {
+            let randomColor ="#"+((1<<24)*Math.random()|0).toString(16);
+            tag.style.color = randomColor;
+        }
+    </script>
+
+</th:block>
+
+
+</html>

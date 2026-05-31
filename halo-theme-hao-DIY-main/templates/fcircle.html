@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{modules/layouts/layout :: layout(content = ~{::content}, htmlType = 'fcircle',title = ${singlePage.spec.title + ' | ' + site.title}, head = ~{::head} )}">
+<th:block th:fragment="head">
+  <!-- OG：优先主题设置，再回落页面字段 -->
+  <th:block th:replace="~{modules/common/open-graph :: open-graph(
+    _title    = ${ !#strings.isEmpty(theme.config.fcircle.bigTitle) ? theme.config.fcircle.bigTitle
+                  : (!#strings.isEmpty(theme.config.fcircle.title) ? theme.config.fcircle.title : singlePage.spec.title) },
+    _permalink= ${ singlePage.status.permalink },
+    _cover    = ${
+                    !#strings.isEmpty(theme.config.fcircle.backgroundImg) ? theme.config.fcircle.backgroundImg
+                    : (!#strings.isEmpty(theme.config.fcircle.background) ? theme.config.fcircle.background
+                    : (!#strings.isEmpty(theme.config.fcircle.bg) ? theme.config.fcircle.bg : singlePage.spec.cover))
+                 },
+    _excerpt  = ${
+                    !#strings.isEmpty(theme.config.fcircle.detail) ? theme.config.fcircle.detail
+                    : (!#strings.isEmpty(theme.config.fcircle.description) ? theme.config.fcircle.description
+                    : (!#strings.isEmpty(theme.config.fcircle.desc) ? theme.config.fcircle.desc : singlePage.status.excerpt))
+                 },
+    _type     = 'website'
+  )}"></th:block>
+</th:block>
+
+<th:block th:fragment="content">
+  <div class="page" id="body-wrap">
+
+    <!-- 顶部导航标题 -->
+    <header class="not-top-img" id="page-header">
+      <nav th:replace="~{modules/nav :: nav(
+        title = ${ !#strings.isEmpty(theme.config.fcircle.bigTitle) ? theme.config.fcircle.bigTitle
+                  : (!#strings.isEmpty(theme.config.fcircle.title) ? theme.config.fcircle.title : singlePage.spec.title) }
+      )}"><link rel="stylesheet" type="text/css" th:href="${assets_link + '/libs/fcircle/heo-fcircle3.css'}">
+
+</nav>
+    </header>
+
+    <main class="layout hide-aside" id="content-inner">
+      <div id="page">
+
+        <!-- 头图组件：背景/小标题/大标题/描述 -->
+        <div th:replace="~{macro/author-content :: author-content-video(
+  background = ${
+                  !#strings.isEmpty(theme.config.fcircle.backgroundImg) ? theme.config.fcircle.backgroundImg
+                  : (!#strings.isEmpty(theme.config.fcircle.background) ? theme.config.fcircle.background
+                  : (!#strings.isEmpty(theme.config.fcircle.bg) ? theme.config.fcircle.bg : singlePage.spec.cover))
+                },
+  video      = ${ !#strings.isEmpty(theme.config.fcircle.backgroundVideo) ? theme.config.fcircle.backgroundVideo : '' },
+  smallTitle = ${ !#strings.isEmpty(theme.config.fcircle.smallTitle) ? theme.config.fcircle.smallTitle
+                : (!#strings.isEmpty(theme.config.fcircle.subTitle) ? theme.config.fcircle.subTitle
+                : (!#strings.isEmpty(theme.config.fcircle.subtitle) ? theme.config.fcircle.subtitle : '友链')) },
+  bigTitle   = ${ !#strings.isEmpty(theme.config.fcircle.bigTitle) ? theme.config.fcircle.bigTitle
+                : (!#strings.isEmpty(theme.config.fcircle.title) ? theme.config.fcircle.title : singlePage.spec.title) },
+  detail     = ${
+                  !#strings.isEmpty(theme.config.fcircle.detail) ? theme.config.fcircle.detail
+                  : (!#strings.isEmpty(theme.config.fcircle.description) ? theme.config.fcircle.description
+                  : (!#strings.isEmpty(theme.config.fcircle.desc) ? theme.config.fcircle.desc : singlePage.spec.excerpt.raw))
+                },
+  buttonUrl  = ${ !#strings.isEmpty(theme.config.fcircle.buttonUrl) ? theme.config.fcircle.buttonUrl : site.url },
+  buttonTitle= ${ !#strings.isEmpty(theme.config.fcircle.buttonTitle) ? theme.config.fcircle.buttonTitle : '部署项目' }
+)}"></div>
+
+        <!-- 🎣 钓鱼 -->
+        <th:block th:if="${theme.config.fcircle.fcircleRandomFriendsEnable}">
+          <div class="title-h2-a">
+            <div class="title-h2-a-left">
+              <h2 style="padding-top:0;margin:.6rem 0 .6rem">🎣 钓鱼</h2>
+              <a class="random-post-start" href="javascript:fetchRandomPost();">
+                <i class="haofont hao-icon-arrow-rotate-right"></i>
+              </a>
+            </div>
+            <div th:if="${not #strings.isEmpty(theme.config.link.linksUrl)}" class="title-h2-a-right">
+              <a class="random-post-all" th:href="${theme.config.link.linksUrl}">全部友链</a>
+            </div>
+          </div>
+          <div id="random-post"></div>
+          <script>
+            var fdataUser = {
+              apiurl: "[(${theme.config.fcircle.apiurl})]",
+              defaultFish: 500,
+              hungryFish: 500,
+            };
+          </script>
+          <script th:src="${assets_link + '/libs/moments/random-friends-post.js'}"></script>
+        </th:block>
+
+        <!-- 🐟 鱼塘 -->
+        <div class="title-h2-a">
+          <div class="title-h2-a-left">
+            <h2 style="padding-top:0;margin:.6rem 0 .6rem">🐟 鱼塘</h2>
+          </div>
+          <div class="title-h2-a-right"><span>以下内容自动生成，未经审核</span></div>
+        </div>
+
+        <div id="hexo-circle-of-friends-root"></div>
+        <script>
+          var UserConfig = {
+            private_api_url: "[(${theme.config.fcircle.apiurl})]",  // 这里填纯基址，如 https://hao-yutang.vercel.app 或 /api
+            page_turning_number: 24,
+            error_img: "https://sdn.geekzu.org/avatar/57d8260dfb55501c37dde588e7c3852c",
+            sort_rule: "created"
+          };
+        </script>
+        <link rel="stylesheet" th:href="${assets_link + '/libs/moments/heoMainColor.css'}">
+        <script th:src="${assets_link + '/libs/moments/app.min.js'}"></script>
+        <script th:src="${assets_link + '/libs/moments/bundle.js'}"></script>
+<!-- 仅在 PJAX 开启时：在 /fcircle 页面再次点击“友链鱼塘”链接，改为整页刷新（恢复顶部滚动样式的最稳方案） -->
+<!-- 自动点击“加载更多”：按钮一进入可视区就自动点击（保留原按钮与到底提示） -->
+<script data-pjax id="fcircle-auto-click-more">
+(function(){
+  const ROOT = document.querySelector('#hexo-circle-of-friends-root');
+  if(!ROOT) return;
+
+  const END_TEXT_RE = /尽头|没有更多|已到底|END/i;
+  let io = null, busy = false;
+
+  function getBtn(){
+    // 主题可能动态替换按钮，这里每次都现取
+    return document.getElementById('cf-more') || ROOT.querySelector('#cf-more');
+  }
+  function getState(){
+    return document.getElementById('cf-state') || ROOT.querySelector('#cf-state');
+  }
+  function isFinished(){
+    const st = getState();
+    return (!getBtn() && st) || (st && END_TEXT_RE.test((st.textContent||'').trim()));
+  }
+
+  function clickIfVisible(){
+    const btn = getBtn();
+    if(!btn || busy) return;
+    // 仅当按钮处于可见状态且在可视区内时才触发
+    const rect = btn.getBoundingClientRect();
+    const visible = !!(btn.offsetParent !== null && rect.height > 0 && rect.width > 0);
+    const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
+    if(!visible || !inViewport) return;
+
+    busy = true
+    btn.click();
+    // 等待渲染完成，降低触发频率
+    setTimeout(()=> busy = false, 800);
+  }
+
+  function attachObserver(){
+    // 先清理旧的
+    if(io) { try{ io.disconnect(); }catch(e){} io = null; }
+
+    const btn = getBtn();
+    if(!btn){ 
+      // 没有按钮则可能是到底了，尝试显示状态；否则延迟再试一次
+      if(!isFinished()) setTimeout(attachObserver, 600);
+      return;
+    }
+    // 监听按钮进入可视区就自动点击
+    io = new IntersectionObserver((entries)=>{
+      if(busy) return;
+      entries.forEach(e=>{ if(e.isIntersecting) clickIfVisible(); });
+    }, { rootMargin: '0px', threshold: 0.01 });
+    io.observe(btn);
+  }
+
+  // DOM 变化时，按钮可能被替换，重新绑定观察器
+  const mo = new MutationObserver(()=>{
+    if(isFinished()){ if(io) io.disconnect(); return; }
+    attachObserver();
+  });
+  mo.observe(ROOT.parentNode || ROOT, { childList:true, subtree:true });
+
+  // 初始化
+  attachObserver();
+
+  // 兜底：首屏不满一页时，延时尝试点击一次
+  setTimeout(clickIfVisible, 400);
+})();
+</script>
+
+
+        <style>
+          .cf-manage-pannel[data-v-34921c7c]{width:80%!important;height:80%!important}
+          .cf-article-author:hover{color:var(--heo-card-bg)!important}
+          #cf-more:hover{background:var(--heo-lighttext)!important;color:var(--heo-card-bg)!important}
+        </style>
+
+      </div>
+    </main>
+
+    <footer th:replace="~{modules/footer}"/>
+    <script th:if="${theme.config.other.bubbleEnable}" async data-pjax th:src="${assets_link + '/libs/canvas/bubble.js'}"></script>
+  </div>
+</th:block>
+</html>
+<script data-pjax id="fcircle-avatar-fix-v10">
+(function () {
+  const API  = 'https://fcircle.oortaka.top/all';   // change to same-origin proxy if CORS blocks
+  const ROOT = document.querySelector('#hexo-circle-of-friends-root') || document;
+  const SELF = location.hostname;
+  const isPH = s => /(?:^|\/)404s?\.(?:gif|png|jpe?g|webp)(?:$|\?)/i.test((s||''));
+
+  // Never-fail inline SVG
+  const DEFAULT_SVG =
+    'data:image/svg+xml;utf8,' +
+    '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">' +
+    '<rect width="100%" height="100%" rx="12" ry="12" fill="#2b2b2b"/>' +
+    '<circle cx="32" cy="24" r="12" fill="#555"/>' +
+    '<rect x="14" y="40" width="36" height="14" rx="7" ry="7" fill="#555"/>' +
+    '</svg>';
+
+  const googleIcon = host => 'https://www.google.com/s2/favicons?sz=64&domain=' + host;
+
+  function findCardFor(img) {
+    // Generic: walk up to a reasonable container
+    let el = img;
+    for (let i=0; i<6 && el; i++) {
+      if (el.matches && (el.matches('article, li, section') || (el.tagName === 'DIV' && el.children && el.children.length > 2))) {
+        return el;
+      }
+      el = el.parentElement;
+    }
+    return img.parentElement || img;
+  }
+
+  function extractExternalHostFromLink(a) {
+    try {
+      const u = new URL(a.getAttribute('href'), location.href);
+      if (u.hostname && u.hostname !== SELF) return u.hostname;
+      const KEYS = ['url','u','link','to','target','jump','redirect','dest','destination'];
+      for (const k of KEYS) {
+        const raw = u.searchParams.get(k);
+        if (!raw) continue;
+        try { const h = new URL(raw, location.href).hostname; if (h && h !== SELF) return h; } catch {}
+        try {
+          const dec = decodeURIComponent(raw);
+          try {
+            const b64 = atob(dec.replace(/_/g,'/').replace(/-/g,'+'));
+            const h = new URL(b64, location.href).hostname; if (h && h !== SELF) return h;
+          } catch {}
+          try {
+            const h2 = new URL(dec, location.href).hostname; if (h2 && h2 !== SELF) return h2;
+          } catch {}
+        } catch {}
+      }
+    } catch {}
+    return null;
+  }
+
+  function detectHost(card) {
+    if (!card) return null;
+    const as = card.querySelectorAll('a[href]');
+    for (const a of as) {
+      const host = extractExternalHostFromLink(a);
+      if (host) return host;
+    }
+    const nodes = [card, ...card.querySelectorAll('*')];
+    for (const el of nodes) {
+      if (!el.attributes) continue;
+      for (const attr of el.attributes) {
+        const val = String(attr.value || '');
+        const urls = val.match(/https?:\/\/[^\s"'<>)]+/ig);
+        if (urls) {
+          for (const raw of urls) {
+            try {
+              const h = new URL(raw, location.href).hostname;
+              if (h && h !== SELF) return h;
+            } catch {}
+          }
+        }
+      }
+    }
+    try {
+      const m = String(card.outerHTML||'').match(/https?:\/\/[^\s"'<>)]+/i);
+      if (m) {
+        const h = new URL(m[0], location.href).hostname;
+        if (h && h !== SELF) return h;
+      }
+    } catch {}
+    return null;
+  }
+
+  function apply(img, url) {
+    img.style.objectFit = img.style.objectFit || 'cover';
+    img.referrerPolicy = 'no-referrer';
+    img.loading = 'eager';
+    img.decoding = 'async';
+    img.onerror = function () {
+      if (img.dataset.fcircleErr !== '1') {
+        img.dataset.fcircleErr = '1';
+        img.src = DEFAULT_SVG;
+      }
+    };
+    img.src = url.startsWith('data:')
+      ? url
+      : url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+  }
+
+  let MAP_BY_HOST   = null; // host -> avatar
+  let MAP_BY_AUTHOR = null; // author -> avatar
+  async function ensureMaps() {
+    if (MAP_BY_HOST && MAP_BY_AUTHOR) return;
+    try {
+      const res = await fetch(API, { cache: 'no-store', mode: 'cors' });
+      const data = await res.json();
+      const list = Array.isArray(data?.article_data) ? data.article_data : [];
+      MAP_BY_HOST = new Map();
+      MAP_BY_AUTHOR = new Map();
+      for (const it of list) {
+        try {
+          const host = new URL(it.link).hostname;
+          if (host && it.avatar && !MAP_BY_HOST.has(host)) MAP_BY_HOST.set(host, it.avatar);
+        } catch {}
+        const author = (it.author || '').trim();
+        if (author && it.avatar && !MAP_BY_AUTHOR.has(author)) MAP_BY_AUTHOR.set(author, it.avatar);
+      }
+    } catch (e) {
+      console.warn('[friends v10] fetch failed:', e);
+      MAP_BY_HOST = MAP_BY_HOST || new Map();
+      MAP_BY_AUTHOR = MAP_BY_AUTHOR || new Map();
+    }
+  }
+
+  function findAuthorText(card) {
+    // 优先常见类名
+    let el = card.querySelector?.('.cf-article-author, .cf-author, .post-author, [class*="author"]');
+    if (el && el.textContent) return el.textContent.trim();
+    // 兜底：尝试在卡片中找到与 API 中 author 名称匹配的文本
+    if (MAP_BY_AUTHOR && MAP_BY_AUTHOR.size) {
+      const txt = (card.innerText || '').trim();
+      for (const name of MAP_BY_AUTHOR.keys()) {
+        if (name && txt.includes(name)) return name;
+      }
+    }
+    return null;
+  }
+
+  async function fixOnce(scope) {
+    await ensureMaps();
+
+    const box  = scope || ROOT;
+    try {
+      if (window.lazyLoadInstance?.update) {
+        window.lazyLoadInstance.update();
+        window.lazyLoadInstance.loadAll && window.lazyLoadInstance.loadAll();
+      }
+    } catch {}
+
+    const imgs = box.querySelectorAll('img');
+    imgs.forEach(img => {
+      const cur = img.getAttribute('src') || '';
+      if (!isPH(cur)) return;
+
+      // 1) 后端已经写了真实地址
+      let real =
+        img.getAttribute('data-lazy-src') ||
+        img.getAttribute('data-src') ||
+        img.getAttribute('data-original');
+
+      // 2) 用作者名映射
+      if (!real) {
+        const card   = findCardFor(img);
+        const author = findAuthorText(card);
+        if (author && MAP_BY_AUTHOR.has(author)) {
+          real = MAP_BY_AUTHOR.get(author);
+        }
+
+        // 3) 再用 host 映射
+        if (!real) {
+          const host = detectHost(card);
+          if (host) real = MAP_BY_HOST.get(host) || googleIcon(host);
+        }
+
+        // 4) 最后兜底
+        if (!real) real = DEFAULT_SVG;
+      }
+
+      apply(img, real);
+    });
+  }
+
+  function init() {
+    fixOnce();
+    document.addEventListener('pjax:complete', () => setTimeout(fixOnce, 0));
+    const mo = new MutationObserver(muts => {
+      if (muts.some(m => m.addedNodes && m.addedNodes.length)) fixOnce();
+    });
+    mo.observe(ROOT, { childList: true, subtree: true });
+  }
+
+  if (document.readyState !== 'loading') init();
+  else document.addEventListener('DOMContentLoaded', init, { once: true });
+})();
+</script>
+
+<!-- 让 /fcircle 的顶栏“下拉出现条纹/固定态”与 links 页面一致（PJAX 也生效） -->

@@ -1,0 +1,80 @@
+<!-- 无 PJAX：进度条事件桥（顺滑两段衔接版）
+  目标：点击立刻有反馈（旧页起跑），新页继续起跑，但通过“最短首段时长 + 轻延时收尾”
+  让两段在视觉上更顺滑。不会新增进度条，仅触发主题已有的进度条事件。
+-->
+<th:block>
+  <script>
+  (function () {
+    if (window.__hao_pjax_event_bridge__) return;
+    window.__hao_pjax_event_bridge__ = true;
+
+    // 开启 PJAX 时完全让路
+    var USE_PJAX = !!(window.pjax && typeof window.pjax.loadUrl === 'function');
+    if (USE_PJAX) return;
+
+    var KEY = 'hao:pjax-bridge-ts';
+    var MIN_FIRST_MS = 320;   // 最短首段可见时长（可按手感 260~380 调）
+    var FINISH_LAG  = 120;    // 新页完成的轻延时，避免“瞬间收尾”突兀
+
+    function fire(name){
+      try { document.dispatchEvent(new Event(name)); } catch(e) {}
+    }
+
+    function isSelfNav(e){
+      if (e.defaultPrevented || e.button!==0) return false;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return false;
+      var a = e.target.closest && e.target.closest('a');
+      if (!a) return false;
+      var href = a.getAttribute('href') || '';
+      if (!href || href.startsWith('#')) return false;
+      if (a.target && a.target !== '_self') return false;
+      try { var u = new URL(a.href, location.href); if (u.origin !== location.origin) return false; } catch(e){ return false; }
+      return true;
+    }
+
+    // 旧页：立即起跑，并记录时间戳
+    document.addEventListener('click', function(e){
+      if (!isSelfNav(e)) return;
+      try { sessionStorage.setItem(KEY, String(Date.now())); } catch(e) {}
+      fire('pjax:send');    // 触发主题原有进度条开始（第一段）
+    }, true);
+
+    document.addEventListener('submit', function(){
+      try { sessionStorage.setItem(KEY, String(Date.now())); } catch(e) {}
+      fire('pjax:send');
+    }, true);
+
+    // 新页：尽早继续起跑，但保证首段至少展示 MIN_FIRST_MS
+    var ts = 0;
+    try { ts = parseInt(sessionStorage.getItem(KEY) || '0', 10) || 0; } catch(e){ ts = 0; }
+    if (ts) {
+      try { sessionStorage.removeItem(KEY); } catch(e) {}
+
+      var elapsed = Date.now() - ts;
+      var startDelay = Math.max(0, MIN_FIRST_MS - elapsed);
+
+      var started = false;
+      var start2 = function(){ if (started) return; started = true; fire('pjax:send'); };
+
+      // DOM 越早可用越好：下一个 tick 安排一次，再在 DOMContentLoaded 兜底
+      setTimeout(function(){ setTimeout(start2, startDelay); }, 0);
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function(){ setTimeout(start2, startDelay); }, { once:true });
+      }
+
+      var finish = function(){
+        setTimeout(function(){
+          fire('pjax:success');
+          fire('pjax:complete');
+          fire('page:loaded');
+        }, FINISH_LAG);
+      };
+      if (document.readyState === 'complete') finish();
+      else {
+        window.addEventListener('load', finish, { once:true });
+        window.addEventListener('pageshow', finish, { once:true });
+      }
+    }
+  })();
+  </script>
+</th:block>

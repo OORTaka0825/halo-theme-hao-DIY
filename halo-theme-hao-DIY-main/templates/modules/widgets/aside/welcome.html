@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<!-- 小板报 -->
+
+<script th:inline="javascript">
+  (function () {
+    window.GLOBAL_CONFIG = window.GLOBAL_CONFIG || {};
+    GLOBAL_CONFIG.source = GLOBAL_CONFIG.source || {};
+    GLOBAL_CONFIG.source.welcome = {
+      key: "[(${theme.config.sidebar.welcome.key})]",
+      locationLng: [[${theme.config.sidebar.welcome.locationLng}]],
+      locationLat: [[${theme.config.sidebar.welcome.locationLat}]]
+    };
+  })();
+</script>
+
+<!-- 保留你之前已存在的 ip-hide 样式（不影响本次逻辑） -->
+<style>
+  #welcome-info .ip-hide { cursor: pointer; user-select: none; }
+  #welcome-info .ip-hide::before { content: "••••••••••"; }
+  #welcome-info .ip-hide:hover::before,
+  #welcome-info .ip-hide:focus::before { content: attr(data-ip); }
+
+  /* ★ 仅悬停显示：白雾模糊，鼠标移上去清晰，移出恢复模糊 */
+  #welcome-info .ip-blur{
+    display:inline-block;
+    filter: blur(5px);
+    transition: filter .2s ease, background .2s ease;
+    user-select: none;        /* 模糊时避免被复制 */
+    cursor: default;
+  }
+  #welcome-info .ip-blur:hover{
+    filter: blur(0);
+    background: rgba(255,255,255,0.08);
+    user-select: text;        /* 悬停显示后可复制 */
+  }
+  #welcome-info .ip-blur:hover{
+  filter: blur(0);                      /* 悬停清晰 */
+  background: transparent !important;   /* 悬停也不显示底色 */
+  }
+</style>
+
+<div class="card-widget card-announcement" th:fragment="welcome">
+  <div class="item-headline">
+    <i class="haofont hao-icon-bullhorn" style="font-size: 0.9rem;font-weight: 700;"></i>
+    <span>小板报</span>
+  </div>
+  <div id="welcome-info"></div>
+</div>
+
+</html>

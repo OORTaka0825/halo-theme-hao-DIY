@@ -1,0 +1,29 @@
+<!-- 文章标题背景（独立色）覆盖：始终注入到 <head>，以兼容 PJAX -->
+<!-- 仅在你开启该功能时（theme.config.post.postHeroColor.enable）输出样式 -->
+<th:block th:if="${theme.config.post.postHeroColor.enable}">
+  <style type="text/css" th:inline="css">
+    /* 1) 为标题区建立独立颜色变量：随 data-theme 切换 */
+    #page-header.post-bg{ --hao-post-hero-bg: [(${theme.config.post.postHeroColor.light})]; }
+    [data-theme="dark"] #page-header.post-bg{ --hao-post-hero-bg: [(${theme.config.post.postHeroColor.dark})]; }
+
+    /* 2) 在标题区作用域内，局部改写主题变量，兼容依赖变量的样式 */
+    #page-header.post-bg{
+      --heo-theme: var(--hao-post-hero-bg) !important;
+      --heo-main:  var(--hao-post-hero-bg) !important;
+      --heo-theme-op: color-mix(in srgb, var(--hao-post-hero-bg) 85%, transparent) !important;
+      --heo-theme-op-deep: color-mix(in srgb, var(--hao-post-hero-bg) 93%, transparent) !important;
+      transition: background-color .25s linear;
+    }
+
+    /* 3) 覆盖本体与常见伪元素/子层的背景，去掉渐变/光晕 */
+    body #page-header.post-bg,
+    body #page-header.post-bg::before,
+    body #page-header .post-bg,
+    body #page-header .post-bg::before,
+    body #post-top-cover,
+    body #post-top-cover::before{
+      background-color: var(--hao-post-hero-bg) !important;
+      background-image: none !important;
+    }
+  </style>
+</th:block>

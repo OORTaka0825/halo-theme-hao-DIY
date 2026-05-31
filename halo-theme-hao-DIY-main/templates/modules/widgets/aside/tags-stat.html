@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<!-- tag & stat 粘性布局 -->
+
+<th:block th:fragment="tags-stat">
+
+    <div class="card-widget card-tags card-archives card-webinfo card-allinfo">
+
+
+        <span th:if="${theme.config.sidebar.tags_switch}">
+            <th:block th:replace="~{modules/widgets/aside/contain/tags-contain :: tags-contain}" th:if="${theme.config.sidebar.tags_switch}"></th:block>
+
+            <hr>
+        </span>
+
+        <span th:if="${theme.config.sidebar.archive_switch}">
+            <th:block th:replace="~{modules/widgets/aside/contain/archive-contain :: archive-contain}" ></th:block>
+
+            <hr>
+        </span>
+
+
+        <th:block th:replace="~{modules/widgets/aside/contain/stat-contain :: stat-contain}" ></th:block>
+
+    </div>
+
+</th:block>
+
+
+</html>
