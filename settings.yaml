@@ -2171,7 +2171,7 @@ spec:
         - $formkit: radio
           name: linkSubmitEnable
           label: 友链自助提交插件
-          help: 开启后，友链页“申请友链”按钮会调用 link-submit 插件的提交弹框；关闭时保持跳转评论区。
+          help: 开启后，友链页“申请友链”按钮会调用“友链自助提交插件”插件的提交弹框；关闭时保持跳转评论区。
           value: false
           options:
             - label: 开启
