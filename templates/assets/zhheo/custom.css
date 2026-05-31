@@ -2531,3 +2531,27 @@ p.p.gray,span.p.gray {
     --at-color-green: #4caf50;
     --at-color-gradient: linear-gradient(180deg, transparent, rgba(30, 34, 36, 1))
 }
+/* 修复友链页顶部头像滚动区出现友链名称大字的问题 */
+#banners .tags-group-icon {
+    font-size: 0 !important;
+    line-height: 0 !important;
+    color: transparent !important;
+    overflow: hidden !important;
+    text-decoration: none !important;
+}
+
+#banners .tags-group-icon::before,
+#banners .tags-group-icon::after {
+    content: none !important;
+    display: none !important;
+}
+
+#banners .tags-group-icon img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 50% !important;
+}
