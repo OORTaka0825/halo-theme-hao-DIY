@@ -18929,7 +18929,7 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 }
 
 
-/* 图库内容页分页按钮 */
+/* 图库内容页分页按钮：只控制按钮，不强行改图片排版 */
 .photo-pagination {
     display: flex;
     justify-content: center;
@@ -18970,10 +18970,4 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     font-weight: 600;
     font-size: 1rem;
     color: var(--heo-fontcolor);
-}
-
-/* 图库分页：排版前隐藏原始大图，避免翻页/进入时闪成大图 */
-#article-container .photo-page-gallery.photo-page-preparing {
-    opacity: 0 !important;
-    min-height: 260px;
 }

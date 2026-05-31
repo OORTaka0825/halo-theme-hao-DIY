@@ -49,29 +49,24 @@
                     <div id="article-container">
                         <section class="page-1 loadings">
                             <div class="type-gallery ">
-                                <div class="gallery photo-page-gallery" data-page-size="20"></div>
+                                <div class="gallery photo-page-gallery" data-page-size="20">
+                                    <div class="fj-gallery-item" th:each="photo : ${photos.items}">
+                                        <div th:if="${theme.config.photos.tagEnable}" class="tag-address">
+                                            [[${photo.spec.displayName}]]</div>
+                                        <img th:src="${photo.spec.url}" th:alt="${photo.spec.description}"
+                                             th:title="${photo.spec.description}">
 
-<template class="photo-page-source">
-    <div class="fj-gallery-item" th:each="photo : ${photos.items}">
-        <div th:if="${theme.config.photos.tagEnable}" class="tag-address">
-            [[${photo.spec.displayName}]]
-        </div>
-        <img th:src="${photo.spec.url}" th:alt="${photo.spec.description}"
-             th:title="${photo.spec.description}">
-    </div>
-</template>
-
-<nav class="photo-pagination" style="display:none;">
-    <a class="photo-page-btn photo-prev" href="javascript:void(0)">上一页</a>
-
-    <span class="photo-page-num">
-        <span class="photo-current">1</span>
-        <span>/</span>
-        <span class="photo-total">1</span>
-    </span>
-
-    <a class="photo-page-btn photo-next" href="javascript:void(0)">下一页</a>
-</nav>
+                                    </div>
+                                </div>
+                                <nav class="photo-pagination" style="display:none;">
+                                    <a class="photo-page-btn photo-prev" href="javascript:void(0)">上一页</a>
+                                    <span class="photo-page-num">
+                                        <span class="photo-current">1</span>
+                                        <span>/</span>
+                                        <span class="photo-total">1</span>
+                                    </span>
+                                    <a class="photo-page-btn photo-next" href="javascript:void(0)">下一页</a>
+                                </nav>
                             </div>
                         </section>
                     </div>
@@ -89,31 +84,24 @@
                     <div id="article-container">
                         <section class="page-1 loadings">
                             <div class="type-gallery ">
+                                <div class="gallery photo-page-gallery" data-page-size="20">
+                                    <div class="fj-gallery-item" th:each="photo : ${photos.items}">
+                                        <div th:if="${theme.config.photos.tagEnable}" class="tag-address">
+                                            [[${photo.spec.displayName}]]</div>
+                                        <img th:src="${photo.spec.url}" th:alt="${photo.spec.description}"
+                                             th:title="${photo.spec.description}">
 
-
-                                <div class="gallery photo-page-gallery" data-page-size="20"></div>
-
-<template class="photo-page-source">
-    <div class="fj-gallery-item" th:each="photo : ${photos.items}">
-        <div th:if="${theme.config.photos.tagEnable}" class="tag-address">
-            [[${photo.spec.displayName}]]
-        </div>
-        <img th:src="${photo.spec.url}" th:alt="${photo.spec.description}"
-             th:title="${photo.spec.description}">
-    </div>
-</template>
-
-<nav class="photo-pagination" style="display:none;">
-    <a class="photo-page-btn photo-prev" href="javascript:void(0)">上一页</a>
-
-    <span class="photo-page-num">
-        <span class="photo-current">1</span>
-        <span>/</span>
-        <span class="photo-total">1</span>
-    </span>
-
-    <a class="photo-page-btn photo-next" href="javascript:void(0)">下一页</a>
-</nav>
+                                    </div>
+                                </div>
+                                <nav class="photo-pagination" style="display:none;">
+                                    <a class="photo-page-btn photo-prev" href="javascript:void(0)">上一页</a>
+                                    <span class="photo-page-num">
+                                        <span class="photo-current">1</span>
+                                        <span>/</span>
+                                        <span class="photo-total">1</span>
+                                    </span>
+                                    <a class="photo-page-btn photo-next" href="javascript:void(0)">下一页</a>
+                                </nav>
                             </div>
                         </section>
                     </div>
@@ -247,263 +235,147 @@
                 </style>
 
                 <script data-pjax>
-    (function () {
-        function unwrapFancybox(root) {
-            root.querySelectorAll('a.fancybox > img').forEach(function (img) {
-                const a = img.parentNode;
-                a.parentNode.replaceChild(img, a);
-            });
-        }
+                    (function () {
+                        function getPhotoItems(gallery) {
+                            return Array.from(gallery.children).filter(function (el) {
+                                return el.classList && el.classList.contains('fj-gallery-item');
+                            });
+                        }
 
-        function cleanPhotoItem(item) {
-            const clone = item.cloneNode(true);
-            clone.className = 'fj-gallery-item';
-            clone.removeAttribute('style');
-            clone.querySelectorAll('[style]').forEach(function (el) {
-                el.removeAttribute('style');
-            });
-            unwrapFancybox(clone);
-            return clone.outerHTML;
-        }
+                        function isGalleryLaidOut(gallery) {
+                            const items = getPhotoItems(gallery);
+                            if (!items.length) return false;
 
-        function waitImages(gallery, callback) {
-            const imgs = Array.from(gallery.querySelectorAll('img'));
-            if (!imgs.length) {
-                callback();
-                return;
-            }
+                            // 主题的 fjGallery 初始化后，通常会给图片项写入 width / height 等内联样式，
+                            // 或者通过 onJustify 把容器 opacity 改成 1。
+                            const styledCount = items.filter(function (item) {
+                                return item.style && (item.style.width || item.style.height || item.style.flexBasis);
+                            }).length;
 
-            let rest = imgs.length;
-            let finished = false;
+                            return styledCount > 0 || gallery.style.opacity === '1';
+                        }
 
-            function doneOne() {
-                if (finished) return;
-                rest--;
-                if (rest <= 0) {
-                    finished = true;
-                    callback();
-                }
-            }
+                        function updatePhotoButtons(gallery, page, totalPages) {
+                            const wrapper = gallery.closest('.type-gallery');
+                            if (!wrapper) return;
 
-            imgs.forEach(function (img) {
-                if (img.complete && img.naturalWidth > 0) {
-                    doneOne();
-                } else {
-                    img.addEventListener('load', doneOne, { once: true });
-                    img.addEventListener('error', doneOne, { once: true });
-                }
-            });
+                            const pagination = wrapper.querySelector('.photo-pagination');
+                            if (!pagination) return;
 
-            setTimeout(function () {
-                if (!finished) {
-                    finished = true;
-                    callback();
-                }
-            }, 2500);
-        }
+                            const currentEl = pagination.querySelector('.photo-current');
+                            const totalEl = pagination.querySelector('.photo-total');
+                            const prevBtn = pagination.querySelector('.photo-prev');
+                            const nextBtn = pagination.querySelector('.photo-next');
 
-        function ensureJustifiedGallery(callback) {
-            if (window.btf && typeof btf.initJustifiedGallerys === 'function' && typeof window.fjGallery === 'function') {
-                callback();
-                return;
-            }
+                            if (currentEl) currentEl.textContent = page;
+                            if (totalEl) totalEl.textContent = totalPages;
+                            if (prevBtn) prevBtn.classList.toggle('disabled', page <= 1);
+                            if (nextBtn) nextBtn.classList.toggle('disabled', page >= totalPages);
 
-            if (!window.GLOBAL_CONFIG || !GLOBAL_CONFIG.source || !GLOBAL_CONFIG.source.justifiedGallery || !window.jQuery) {
-                setTimeout(function () {
-                    ensureJustifiedGallery(callback);
-                }, 200);
-                return;
-            }
+                            pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+                        }
 
-            if (!document.querySelector('link[data-photo-jg-css]')) {
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.type = 'text/css';
-                link.href = GLOBAL_CONFIG.source.justifiedGallery.css;
-                link.setAttribute('data-photo-jg-css', 'true');
-                document.head.appendChild(link);
-            }
+                        function applyPhotoPage(gallery, page) {
+                            const items = getPhotoItems(gallery);
+                            const pageSize = Number(gallery.dataset.pageSize || 20);
+                            const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+                            page = Math.max(1, Math.min(page, totalPages));
 
-            if (window.__haoPhotoJgLoading) {
-                window.__haoPhotoJgCallbacks = window.__haoPhotoJgCallbacks || [];
-                window.__haoPhotoJgCallbacks.push(callback);
-                return;
-            }
+                            const start = (page - 1) * pageSize;
+                            const end = start + pageSize;
 
-            window.__haoPhotoJgLoading = true;
-            window.__haoPhotoJgCallbacks = [callback];
+                            items.forEach(function (item, index) {
+                                item.style.display = index >= start && index < end ? '' : 'none';
+                            });
 
-            jQuery.getScript(GLOBAL_CONFIG.source.justifiedGallery.js, function () {
-                window.__haoPhotoJgLoading = false;
-                const callbacks = window.__haoPhotoJgCallbacks || [];
-                window.__haoPhotoJgCallbacks = [];
-                callbacks.forEach(function (fn) {
-                    fn();
-                });
-            });
-        }
+                            gallery.dataset.photoCurrentPage = String(page);
+                            gallery.classList.add('photo-pager-ready');
+                            updatePhotoButtons(gallery, page, totalPages);
+                        }
 
-        function layoutFreshGallery(gallery) {
-            gallery.className = 'gallery photo-page-gallery photo-page-preparing';
-            gallery.removeAttribute('style');
+                        function waitThemeGalleryThenPage(gallery) {
+                            if (gallery.dataset.photoPagerReady === 'true') return;
+                            gallery.dataset.photoPagerReady = 'true';
 
-            gallery.querySelectorAll('.fj-gallery-item').forEach(function (item) {
-                item.className = 'fj-gallery-item';
-                item.removeAttribute('style');
-            });
-            gallery.querySelectorAll('[style]').forEach(function (el) {
-                el.removeAttribute('style');
-            });
-            unwrapFancybox(gallery);
+                            let times = 0;
+                            const timer = setInterval(function () {
+                                times++;
 
-            if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
-                window.lazyLoadInstance.update();
-            }
+                                if (isGalleryLaidOut(gallery) || times >= 50) {
+                                    clearInterval(timer);
+                                    applyPhotoPage(gallery, Number(gallery.dataset.photoCurrentPage || 1));
+                                }
+                            }, 100);
+                        }
 
-            waitImages(gallery, function () {
-                ensureJustifiedGallery(function () {
-                    function runLayout() {
-                        gallery.className = 'gallery photo-page-gallery photo-page-preparing';
-                        gallery.removeAttribute('style');
+                        function initPhotoPager() {
+                            document.querySelectorAll('#article-container .photo-page-gallery').forEach(function (gallery) {
+                                waitThemeGalleryThenPage(gallery);
+                            });
+                        }
 
-                        gallery.querySelectorAll('.fj-gallery-item').forEach(function (item) {
-                            item.className = 'fj-gallery-item';
-                            item.removeAttribute('style');
+                        if (!window.__haoPhotoSimplePagerBinded) {
+                            window.__haoPhotoSimplePagerBinded = true;
+
+                            document.addEventListener('click', function (e) {
+                                const btn = e.target.closest('.photo-pagination .photo-page-btn');
+                                if (!btn || btn.classList.contains('disabled')) return;
+
+                                const wrapper = btn.closest('.type-gallery');
+                                if (!wrapper) return;
+
+                                const gallery = wrapper.querySelector('.photo-page-gallery');
+                                if (!gallery) return;
+
+                                e.preventDefault();
+
+                                const current = Number(gallery.dataset.photoCurrentPage || 1);
+                                if (btn.classList.contains('photo-prev')) {
+                                    applyPhotoPage(gallery, current - 1);
+                                }
+                                if (btn.classList.contains('photo-next')) {
+                                    applyPhotoPage(gallery, current + 1);
+                                }
+                            });
+
+                            let resizeTimer = null;
+                            window.addEventListener('resize', function () {
+                                clearTimeout(resizeTimer);
+                                resizeTimer = setTimeout(function () {
+                                    document.querySelectorAll('#article-container .photo-page-gallery').forEach(function (gallery) {
+                                        // 宽度变化时，让主题有机会重排，然后重新隐藏非当前页。
+                                        if (window.btf && typeof btf.initJustifiedGallerys === 'function') {
+                                            getPhotoItems(gallery).forEach(function (item) {
+                                                item.style.display = '';
+                                            });
+                                            btf.initJustifiedGallerys([gallery]);
+                                            setTimeout(function () {
+                                                applyPhotoPage(gallery, Number(gallery.dataset.photoCurrentPage || 1));
+                                            }, 300);
+                                        } else {
+                                            applyPhotoPage(gallery, Number(gallery.dataset.photoCurrentPage || 1));
+                                        }
+                                    });
+                                }, 300);
+                            });
+                        }
+
+                        if (document.readyState === 'loading') {
+                            document.addEventListener('DOMContentLoaded', function () {
+                                setTimeout(initPhotoPager, 300);
+                                setTimeout(initPhotoPager, 1000);
+                            });
+                        } else {
+                            setTimeout(initPhotoPager, 300);
+                            setTimeout(initPhotoPager, 1000);
+                        }
+
+                        document.addEventListener('pjax:complete', function () {
+                            setTimeout(initPhotoPager, 500);
+                            setTimeout(initPhotoPager, 1300);
                         });
-
-                        if (window.btf && typeof btf.initJustifiedGallerys === 'function') {
-                            btf.initJustifiedGallerys([gallery]);
-                        }
-                    }
-
-                    runLayout();
-                    setTimeout(runLayout, 300);
-                    setTimeout(runLayout, 800);
-
-                    setTimeout(function () {
-                        gallery.classList.remove('photo-page-preparing');
-                        gallery.style.opacity = '1';
-                    }, 1000);
-                });
-            });
-        }
-
-        function updatePagination(wrapper, currentPage, totalPages) {
-            const pagination = wrapper.querySelector('.photo-pagination');
-            if (!pagination) return;
-
-            const currentEl = pagination.querySelector('.photo-current');
-            const totalEl = pagination.querySelector('.photo-total');
-            const prevBtn = pagination.querySelector('.photo-prev');
-            const nextBtn = pagination.querySelector('.photo-next');
-
-            if (currentEl) currentEl.textContent = currentPage;
-            if (totalEl) totalEl.textContent = totalPages;
-            if (prevBtn) prevBtn.classList.toggle('disabled', currentPage <= 1);
-            if (nextBtn) nextBtn.classList.toggle('disabled', currentPage >= totalPages);
-
-            pagination.style.display = totalPages > 1 ? 'flex' : 'none';
-        }
-
-        function renderPhotoPage(wrapper, page) {
-            const allHtml = wrapper.__photoAllHtml || [];
-            const pageSize = wrapper.__photoPageSize || 20;
-            const totalPages = Math.max(1, Math.ceil(allHtml.length / pageSize));
-            const currentPage = Math.max(1, Math.min(page, totalPages));
-
-            wrapper.__photoCurrentPage = currentPage;
-
-            const start = (currentPage - 1) * pageSize;
-            const end = start + pageSize;
-            const html = allHtml.slice(start, end).join('');
-
-            const oldGallery = wrapper.querySelector('.photo-page-gallery');
-            if (!oldGallery) return;
-
-            // 每次翻页都创建一个全新的 .gallery，避免 JustifiedGallery 旧状态残留。
-            const newGallery = document.createElement('div');
-            newGallery.className = 'gallery photo-page-gallery photo-page-preparing';
-            newGallery.setAttribute('data-page-size', String(pageSize));
-            newGallery.innerHTML = html;
-
-            oldGallery.parentNode.replaceChild(newGallery, oldGallery);
-
-            updatePagination(wrapper, currentPage, totalPages);
-            layoutFreshGallery(newGallery);
-        }
-
-        function initPhotoPagination() {
-            document.querySelectorAll('.type-gallery').forEach(function (wrapper) {
-                if (wrapper.dataset.photoPaginationReady === 'true') return;
-
-                const gallery = wrapper.querySelector('.photo-page-gallery');
-                const source = wrapper.querySelector('.photo-page-source');
-                const pagination = wrapper.querySelector('.photo-pagination');
-
-                if (!gallery || !source || !pagination || !source.content) return;
-
-                const items = Array.from(source.content.querySelectorAll('.fj-gallery-item'));
-                if (!items.length) return;
-
-                wrapper.__photoAllHtml = items.map(cleanPhotoItem);
-                wrapper.__photoPageSize = Number(gallery.dataset.pageSize || 20);
-                wrapper.__photoCurrentPage = 1;
-                wrapper.dataset.photoPaginationReady = 'true';
-
-                renderPhotoPage(wrapper, 1);
-            });
-        }
-
-        if (!window.__haoPhotoPaginationClickBinded) {
-            window.__haoPhotoPaginationClickBinded = true;
-
-            document.addEventListener('click', function (e) {
-                const btn = e.target.closest('.photo-pagination .photo-page-btn');
-                if (!btn || btn.classList.contains('disabled')) return;
-
-                const wrapper = btn.closest('.type-gallery');
-                if (!wrapper) return;
-
-                e.preventDefault();
-
-                const current = wrapper.__photoCurrentPage || 1;
-                if (btn.classList.contains('photo-prev')) {
-                    renderPhotoPage(wrapper, current - 1);
-                } else if (btn.classList.contains('photo-next')) {
-                    renderPhotoPage(wrapper, current + 1);
-                }
-            });
-
-            let resizeTimer = null;
-            window.addEventListener('resize', function () {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(function () {
-                    document.querySelectorAll('.type-gallery').forEach(function (wrapper) {
-                        if (wrapper.dataset.photoPaginationReady === 'true') {
-                            const gallery = wrapper.querySelector('.photo-page-gallery');
-                            if (gallery) layoutFreshGallery(gallery);
-                        }
-                    });
-                }, 300);
-            });
-        }
-
-        function bootPhotoPagination() {
-            setTimeout(initPhotoPagination, 0);
-            setTimeout(initPhotoPagination, 300);
-            setTimeout(initPhotoPagination, 800);
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', bootPhotoPagination);
-        } else {
-            bootPhotoPagination();
-        }
-
-        document.addEventListener('pjax:complete', bootPhotoPagination);
-    })();
-</script>
-
+                    })();
+                </script>
                 <!--/* 评论组件 */-->
                 <th:block th:replace="~{modules/comment :: comment(group = 'content.halo.run',
                   kind = 'SinglePage',
