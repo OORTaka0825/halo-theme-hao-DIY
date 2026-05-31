@@ -166,33 +166,23 @@
                     color:var(--heo-theme);
                     transform:scale(1.08);
                 }
-                .link-exchange-apply{
-                    margin:0;
-                    padding:0;
-                    list-style:none;
-                    color:var(--heo-fontcolor);
-                }
-                .link-exchange-apply li{
+                .link-exchange-require-list{
                     display:flex;
-                    align-items:flex-start;
-                    gap:.55rem;
-                    margin:.5rem 0;
-                    line-height:1.7;
+                    flex-direction:column;
+                    gap:.45rem;
                 }
-                .link-exchange-apply li::before{
-                    content:"";
-                    width:7px;
-                    height:7px;
-                    border-radius:50%;
-                    background:var(--heo-theme);
-                    flex:0 0 auto;
-                    margin-top:.62rem;
+                .link-exchange-require-row{
+                    display:grid;
+                    grid-template-columns:96px minmax(0,1fr);
+                    align-items:center;
+                    min-height:42px;
+                    border-radius:10px;
+                    border:var(--style-border);
+                    background:var(--heo-secondbg);
+                    overflow:hidden;
                 }
-                .link-exchange-apply strong{
-                    color:var(--heo-fontcolor);
-                    background:var(--heo-theme-op);
-                    border-radius:4px;
-                    padding:0 .18rem;
+                .link-exchange-require-row .link-exchange-label{
+                    justify-content:center;
                 }
                 .link-exchange-note{
                     margin:.8rem 0 0;
@@ -223,6 +213,7 @@
                     .link-exchange-info-card{grid-template-columns:1fr;}
                     .link-exchange-panel{padding:.85rem;border-radius:14px;}
                     .link-exchange-row{grid-template-columns:62px minmax(0,1fr) 32px;}
+                    .link-exchange-require-row{grid-template-columns:78px minmax(0,1fr);}
                 }
             </style>
             <div class="link-exchange-info-card">
@@ -256,14 +247,29 @@
                 </div>
                 <div class="link-exchange-panel">
                     <h2 class="link-exchange-panel-title"><i class="haofont hao-icon-paper-plane1"></i><span>申请友链信息</span></h2>
-                    <ul class="link-exchange-apply">
-                        <li><span><strong>博客名称：</strong>你的博客标题</span></li>
-                        <li><span><strong>博客地址：</strong>你的博客 URL</span></li>
-                        <li><span><strong>博客描述：</strong>一句话介绍</span></li>
-                        <li><span><strong>Logo：</strong>Logo 或头像图片链接</span></li>
-                        <li><span><strong>RSS：</strong>RSS / Atom 订阅地址</span></li>
-                    </ul>
-                    <p class="link-exchange-note">欢迎交换友链，请提交以上信息。我会尽快审核并添加。</p>
+                    <div class="link-exchange-require-list">
+                        <div class="link-exchange-require-row">
+                            <span class="link-exchange-label">博客名称</span>
+                            <span class="link-exchange-value">你的博客标题</span>
+                        </div>
+                        <div class="link-exchange-require-row">
+                            <span class="link-exchange-label">博客地址</span>
+                            <span class="link-exchange-value">你的博客 URL</span>
+                        </div>
+                        <div class="link-exchange-require-row">
+                            <span class="link-exchange-label">博客描述</span>
+                            <span class="link-exchange-value">一句话介绍你的博客</span>
+                        </div>
+                        <div class="link-exchange-require-row">
+                            <span class="link-exchange-label">博客头像</span>
+                            <span class="link-exchange-value">Logo 或头像图片链接</span>
+                        </div>
+                        <div class="link-exchange-require-row">
+                            <span class="link-exchange-label">基本要求</span>
+                            <span class="link-exchange-value">站点可正常访问，内容保持更新</span>
+                        </div>
+                    </div>
+                    <p class="link-exchange-note">欢迎交换友链，请按以上格式提交信息。我会尽快审核并添加。</p>
                     <a class="link-exchange-action" th:if="${theme.config.link.linkSubmitEnable && pluginFinder.available('link-submit')}" href="javascript:LinkSubmitWidget.open()" rel="external nofollow">
                         <i class="haofont hao-icon-link"></i><span>提交友链</span>
                     </a>
