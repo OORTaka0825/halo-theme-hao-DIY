@@ -348,12 +348,17 @@ if (
   const hasGeo = (arr) => arr.some(k => geoText.includes(k));
 
   if (hasGeo(["HK", "HKG", "HongKong", "Hong Kong", "香港"])) {
-    pos = "香港"; desc = "东方之珠，夜景应该很好看吧~";
-  } else if (hasGeo(["MO", "Macau", "Macao", "澳门"])) {
-    pos = "澳门"; desc = "澳门风云，今天去走走逛逛了嘛？";
-  } else if (hasGeo(["SG", "SGP", "Singapore", "新加坡"])) {
-    pos = "新加坡"; desc = "花园城市的小伙伴，今天也很清爽呀~";
-  } else {
+  pos = "香港"; desc = "东方之珠，夜景应该很好看吧~";
+} else if (hasGeo(["MO", "Macau", "Macao", "澳门"])) {
+  pos = "澳门"; desc = "澳门风云，今天去走走逛逛了嘛？";
+} else if (hasGeo(["TW", "Taiwan", "Taiwan市", "台湾", "台湾市"])) {
+  pos = city && !["台湾", "台湾市", "Taiwan", "Taiwan市"].includes(city)
+    ? "台湾 " + city
+    : "台湾";
+  desc = "宝岛风光无限，记得吃好喝好呀~";
+} else if (hasGeo(["SG", "SGP", "Singapore", "新加坡"])) {
+  pos = "新加坡"; desc = "花园城市的小伙伴，今天也很清爽呀~";
+} else {
     pos = city ? `${nation} ${city}` : nation;
 
     switch (nation) {
