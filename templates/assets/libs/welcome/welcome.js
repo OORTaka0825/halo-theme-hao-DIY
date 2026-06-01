@@ -342,47 +342,56 @@ if (
       default: desc = `来自 ${city || province} 的小伙伴你好呀~`;
     }
   } else {
-  // 国外/境外显示：国家 + 城市；港澳台单独规整，避免 HKG 香港 / 香港香港香港
-  const isHongKong =
-    ['HK', 'HKG', 'HongKong', 'Hong Kong', '香港'].includes(nation) ||
-    ['HK', 'HKG', 'HongKong', 'Hong Kong', '香港'].includes(province) ||
-    ['HK', 'HKG', 'HongKong', 'Hong Kong', '香港'].includes(city) ||
-    ['HK', 'HKG', 'HongKong', 'Hong Kong', '香港'].includes(district);
+  const cityText = city ? " " + city : "";
+  const geoText = [nation, province, city, district].filter(Boolean).join("|");
 
-  const isMacau =
-    ['MO', 'Macau', 'Macao', '澳门'].includes(nation) ||
-    ['MO', 'Macau', 'Macao', '澳门'].includes(province) ||
-    ['MO', 'Macau', 'Macao', '澳门'].includes(city) ||
-    ['MO', 'Macau', 'Macao', '澳门'].includes(district);
+  const hasGeo = (arr) => arr.some(k => geoText.includes(k));
 
-  const isTaiwan =
-    ['TW', 'Taiwan', '台湾'].includes(nation) ||
-    ['TW', 'Taiwan', '台湾'].includes(province) ||
-    ['TW', 'Taiwan', '台湾'].includes(city) ||
-    ['TW', 'Taiwan', '台湾'].includes(district);
-
-  if (isHongKong) {
-    pos = '香港';
-    desc = '东方之珠，夜景应该很好看吧~';
-  } else if (isMacau) {
-    pos = '澳门';
-    desc = '澳门风云，今天去走走逛逛了嘛？';
-  } else if (isTaiwan) {
-    pos = city && city !== '台湾' ? `台湾 ${city}` : '台湾';
-    desc = '宝岛风光无限，记得吃好喝好呀~';
+  if (hasGeo(["HK", "HKG", "HongKong", "Hong Kong", "香港"])) {
+    pos = "香港"; desc = "东方之珠，夜景应该很好看吧~";
+  } else if (hasGeo(["MO", "Macau", "Macao", "澳门"])) {
+    pos = "澳门"; desc = "澳门风云，今天去走走逛逛了嘛？";
+  } else if (hasGeo(["SG", "SGP", "Singapore", "新加坡"])) {
+    pos = "新加坡"; desc = "花园城市的小伙伴，今天也很清爽呀~";
   } else {
     pos = city ? `${nation} ${city}` : nation;
 
     switch (nation) {
-      case "US": case "United States": case "美国": pos = "美国 " + city; desc = "Let us live in peace!"; break;
-      case "JP": case "Japan": case "日本": pos = "日本 " + city; desc = "よろしく，一起去看樱花吗"; break;
-      case "UK": case "United Kingdom": case "英国": pos = "英国 " + city; desc = "想同你一起夜乘伦敦眼"; break;
-      case "RU": case "Russia": case "俄罗斯": pos = "俄罗斯 " + city; desc = "干了这瓶伏特加！"; break;
-      case "FR": case "France": case "法国": pos = "法国 " + city; desc = "C'est La Vie"; break;
-      case "DE": case "Germany": case "德国": pos = "德国 " + city; desc = "Die Zeit verging im Fluge."; break;
-      case "AU": case "Australia": case "澳大利亚": pos = "澳大利亚 " + city; desc = "一起去大堡礁吧！"; break;
-      case "CA": case "Canada": case "加拿大": pos = "加拿大 " + city; desc = "拾起一片枫叶赠予你"; break;
-      default: desc = "带我去你的国家逛逛吧";
+      case "US": case "United States": case "美国": pos = "美国" + cityText; desc = "Let us live in peace!"; break;
+      case "JP": case "Japan": case "日本": pos = "日本" + cityText; desc = "よろしく，一起去看樱花吗"; break;
+      case "UK": case "GB": case "United Kingdom": case "英国": pos = "英国" + cityText; desc = "想同你一起夜乘伦敦眼"; break;
+      case "RU": case "Russia": case "俄罗斯": pos = "俄罗斯" + cityText; desc = "干了这瓶伏特加！"; break;
+      case "FR": case "France": case "法国": pos = "法国" + cityText; desc = "C'est La Vie"; break;
+      case "DE": case "Germany": case "德国": pos = "德国" + cityText; desc = "Die Zeit verging im Fluge."; break;
+      case "AU": case "Australia": case "澳大利亚": pos = "澳大利亚" + cityText; desc = "一起去大堡礁吧！"; break;
+      case "CA": case "Canada": case "加拿大": pos = "加拿大" + cityText; desc = "拾起一片枫叶赠予你"; break;
+
+      case "MY": case "Malaysia": case "马来西亚": pos = "马来西亚" + cityText; desc = "椰风和咖喱香，今天也要开心呀~"; break;
+      case "TH": case "Thailand": case "泰国": pos = "泰国" + cityText; desc = "萨瓦迪卡，今天也要微笑呀~"; break;
+      case "KR": case "South Korea": case "Korea": case "韩国": pos = "韩国" + cityText; desc = "안녕하세요，一起去吃烤肉吗~"; break;
+      case "VN": case "Vietnam": case "越南": pos = "越南" + cityText; desc = "来一碗越南粉，慢慢感受街头烟火气~"; break;
+      case "ID": case "Indonesia": case "印度尼西亚": case "印尼": pos = "印度尼西亚" + cityText; desc = "千岛之国，海风一定很温柔吧~"; break;
+      case "PH": case "Philippines": case "菲律宾": pos = "菲律宾" + cityText; desc = "海岛阳光正好，记得开心冲浪呀~"; break;
+      case "IN": case "India": case "印度": pos = "印度" + cityText; desc = "恒河风吹来远方的故事~"; break;
+
+      case "AE": case "UAE": case "United Arab Emirates": case "阿联酋": pos = "阿联酋" + cityText; desc = "沙漠与高楼相映，今天也很闪耀呀~"; break;
+      case "SA": case "Saudi Arabia": case "沙特": case "沙特阿拉伯": pos = "沙特阿拉伯" + cityText; desc = "沙海辽阔，愿你今天一路顺风~"; break;
+      case "TR": case "Turkey": case "Türkiye": case "土耳其": pos = "土耳其" + cityText; desc = "横跨欧亚的风，带来一点浪漫~"; break;
+
+      case "IT": case "Italy": case "意大利": pos = "意大利" + cityText; desc = "披萨和古城都很浪漫呢~"; break;
+      case "ES": case "Spain": case "西班牙": pos = "西班牙" + cityText; desc = "阳光、海岸和弗拉明戈，真不错呀~"; break;
+      case "NL": case "Netherlands": case "荷兰": pos = "荷兰" + cityText; desc = "风车、郁金香和运河，都在向你问好~"; break;
+      case "CH": case "Switzerland": case "瑞士": pos = "瑞士" + cityText; desc = "雪山湖泊之间，空气应该很清甜吧~"; break;
+      case "SE": case "Sweden": case "瑞典": pos = "瑞典" + cityText; desc = "北欧的风很安静，愿你今天也从容~"; break;
+      case "NO": case "Norway": case "挪威": pos = "挪威" + cityText; desc = "峡湾和极光都很美，真想去看看~"; break;
+      case "FI": case "Finland": case "芬兰": pos = "芬兰" + cityText; desc = "森林与湖泊之间，今天也要温柔呀~"; break;
+
+      case "NZ": case "New Zealand": case "新西兰": pos = "新西兰" + cityText; desc = "风吹过牧场和雪山，真想去看看~"; break;
+      case "BR": case "Brazil": case "巴西": pos = "巴西" + cityText; desc = "桑巴节奏响起来，快乐也跟着来了~"; break;
+      case "MX": case "Mexico": case "墨西哥": pos = "墨西哥" + cityText; desc = "热烈的阳光和玉米香气，今天也很有活力~"; break;
+      case "ZA": case "South Africa": case "南非": pos = "南非" + cityText; desc = "好望角的风，应该也吹到了你那里~"; break;
+
+      default: desc = "带我去你的国家逛逛吧"; break;
     }
   }
 }
