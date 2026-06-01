@@ -201,7 +201,7 @@ if (
 ) {
   pos = `${city}${district ? ' ' + district : ''}`.trim();
 } else {
-  pos = `${shortProvince}${city}${district ? ' ' + district : ''}`.trim();
+  pos = `${shortProvince} ${city}${district ? ' ' + district : ''}`.trim();
 }
     
     switch (province) {
