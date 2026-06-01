@@ -31,7 +31,23 @@ function cleanText(v) {
 
 function isChinaCountry(v) {
   const s = cleanText(v);
-  return s === '中国' || s === 'CN' || s === 'China' || s === '中华人民共和国';
+  return [
+    '中国',
+    'CN',
+    'China',
+    '中华人民共和国',
+    '香港',
+    'HK',
+    'Hong Kong',
+    'HongKong',
+    '澳门',
+    'MO',
+    'Macau',
+    'Macao',
+    '台湾',
+    'TW',
+    'Taiwan'
+  ].includes(s);
 }
 
 function normalizeProvince(v) {
@@ -42,7 +58,17 @@ function normalizeProvince(v) {
     .replace(/^中国\s*/g, '')
     .replace(/^中华人民共和国\s*/g, '')
     .replace(/\s+/g, '');
+    if (['HK', 'HongKong', 'Hong Kong', '香港'].includes(p)) {
+    return '香港特别行政区';
+  }
 
+  if (['MO', 'Macau', 'Macao', '澳门'].includes(p)) {
+    return '澳门特别行政区';
+  }
+
+  if (['TW', 'Taiwan', '台湾'].includes(p)) {
+    return '台湾省';
+  }
   if (!p) return '';
 
   // 直辖市
@@ -77,6 +103,18 @@ function normalizeCity(v) {
   let c = cleanText(v).replace(/\s+/g, '');
 
   if (!c) return '';
+
+  if (['HK', 'HongKong', 'Hong Kong', '香港'].includes(c)) {
+    return '香港';
+  }
+
+  if (['MO', 'Macau', 'Macao', '澳门'].includes(c)) {
+    return '澳门';
+  }
+
+  if (['TW', 'Taiwan', '台湾'].includes(c)) {
+    return '台湾';
+  }
 
   if (
     c.endsWith('市') ||
@@ -140,7 +178,17 @@ const rawCountryCode = d.countryCode || d.country_code || '';
 const isChina = isChinaCountry(rawCountry) || isChinaCountry(rawCountryCode);
 
 // 新接口可能是 prov，也可能是 region / regionName
-let p = normalizeProvince(d.prov || d.countryRegion || d.region || d.regionName || '');
+let p = normalizeProvince(
+  d.prov ||
+  d.countryRegion ||
+  d.region ||
+  d.regionName ||
+  d.countryCode ||
+  d.country_code ||
+  d.country ||
+  ''
+);
+
 let c = normalizeCity(d.city || '');
 let dis = normalizeDistrict(d.district || '');
 
@@ -194,8 +242,14 @@ function showWelcome() {
     // 国内显示规则：广东深圳市，不显示“中国”，也不显示“省”
 const shortProvince = shortProvinceName(province);
 
-// 如果是直辖市，避免显示成“北京北京市”
-if (
+// 港澳台单独显示，避免显示成“香港 香港”
+if (province === '香港特别行政区') {
+  pos = `香港${district ? ' ' + district : ''}`.trim();
+} else if (province === '澳门特别行政区') {
+  pos = `澳门${district ? ' ' + district : ''}`.trim();
+} else if (province === '台湾省') {
+  pos = city ? `台湾 ${city}${district ? ' ' + district : ''}`.trim() : '台湾';
+} else if (
   ['北京市', '天津市', '上海市', '重庆市'].includes(province) &&
   city === province
 ) {
