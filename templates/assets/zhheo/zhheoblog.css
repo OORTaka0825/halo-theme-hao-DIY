@@ -8621,7 +8621,7 @@ li {
 .recent-post-item .recent-post-info .recent-post-info-top {
     position: relative;
     transition: 0.3s;
-    padding: 0 32px;
+    padding: 0 25px;
     width: 100%;
 }
 
