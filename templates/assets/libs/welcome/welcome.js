@@ -25,7 +25,99 @@ function getDistance(e1, n1, e2, n2) {
   const c = hypot(a.x-b.x, a.y-b.y, a.z-b.z);
   return Math.round(asin(c/2) * 2 * R);
 }
+function cleanText(v) {
+  return (v ?? '').toString().trim();
+}
 
+function isChinaCountry(v) {
+  const s = cleanText(v);
+  return s === '中国' || s === 'CN' || s === 'China' || s === '中华人民共和国';
+}
+
+function normalizeProvince(v) {
+  let p = cleanText(v);
+
+  // 新接口有时可能返回“中国 广东省”，这里把“中国”去掉
+  p = p
+    .replace(/^中国\s*/g, '')
+    .replace(/^中华人民共和国\s*/g, '')
+    .replace(/\s+/g, '');
+
+  if (!p) return '';
+
+  // 直辖市
+  if (['北京', '天津', '上海', '重庆'].includes(p)) return p + '市';
+
+  // 港澳台
+  if (p === '香港') return '香港特别行政区';
+  if (p === '澳门') return '澳门特别行政区';
+  if (p === '台湾') return '台湾省';
+
+  // 自治区
+  if (p === '广西') return '广西壮族自治区';
+  if (p === '内蒙古') return '内蒙古自治区';
+  if (p === '宁夏') return '宁夏回族自治区';
+  if (p === '新疆') return '新疆维吾尔自治区';
+  if (p === '西藏') return '西藏自治区';
+
+  // 已经有后缀就不处理
+  if (
+    p.endsWith('省') ||
+    p.endsWith('市') ||
+    p.endsWith('自治区') ||
+    p.endsWith('特别行政区')
+  ) {
+    return p;
+  }
+
+  return p + '省';
+}
+
+function normalizeCity(v) {
+  let c = cleanText(v).replace(/\s+/g, '');
+
+  if (!c) return '';
+
+  if (
+    c.endsWith('市') ||
+    c.endsWith('区') ||
+    c.endsWith('县') ||
+    c.endsWith('州') ||
+    c.endsWith('盟')
+  ) {
+    return c;
+  }
+
+  return c + '市';
+}
+
+function normalizeDistrict(v) {
+  return cleanText(v).replace(/\s+/g, '');
+}
+
+function shortProvinceName(province) {
+  let p = cleanText(province);
+
+  // 国内显示不要“中国”，也不要“省”
+  p = p.replace(/^中国\s*/g, '');
+
+  if (p.endsWith('省')) return p.slice(0, -1);
+
+  // 直辖市显示“北京/上海/重庆/天津”，避免变成“北京北京市”
+  if (['北京市', '天津市', '上海市', '重庆市'].includes(p)) {
+    return p.slice(0, -1);
+  }
+
+  // 自治区、特别行政区可以保留较短名称
+  p = p
+    .replace('壮族自治区', '')
+    .replace('维吾尔自治区', '')
+    .replace('回族自治区', '')
+    .replace('自治区', '')
+    .replace('特别行政区', '');
+
+  return p;
+}
 function fetchIpLocation() {
   let myUrl = (GLOBAL_CONFIG?.source?.welcome?.key || "").trim();
 
@@ -42,25 +134,39 @@ function fetchIpLocation() {
       const d = res.data || res; 
       if (res.code === 200 || res.status === "success" || d.ip) {
         
-        // 核心修正：补全省份和城市的“省/市”后缀，确保 switch 匹配成功
-        let p = d.prov || d.region || d.regionName || "";
-        let c = d.city || "";
-        if (p && !p.endsWith("省") && !p.endsWith("市") && !p.endsWith("自治区") && !p.endsWith("特别行政区")) p += "省";
-        if (c && !c.endsWith("市") && !c.endsWith("区") && !c.endsWith("县")) c += "市";
+        // 兼容新旧接口字段：ipwho.is / ip-api.com / 你自己 Worker 包装后的 data
+const rawCountry = d.country || d.countryCode || d.country_code || '';
+const rawCountryCode = d.countryCode || d.country_code || '';
+const isChina = isChinaCountry(rawCountry) || isChinaCountry(rawCountryCode);
 
-        ipLocation = {
-          ip: d.ip || d.query,
-          location: { 
-            lat: parseFloat(d.lat) || 0, 
-            lng: parseFloat(d.lng) || parseFloat(d.lon) || 0 
-          },
-          ad_info: {
-            nation: (d.country === "CN" || d.country === "United States" || d.country === "US" || d.country === "中国") ? "中国" : (d.country || "外国"),
-            province: p, 
-            city: c,
-            district: d.district || ""
-          }
-        };
+// 新接口可能是 prov，也可能是 region / regionName
+let p = normalizeProvince(d.prov || d.countryRegion || d.region || d.regionName || '');
+let c = normalizeCity(d.city || '');
+let dis = normalizeDistrict(d.district || '');
+
+// 如果省份被错误写成“中国 广东省”，上面的 normalizeProvince 会修成“广东省”
+// 如果接口把 province 传成“中国”，但 region 里才是真省份，这里再兜底一次
+if (p === '中国省' || p === '中国') {
+  p = normalizeProvince(d.region || d.regionName || d.countryRegion || '');
+}
+
+// 经纬度兼容 lat/lng 和 latitude/longitude
+const lat = parseFloat(d.lat ?? d.latitude) || 0;
+const lng = parseFloat(d.lng ?? d.lon ?? d.longitude) || 0;
+
+ipLocation = {
+  ip: d.ip || d.query,
+  location: {
+    lat,
+    lng
+  },
+  ad_info: {
+    nation: isChina ? "中国" : (d.country || d.countryCode || d.country_code || "外国"),
+    province: p,
+    city: c,
+    district: dis
+  }
+};
         showWelcome();
       }
     }
@@ -85,8 +191,18 @@ function showWelcome() {
 
   // 区分国内与国外逻辑
   if (nation === "中国" || nation === "CN") {
-    // 强制拼接成：广东省 深圳市 区
-    pos = `${province} ${city} ${district}`.trim();
+    // 国内显示规则：广东深圳市，不显示“中国”，也不显示“省”
+const shortProvince = shortProvinceName(province);
+
+// 如果是直辖市，避免显示成“北京北京市”
+if (
+  ['北京市', '天津市', '上海市', '重庆市'].includes(province) &&
+  city === province
+) {
+  pos = `${city}${district ? ' ' + district : ''}`.trim();
+} else {
+  pos = `${shortProvince}${city}${district ? ' ' + district : ''}`.trim();
+}
     
     switch (province) {
       case "北京市": desc = "北——京——欢迎你~"; break;
