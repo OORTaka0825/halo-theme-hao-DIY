@@ -38,6 +38,7 @@ function isChinaCountry(v) {
     '中华人民共和国',
     '香港',
     'HK',
+    'HKG',
     'Hong Kong',
     'HongKong',
     '澳门',
@@ -58,8 +59,8 @@ function normalizeProvince(v) {
     .replace(/^中国\s*/g, '')
     .replace(/^中华人民共和国\s*/g, '')
     .replace(/\s+/g, '');
-    if (['HK', 'HongKong', 'Hong Kong', '香港'].includes(p)) {
-    return '香港特别行政区';
+    if (['HK', 'HKG', 'HongKong', 'Hong Kong', '香港'].includes(p)) {
+      return '香港特别行政区';
   }
 
   if (['MO', 'Macau', 'Macao', '澳门'].includes(p)) {
@@ -104,9 +105,9 @@ function normalizeCity(v) {
 
   if (!c) return '';
 
-  if (['HK', 'HongKong', 'Hong Kong', '香港'].includes(c)) {
-    return '香港';
-  }
+  if (['HK', 'HKG', 'HongKong', 'Hong Kong', '香港'].includes(c)) {
+  return '香港';
+}
 
   if (['MO', 'Macau', 'Macao', '澳门'].includes(c)) {
     return '澳门';
@@ -242,13 +243,30 @@ function showWelcome() {
     // 国内显示规则：广东深圳市，不显示“中国”，也不显示“省”
 const shortProvince = shortProvinceName(province);
 
-// 港澳台单独显示，避免显示成“香港 香港”
-if (province === '香港特别行政区') {
+// 港澳台单独显示，避免显示成“HKG 香港”“香港 香港”
+if (
+  province === '香港特别行政区' ||
+  province === 'HKG' ||
+  province === 'HK' ||
+  city === '香港'
+) {
+  province = '香港特别行政区';
+  city = '香港';
   pos = `香港${district ? ' ' + district : ''}`.trim();
-} else if (province === '澳门特别行政区') {
+} else if (
+  province === '澳门特别行政区' ||
+  province === 'MO' ||
+  city === '澳门'
+) {
+  province = '澳门特别行政区';
+  city = '澳门';
   pos = `澳门${district ? ' ' + district : ''}`.trim();
-} else if (province === '台湾省') {
-  pos = city ? `台湾 ${city}${district ? ' ' + district : ''}`.trim() : '台湾';
+} else if (province === '台湾省' || province === 'TW' || city === '台湾') {
+  province = '台湾省';
+  city = city || '台湾';
+  pos = city && city !== '台湾'
+    ? `台湾 ${city}${district ? ' ' + district : ''}`.trim()
+    : '台湾';
 } else if (
   ['北京市', '天津市', '上海市', '重庆市'].includes(province) &&
   city === province
