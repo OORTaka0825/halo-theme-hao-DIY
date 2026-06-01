@@ -94,8 +94,8 @@ function normalizeCity(v) {
   if (!c) return '';
 
   if (['HK', 'HKG', 'HongKong', 'Hong Kong', '香港'].includes(c)) {
-  return '香港';
-}
+    return '香港';
+  }
 
   if (['MO', 'Macau', 'Macao', '澳门'].includes(c)) {
     return '澳门';
@@ -115,7 +115,12 @@ function normalizeCity(v) {
     return c;
   }
 
-  return c + '市';
+  // 只有中文城市名才自动补“市”，英文城市不补
+  if (/[\u4e00-\u9fa5]/.test(c)) {
+    return c + '市';
+  }
+
+  return c;
 }
 
 function normalizeDistrict(v) {
@@ -231,31 +236,7 @@ function showWelcome() {
     // 国内显示规则：广东深圳市，不显示“中国”，也不显示“省”
 const shortProvince = shortProvinceName(province);
 
-// 港澳台单独显示，避免显示成“HKG 香港”“香港 香港”
 if (
-  province === '香港特别行政区' ||
-  province === 'HKG' ||
-  province === 'HK' ||
-  city === '香港'
-) {
-  province = '香港特别行政区';
-  city = '香港';
-  pos = `香港${district ? ' ' + district : ''}`.trim();
-} else if (
-  province === '澳门特别行政区' ||
-  province === 'MO' ||
-  city === '澳门'
-) {
-  province = '澳门特别行政区';
-  city = '澳门';
-  pos = `澳门${district ? ' ' + district : ''}`.trim();
-} else if (province === '台湾省' || province === 'TW' || city === '台湾') {
-  province = '台湾省';
-  city = city || '台湾';
-  pos = city && city !== '台湾'
-    ? `台湾 ${city}${district ? ' ' + district : ''}`.trim()
-    : '台湾';
-} else if (
   ['北京市', '天津市', '上海市', '重庆市'].includes(province) &&
   city === province
 ) {
@@ -315,7 +296,6 @@ if (
       case "四川省": desc = "康康川妹子"; break;
       case "广西壮族自治区": desc = "桂林山水甲天下"; break;
       case "新疆维吾尔自治区": desc = "驼铃古道丝绸路，胡马犹闻唐汉风"; break;
-      case "香港特别行政区": desc = "永定贼有残留地鬼嚎，迎击光非岁玉"; break;
       case "浙江省": desc = "上有天堂，下有苏杭，今天去西湖了嘛~"; break;
       case "福建省": desc = "去武夷山喝杯岩茶，今天心情不错吧~"; break;
       case "山东省": desc = "好客山东，今天又去喝啤酒了吗？"; break;
@@ -335,8 +315,6 @@ if (
       case "西藏自治区": desc = "圣地拉萨，今天离云端更近了嘛？"; break;
       case "内蒙古自治区": desc = "天苍苍野茫茫，今天去草原骑马了嘛？"; break;
       case "宁夏回族自治区": desc = "塞上江南，大漠风光真是独特呢~"; break;
-      case "澳门特别行政区": desc = "澳门风云，今天去走走逛逛了嘛？"; break;
-      case "台湾省": desc = "宝岛风光无限，记得吃好喝好呀~"; break;
       case "重庆市": desc = "山城火锅真的辣，今天挑战了几分辣？"; break;
       case "上海市": desc = "魔都节奏快，今天在陆家嘴看风景了吗？"; break;
       default: desc = `来自 ${city || province} 的小伙伴你好呀~`;
@@ -409,7 +387,7 @@ if (
   else if (hour >= 17 && hour < 19) greet = "🚶‍♂️ 即将下班，记得按时吃饭~";
   else if (hour >= 19 && hour < 24) greet = "🌙 晚上好，夜生活嗨起来！";
 
-  if (ip.includes(":")) ip = "好复杂，咱看不懂~(ipv6)";
+  if ((ip || '').includes(":")) ip = "好复杂，咱看不懂~(ipv6)";
 
   const html = `欢迎 <b><span style="color: var(--kouseki-ip-color);">${pos}</span></b> 的小友 💖<br>
     ${desc}🍂<br>
