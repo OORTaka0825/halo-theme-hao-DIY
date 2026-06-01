@@ -35,19 +35,7 @@ function isChinaCountry(v) {
     '中国',
     'CN',
     'China',
-    '中华人民共和国',
-    '香港',
-    'HK',
-    'HKG',
-    'Hong Kong',
-    'HongKong',
-    '澳门',
-    'MO',
-    'Macau',
-    'Macao',
-    '台湾',
-    'TW',
-    'Taiwan'
+    '中华人民共和国'
   ].includes(s);
 }
 
@@ -354,8 +342,37 @@ if (
       default: desc = `来自 ${city || province} 的小伙伴你好呀~`;
     }
   } else {
-    // 国外显示：国家 + 城市 (若无城市只显示国家)
+  // 国外/境外显示：国家 + 城市；港澳台单独规整，避免 HKG 香港 / 香港香港香港
+  const isHongKong =
+    ['HK', 'HKG', 'HongKong', 'Hong Kong', '香港'].includes(nation) ||
+    ['HK', 'HKG', 'HongKong', 'Hong Kong', '香港'].includes(province) ||
+    ['HK', 'HKG', 'HongKong', 'Hong Kong', '香港'].includes(city) ||
+    ['HK', 'HKG', 'HongKong', 'Hong Kong', '香港'].includes(district);
+
+  const isMacau =
+    ['MO', 'Macau', 'Macao', '澳门'].includes(nation) ||
+    ['MO', 'Macau', 'Macao', '澳门'].includes(province) ||
+    ['MO', 'Macau', 'Macao', '澳门'].includes(city) ||
+    ['MO', 'Macau', 'Macao', '澳门'].includes(district);
+
+  const isTaiwan =
+    ['TW', 'Taiwan', '台湾'].includes(nation) ||
+    ['TW', 'Taiwan', '台湾'].includes(province) ||
+    ['TW', 'Taiwan', '台湾'].includes(city) ||
+    ['TW', 'Taiwan', '台湾'].includes(district);
+
+  if (isHongKong) {
+    pos = '香港';
+    desc = '东方之珠，夜景应该很好看吧~';
+  } else if (isMacau) {
+    pos = '澳门';
+    desc = '澳门风云，今天去走走逛逛了嘛？';
+  } else if (isTaiwan) {
+    pos = city && city !== '台湾' ? `台湾 ${city}` : '台湾';
+    desc = '宝岛风光无限，记得吃好喝好呀~';
+  } else {
     pos = city ? `${nation} ${city}` : nation;
+
     switch (nation) {
       case "US": case "United States": case "美国": pos = "美国 " + city; desc = "Let us live in peace!"; break;
       case "JP": case "Japan": case "日本": pos = "日本 " + city; desc = "よろしく，一起去看樱花吗"; break;
@@ -368,6 +385,7 @@ if (
       default: desc = "带我去你的国家逛逛吧";
     }
   }
+}
 
   const hour = new Date().getHours();
   let greet = "😴 夜深了，早点休息~";
