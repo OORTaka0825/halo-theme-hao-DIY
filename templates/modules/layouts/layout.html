@@ -383,12 +383,12 @@
                 , 'meta[name="twitter:title"]', 'meta[name="twitter:url"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]')
         
         var pjax = new Pjax({
-            elements: 'a:not([target="_blank"])',
-            selectors: pjaxSelectors,
-            cacheBust: false,
-            analytics: false,
-            scrollRestoration: false
-        })
+    elements: 'a[href]:not([target="_blank"]):not([data-no-pjax]):not([href^="/console"])',
+    selectors: pjaxSelectors,
+    cacheBust: true,
+    analytics: false,
+    scrollRestoration: false
+})
         
         document.addEventListener('pjax:send', function () {
             
@@ -977,6 +977,17 @@
     console.log('[Hao Effects bases]', ASSET_BASES);
     console.log('[Hao Effects DreamConfig]', JSON.parse(JSON.stringify(DreamConfig)));
   }catch(e){}
+})();
+</script>
+<script>
+(function () {
+  var KEY = 'hao:fromPostEditor';
+  if (location.pathname.indexOf('/archives/') === 0 && sessionStorage.getItem(KEY) === '1') {
+    sessionStorage.removeItem(KEY);
+    setTimeout(function () {
+      location.reload();
+    }, 100);
+  }
 })();
 </script>
 
