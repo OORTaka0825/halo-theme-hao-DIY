@@ -377,85 +377,125 @@
 
 
     <th:block th:if="${theme.config.other.pjax_enable}"><script>
-        let pjaxSelectors = ['title', '#config-diff', '#body-wrap', '#rightside-config-hide', '#rightside-config-show', '.js-pjax', '#site-config']
-        
-        pjaxSelectors.unshift('meta[property="og:type"]', 'meta[property="og:image"]', 'meta[property="og:title"]', 'meta[property="og:url"]', 'meta[property="og:description"]'
-                , 'meta[name="twitter:title"]', 'meta[name="twitter:url"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]')
-        
-        var pjax = new Pjax({
-    elements: 'a[href]:not([target="_blank"]):not([data-no-pjax]):not([href^="/console"])',
-    selectors: pjaxSelectors,
-    cacheBust: false,
-    analytics: false,
-    scrollRestoration: false
-})
-        
-        document.addEventListener('pjax:send', function () {
+        // 编辑文章 -> 后台编辑器 -> 发布返回前台这一条链路，不交给 PJAX 接管。
+        // 这样可以保留全站 PJAX，同时避免 Halo PostEditor 返回文章页时偶发空白。
+        const HAO_EDITOR_RETURN_KEY = 'hao:fromPostEditor'
+
+        function haoIsReturningFromEditor() {
+            try { return sessionStorage.getItem(HAO_EDITOR_RETURN_KEY) === '1' } catch (e) { return false }
+        }
+
+        function haoIsConsoleUrl(href) {
+            try {
+                const url = new URL(href, location.href)
+                return url.origin === location.origin && url.pathname.indexOf('/console') === 0
+            } catch (e) {
+                return false
+            }
+        }
+
+        // 捕获阶段兜底：所有去 /console 的链接都强制走浏览器原生跳转，不走 PJAX。
+        document.addEventListener('click', function (event) {
+            const link = event.target && event.target.closest ? event.target.closest('a[href]') : null
+            if (!link) return
+
+            const href = link.getAttribute('href') || ''
+            if (!haoIsConsoleUrl(href)) return
+
+            if (href.indexOf('/console/posts/editor') !== -1 || href.indexOf('/console/single-pages/editor') !== -1 || href.indexOf('returnToView=true') !== -1) {
+                try { sessionStorage.setItem(HAO_EDITOR_RETURN_KEY, '1') } catch (e) {}
+            }
+
+            event.preventDefault()
+            event.stopImmediatePropagation()
+            window.location.href = new URL(href, location.href).href
+        }, true)
+
+        // 如果刚从 Halo 后台编辑器发布返回前台，本次页面不初始化 PJAX。
+        // 后面的返回处理脚本会刷新一次文章页；刷新后 flag 被清除，PJAX 会恢复正常。
+        if (!haoIsReturningFromEditor()) {
+            let pjaxSelectors = ['title', '#config-diff', '#body-wrap', '#rightside-config-hide', '#rightside-config-show', '.js-pjax', '#site-config']
             
-            // removeEventListener toc scroll
-            window.removeEventListener('scroll', window.tocScrollFn)
+            pjaxSelectors.unshift('meta[property="og:type"]', 'meta[property="og:image"]', 'meta[property="og:title"]', 'meta[property="og:url"]', 'meta[property="og:description"]'
+                    , 'meta[name="twitter:title"]', 'meta[name="twitter:url"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]')
             
-            typeof preloader === 'object' && preloader.initLoading()
+            var pjax = new Pjax({
+                elements: 'a[href]:not([target="_blank"]):not([data-no-pjax]):not([href^="javascript:"]):not([href^="#"]):not([href^="/console"]):not([href*="/console/"])',
+                selectors: pjaxSelectors,
+                cacheBust: false,
+                analytics: false,
+                scrollRestoration: false
+            })
             
-            if (window.aplayers) {
-                for (let i = 0; i < window.aplayers.length; i++) {
-                    if (!window.aplayers[i].options.fixed) {
-                        window.aplayers[i].destroy()
+            document.addEventListener('pjax:send', function () {
+                
+                // removeEventListener toc scroll
+                window.removeEventListener('scroll', window.tocScrollFn)
+                
+                typeof preloader === 'object' && preloader.initLoading()
+                
+                if (window.aplayers) {
+                    for (let i = 0; i < window.aplayers.length; i++) {
+                        if (!window.aplayers[i].options.fixed) {
+                            window.aplayers[i].destroy()
+                        }
                     }
                 }
-            }
+                
+                typeof typed === 'object' && typed.destroy()
+                
+                //reset readmode
+                const $bodyClassList = document.body.classList
+                $bodyClassList.contains('read-mode') && $bodyClassList.remove('read-mode')
+            })
             
-            typeof typed === 'object' && typed.destroy()
+            document.addEventListener('pjax:complete', function () {
+                window.refreshFn()
+                
+                document.querySelectorAll('script[data-pjax]').forEach(item => {
+                            const newScript = document.createElement('script')
+                            const content = item.text || item.textContent || item.innerHTML || ""
+                            Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+                            newScript.appendChild(document.createTextNode(content))
+                            item.parentNode.replaceChild(newScript, item)
+                        }
+                )
+                
+                GLOBAL_CONFIG.lazyload.enable && window.lazyLoadInstance.update()
+                
+                typeof chatBtnFn === 'function' && chatBtnFn()
+                typeof panguInit === 'function' && panguInit()
+                
+                // google analytics
+                typeof gtag === 'function' && gtag('config', '', {
+                    'page_path': window.location.pathname
+                });
+                
+                // baidu analytics
+                typeof _hmt === 'object' && _hmt.push(['_trackPageview', window.location.pathname]);
+                
+                typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+                
+                // Analytics
+                if (false) {
+                    MtaH5.pgv()
+                }
+                
+                // prismjs
+                typeof Prism === 'object' && Prism.highlightAll()
+                
+                typeof preloader === 'object' && preloader.endLoading()
+            })
             
-            //reset readmode
-            const $bodyClassList = document.body.classList
-            $bodyClassList.contains('read-mode') && $bodyClassList.remove('read-mode')
-        })
-        
-        document.addEventListener('pjax:complete', function () {
-            window.refreshFn()
-            
-            document.querySelectorAll('script[data-pjax]').forEach(item => {
-                        const newScript = document.createElement('script')
-                        const content = item.text || item.textContent || item.innerHTML || ""
-                        Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
-                        newScript.appendChild(document.createTextNode(content))
-                        item.parentNode.replaceChild(newScript, item)
+            document.addEventListener('pjax:error', (e) => {
+                        if (e.request.status === 404 || e.request.status === 500) {
+                            window.location.href = e.request.responseURL;
+                        }
                     }
             )
-            
-            GLOBAL_CONFIG.lazyload.enable && window.lazyLoadInstance.update()
-            
-            typeof chatBtnFn === 'function' && chatBtnFn()
-            typeof panguInit === 'function' && panguInit()
-            
-            // google analytics
-            typeof gtag === 'function' && gtag('config', '', {
-                'page_path': window.location.pathname
-            });
-            
-            // baidu analytics
-            typeof _hmt === 'object' && _hmt.push(['_trackPageview', window.location.pathname]);
-            
-            typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
-            
-            // Analytics
-            if (false) {
-                MtaH5.pgv()
-            }
-            
-            // prismjs
-            typeof Prism === 'object' && Prism.highlightAll()
-            
-            typeof preloader === 'object' && preloader.endLoading()
-        })
-        
-        document.addEventListener('pjax:error', (e) => {
-                    if (e.request.status === 404 || e.request.status === 500) {
-                        window.location.href = e.request.responseURL;
-                    }
-                }
-        )
+        } else {
+            console.info('[Hao] Skip PJAX once after returning from editor')
+        }
     </script></th:block>
 
 
