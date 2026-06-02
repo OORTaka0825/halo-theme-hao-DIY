@@ -981,12 +981,70 @@
 </script>
 <script>
 (function () {
+  // 从 Halo 后台编辑器发布/返回前台后，避免浏览器 BFCache 恢复到“离开前”的加载遮罩状态，
+  // 同时强制刷新一次，保证看到的是发布后的最新文章内容。
   var KEY = 'hao:fromPostEditor';
-  if (location.pathname.indexOf('/archives/') === 0 && sessionStorage.getItem(KEY) === '1') {
-    sessionStorage.removeItem(KEY);
+  var handled = false;
+
+  function isFrontendPage() {
+    return location.pathname.indexOf('/console') !== 0;
+  }
+
+  function hasReturnFlag() {
+    try { return sessionStorage.getItem(KEY) === '1'; } catch (e) { return false; }
+  }
+
+  function clearReturnFlag() {
+    try { sessionStorage.removeItem(KEY); } catch (e) {}
+  }
+
+  function hideLoadingMask() {
+    try {
+      var loadingBox = document.getElementById('loading-box');
+      if (loadingBox) loadingBox.classList.add('loaded');
+    } catch (e) {}
+    try {
+      if (window.heo && typeof window.heo.hideLoading === 'function') window.heo.hideLoading();
+    } catch (e) {}
+    try {
+      if (typeof preloader === 'object' && typeof preloader.endLoading === 'function') preloader.endLoading();
+    } catch (e) {}
+  }
+
+  function isBackForwardNavigation() {
+    try {
+      var entries = performance.getEntriesByType && performance.getEntriesByType('navigation');
+      return !!(entries && entries[0] && entries[0].type === 'back_forward');
+    } catch (e) { return false; }
+  }
+
+  function handleReturnFromEditor(delay) {
+    if (!isFrontendPage()) return;
+    hideLoadingMask();
+
+    if (!hasReturnFlag() || handled) return;
+    handled = true;
+    clearReturnFlag();
+
     setTimeout(function () {
       location.reload();
-    }, 100);
+    }, delay || 80);
+  }
+
+  window.addEventListener('pageshow', function (event) {
+    // BFCache 返回时不会重新执行普通脚本，只会触发 pageshow；这里必须兜底隐藏加载层。
+    hideLoadingMask();
+    if (event.persisted || isBackForwardNavigation() || hasReturnFlag()) {
+      handleReturnFromEditor(60);
+    }
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      handleReturnFromEditor(120);
+    }, { once: true });
+  } else {
+    handleReturnFromEditor(120);
   }
 })();
 </script>
