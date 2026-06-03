@@ -19482,3 +19482,31 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 .post .post-content h6 {
     scroll-margin-top: 90px;
 }
+
+/* v8：文章页右侧“最新文章 + 标签&归档&统计”组合固定
+   - 只影响文章页右侧栏；
+   - 两个卡片合并到同一个 sticky 容器里，所以上划、下滑时顶部距离保持一致；
+   - 需要调固定后的顶部距离，只改下面变量即可。 */
+.post .layout#content-inner {
+    --post-right-sticky-tools-top: 80px; /* 文章页右侧固定工具距离浏览器顶部的距离；想更靠下就调大 */
+}
+
+@media screen and (min-width: 1201px) {
+    .post .layout#content-inner > #aside-content > .sticky_layout.post-sidebar-sticky-tools {
+        position: sticky !important;
+        top: var(--post-right-sticky-tools-top) !important;
+        transition: none !important;
+        max-height: calc(100vh - var(--post-right-sticky-tools-top) - 16px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    #page-header.nav-visible + .layout > #aside-content > .sticky_layout.post-sidebar-sticky-tools,
+    #page-header.nav-visible + .layout.post-left-toc-enabled > #aside-content > .sticky_layout.post-sidebar-sticky-tools {
+        top: var(--post-right-sticky-tools-top) !important;
+    }
+
+    .post .layout#content-inner > #aside-content > .sticky_layout.post-sidebar-sticky-tools > .card-widget:first-child {
+        margin-top: 0;
+    }
+}
