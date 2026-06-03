@@ -19436,3 +19436,49 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     font-style: italic;
     font-size: 1.2rem;
 }
+
+/* v7：左侧文章目录细节修复
+   1. 没有目录的文章不再显示空目录；
+   2. 目录固定高度/顶部距离、字体大小集中放到下面变量里，后续只改这里即可；
+   3. 调整目录点击和滚动高亮的偏移，避免高亮项和正文标题错位。 */
+.post .layout#content-inner.post-left-toc-enabled {
+    --post-left-toc-sticky-top: 20px;       /* 页面下滑后，左侧目录距离浏览器顶部的距离；想更靠下就把 20px 调大 */
+    --post-left-toc-sticky-top-nav: 80px;   /* 顶部导航栏显示时，左侧目录距离浏览器顶部的距离；想更靠下就把 80px 调大 */
+    --post-left-toc-font-size: 14px;        /* 普通目录字体大小 */
+    --post-left-toc-active-font-size: 20px; /* 当前高亮目录字体大小 */
+}
+
+@media screen and (min-width: 1201px) {
+    .post .post-left-toc > .sticky_layout {
+        top: var(--post-left-toc-sticky-top);
+    }
+
+    #page-header.nav-visible + .layout.post-left-toc-enabled > .post-left-toc > .sticky_layout {
+        top: var(--post-left-toc-sticky-top-nav);
+    }
+}
+
+.post .post-left-toc #card-toc .toc-content .toc-link {
+    font-size: var(--post-left-toc-font-size);
+    line-height: 1.55;
+    min-height: auto;
+    cursor: pointer;
+}
+
+.post .post-left-toc #card-toc .toc-content .toc-link.active {
+    font-size: var(--post-left-toc-active-font-size);
+}
+
+.post .post-left-toc #card-toc .toc-content:empty,
+.post .post-left-toc #card-toc:has(.toc-content:empty) {
+    display: none;
+}
+
+.post .post-content h1,
+.post .post-content h2,
+.post .post-content h3,
+.post .post-content h4,
+.post .post-content h5,
+.post .post-content h6 {
+    scroll-margin-top: 90px;
+}

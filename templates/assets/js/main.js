@@ -155,15 +155,22 @@ document.addEventListener('DOMContentLoaded', function () {
         const postContent = document.querySelector('.post-content');
         if (postContent == null) return;
         const titles = postContent.querySelectorAll('h1,h2,h3,h4,h5,h6');
-        // 没有 toc 目录，则直接移除
+        // 没有 toc 目录，则直接移除，并同步去掉左侧目录布局，避免刷新时短暂闪出空目录
         if (titles.length === 0 || !titles) {
             const cardToc = document.getElementById("card-toc");
             cardToc?.remove();
+            document.querySelector('.post-left-toc')?.remove();
+            document.getElementById('content-inner')?.classList.remove('post-left-toc-enabled');
             const $mobileTocButton = document.getElementById("mobile-toc-button")
             if ($mobileTocButton) {
                 $('#mobile-toc-button').attr('style', 'display: none');
             }
         } else {
+            // PJAX 或重复进入文章页时，先销毁旧实例，防止目录高亮和锚点计算错位
+            try {
+                tocbot.destroy();
+            } catch (e) {}
+
             tocbot.init({
                 tocSelector: '.toc-content',
                 contentSelector: '.post-content',
@@ -171,14 +178,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 listItemClass: 'toc-item',
                 activeLinkClass: 'active',
                 activeListItemClass: 'active',
-                headingsOffset: -400,
+                headingsOffset: 90,
                 scrollSmooth: true,
-                scrollSmoothOffset: -70,
-                tocScrollOffset: 50,
+                scrollSmoothOffset: -90,
+                tocScrollOffset: 80,
             });
 
             const $cardTocLayout = document.getElementById('card-toc')
+            if (!$cardTocLayout) return
             const $cardToc = $cardTocLayout.getElementsByClassName('toc-content')[0]
+            if (!$cardToc) return
 
             // toc元素點擊
             $cardToc.addEventListener('click', (ele) => {
