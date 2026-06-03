@@ -15,7 +15,7 @@
             enable: [[${theme.config.other.vanillaLazyload.enable}]],
             error: [[@{${theme.config.other.vanillaLazyload.errorImg}}]]
         },
-        isFriendLinksInFooter: [[${theme.config.footer.footer_group.enable_footer_group}]],
+        isFriendLinksInFooter: [[${theme.config.footer.footer_group.enable_footer_group == true || #strings.equals(theme.config.footer.footer_group.enable_footer_group, 'true')}]],
         loadingBox: [[${theme.config.other.loadingBoxs.loadingBoxEnable}]],
         loadProgressBar: [[${theme.config.other.loadingBoxs.loadProgressBar}]],
         navMusicEnable: [[${theme.config.tool.nav_music.nav_musicEnable}]],
@@ -128,7 +128,7 @@
                 locale: [[${not #strings.isEmpty(theme.config.comments.walines.locale) ? theme.config.comments.walines.locale : '' }]]
             },
             footer: {
-                default_enable: [[${theme.config.footer.footerContent.default_enable_group.default_enable}]]
+                default_enable: [[${theme.config.footer.footerContent.default_enable_group.default_enable == true || #strings.equals(theme.config.footer.footerContent.default_enable_group.default_enable, 'true')}]]
             },
             about: {
                 rewardList: [[${theme.config.aboutReward.reward_list}]],

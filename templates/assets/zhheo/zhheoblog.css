@@ -10360,7 +10360,7 @@ a.extend.prev {
 
 @media screen and (min-width: 1300px) {
     #page-header.post-bg {
-        height: 19rem;
+        height: 25rem;
     }
 
     #page-header {
@@ -14424,10 +14424,6 @@ figure.gallery-group:hover .gallery-group-name::after {
 
 
 div#heo-footer-bar {
-    display: none
-}
-
-.post div#heo-footer-bar {
     display: flex;
     flex-direction: column;
     align-items: center;

@@ -105,45 +105,124 @@ var heo = {
     // 页脚友链
     addFriendLinksInFooter: function () {
         var footerRandomFriendsBtn = document.getElementById("footer-random-friends-btn");
-        if(!footerRandomFriendsBtn) return;
+        if (!footerRandomFriendsBtn) return;
+
         footerRandomFriendsBtn.style.opacity = "0.2";
         footerRandomFriendsBtn.style.transitionDuration = "0.3s";
         footerRandomFriendsBtn.style.transform = "rotate(" + 360 * refreshNum++ + "deg)";
-        function getLinks(){
-            const fetchUrl = "/apis/api.plugin.halo.run/v1alpha1/plugins/PluginLinks/links?keyword=&sort=priority,asc"
-            fetch(fetchUrl)
-                .then(res => res.json())
-                .then(json => {
-                    saveToLocal.set('links-data', JSON.stringify(json.items), 10 / (60 * 24))
-                    renderer(json.items);
-                })
+
+        function normalizeLinks(data) {
+            if (!Array.isArray(data)) return [];
+            return data.map(function (item) {
+                if (item && item.spec) {
+                    return {
+                        name: item.spec.displayName || item.spec.name || '',
+                        url: item.spec.url || ''
+                    };
+                }
+                return {
+                    name: item.name || item.displayName || '',
+                    url: item.url || ''
+                };
+            }).filter(function (item) {
+                return item.name && item.url;
+            });
         }
-        function renderer(data){
-            const linksUrl = GLOBAL_CONFIG.source.links.linksUrl
-            const num = GLOBAL_CONFIG.source.links.linksNum
-            var randomFriendLinks = getArrayItems(data, num);
+
+        function readLinksFromFooterDom() {
+            var sourceLinks = document.querySelectorAll("#friend-links-in-footer .footer-friend-source");
+            return Array.from(sourceLinks).map(function (el) {
+                return {
+                    name: el.dataset.name || el.textContent.trim(),
+                    url: el.dataset.url || el.getAttribute('href') || ''
+                };
+            }).filter(function (item) {
+                return item.name && item.url;
+            });
+        }
+
+        function renderer(data) {
+            const linksUrl = GLOBAL_CONFIG.source.links.linksUrl || '/links';
+            const num = Math.max(1, parseInt(GLOBAL_CONFIG.source.links.linksNum, 10) || 3);
+            const normalizedLinks = normalizeLinks(data);
             var htmlText = '';
-            for (let i = 0; i < randomFriendLinks.length; ++i) {
-                var item = randomFriendLinks[i]
-                htmlText += `<a class='footer-item' href='${item.spec.url}'  target="_blank" rel="noopener nofollow">${item.spec.displayName}</a>`;
+
+            if (normalizedLinks.length > 0) {
+                var randomFriendLinks = getArrayItems(normalizedLinks, Math.min(num, normalizedLinks.length));
+                for (let i = 0; i < randomFriendLinks.length; ++i) {
+                    var item = randomFriendLinks[i];
+                    htmlText += `<a class='footer-item' href='${item.url}' target="_blank" rel="noopener nofollow">${item.name}</a>`;
+                }
             }
-            htmlText += `<a class='footer-item' href='${linksUrl}'>更多</a>`
-            if(document.getElementById("friend-links-in-footer")){
+            htmlText += `<a class='footer-item' href='${linksUrl}'>更多</a>`;
+
+            if (document.getElementById("friend-links-in-footer")) {
                 document.getElementById("friend-links-in-footer").innerHTML = htmlText;
             }
         }
-        function friendLinksInFooterInit(){
-            const data = saveToLocal.get('links-data')
-            if (data) {
-                renderer(JSON.parse(data))
-            } else {
-                getLinks()
-            }
-            setTimeout(()=>{
-                footerRandomFriendsBtn.style.opacity = "1";
-            }, 300)
+
+        function getLinks() {
+            const fetchUrl = "/apis/api.plugin.halo.run/v1alpha1/plugins/PluginLinks/links?keyword=&sort=priority,asc";
+            fetch(fetchUrl)
+                .then(res => res.json())
+                .then(json => {
+                    const items = json.items || [];
+                    saveToLocal.set('links-data', JSON.stringify(items), 10 / (60 * 24));
+                    renderer(items);
+                })
+                .catch(() => {
+                    renderer([]);
+                });
         }
+
+        function friendLinksInFooterInit() {
+            // 优先使用服务端 linkFinder 已经渲染到页脚里的友链，避免前端 API 请求失败导致只显示“更多”。
+            const domLinks = window.footerFriendLinkPool || readLinksFromFooterDom();
+            if (domLinks.length > 0) {
+                window.footerFriendLinkPool = domLinks;
+                renderer(domLinks);
+            } else {
+                const data = saveToLocal.get('links-data');
+                if (data) {
+                    renderer(JSON.parse(data));
+                } else {
+                    getLinks();
+                }
+            }
+
+            setTimeout(() => {
+                footerRandomFriendsBtn.style.opacity = "1";
+            }, 300);
+        }
+
         friendLinksInFooterInit();
+    },
+
+    // 页脚社交媒体图片弹窗
+    initFooterSocialImage: function () {
+        var footerSocialImages = document.querySelectorAll('#footer_deal [data-fancybox="footer-social"]');
+        if (!footerSocialImages.length || typeof btf === 'undefined' || typeof btf.isJqueryLoad !== 'function') return;
+
+        btf.isJqueryLoad(function () {
+            var runFancybox = function () {
+                if (typeof $.fancybox === 'function') {
+                    $().fancybox({
+                        selector: '#footer_deal [data-fancybox="footer-social"]',
+                        loop: false,
+                        transitionEffect: 'slide',
+                        protect: true,
+                        buttons: ['close'],
+                        hash: false
+                    });
+                }
+            };
+
+            if (typeof $.fancybox === 'undefined') {
+                $.getScript(`${GLOBAL_CONFIG.source.fancybox.js}`, runFancybox);
+            } else {
+                runFancybox();
+            }
+        });
     },
 
     //禁止图片右键单击

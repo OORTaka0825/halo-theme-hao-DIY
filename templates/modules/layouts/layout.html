@@ -470,8 +470,10 @@
         // 移除加载动画
         removeLoading();
     }
-    //页脚友联
+    //页脚友链
     GLOBAL_CONFIG.isFriendLinksInFooter && heo.addFriendLinksInFooter()
+    //页脚社交媒体图片弹窗
+    heo.initFooterSocialImage && heo.initFooterSocialImage()
     //音乐页面切换歌曲调用
     if(GLOBAL_CONFIG.isMusic){
         heo.changeMusicBg(false);
