@@ -19510,3 +19510,30 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
         margin-top: 0;
     }
 }
+
+/* v9：文章页右侧固定工具修复
+   1. V6 左侧目录布局把 .post-left-toc-enabled 设置成 align-items:flex-start，
+      这会让右侧 #aside-content 高度只等于自身内容高度，sticky 没有足够滚动空间；
+      所以这里让右侧栏重新 stretch 到文章内容高度。
+   2. 最新文章、热门文章、标签&归档&统计都放进 .post-sidebar-sticky-tools，
+      保证左侧有无文章目录时，右侧固定行为一致。 */
+@media screen and (min-width: 1201px) {
+    .post .layout#content-inner.post-left-toc-enabled > #aside-content {
+        align-self: stretch;
+    }
+
+    .post .layout#content-inner.post-left-toc-enabled > #aside-content > .sticky_layout.post-sidebar-sticky-tools,
+    .post .layout#content-inner > #aside-content > .sticky_layout.post-sidebar-sticky-tools {
+        position: sticky !important;
+        top: var(--post-right-sticky-tools-top, 80px) !important;
+        height: fit-content;
+        max-height: calc(100vh - var(--post-right-sticky-tools-top, 80px) - 16px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        transition: none !important;
+    }
+
+    .post .layout#content-inner > #aside-content > .sticky_layout.post-sidebar-sticky-tools > .card-widget:first-child {
+        margin-top: 0;
+    }
+}
