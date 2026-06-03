@@ -2102,6 +2102,8 @@ spec:
           label: 阅读建议
           value: six
           options:
+            - value: none
+              label: 不显示
             - value: two
               label: 两篇
             - value: six

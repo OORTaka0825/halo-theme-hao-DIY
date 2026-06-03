@@ -12,18 +12,25 @@
       --heo-main:  var(--hao-post-hero-bg) !important;
       --heo-theme-op: color-mix(in srgb, var(--hao-post-hero-bg) 85%, transparent) !important;
       --heo-theme-op-deep: color-mix(in srgb, var(--hao-post-hero-bg) 93%, transparent) !important;
-      transition: background-color .25s linear;
+      transition: none !important;
     }
 
     /* 3) 覆盖本体与常见伪元素/子层的背景，去掉渐变/光晕 */
-    body #page-header.post-bg,
-    body #page-header.post-bg::before,
-    body #page-header .post-bg,
-    body #page-header .post-bg::before,
-    body #post-top-cover,
-    body #post-top-cover::before{
+    html body #page-header.post-bg,
+    html body #page-header.post-bg::before,
+    html body #page-header .post-bg,
+    html body #page-header .post-bg::before,
+    html body #post-top-cover,
+    html body #post-top-cover::before{
       background-color: var(--hao-post-hero-bg) !important;
       background-image: none !important;
+      transition: none !important;
+      animation: none !important;
+    }
+
+    /* 封面右侧模糊层和内阴影也跟随自定义色，避免闪一下主题默认主色 */
+    html body #page-header.post-bg .coverdiv:after{
+      box-shadow: 110px -130px 300px 60px var(--hao-post-hero-bg) inset !important;
     }
   </style>
 </th:block>

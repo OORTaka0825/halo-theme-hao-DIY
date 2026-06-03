@@ -13167,6 +13167,37 @@ button.el-button.tk-cancel.el-button--default.el-button--small {
     line-height: 42px;
 }
 
+
+/* 复制链接按钮：让整个方块区域都可点击，而不是只点中间图标才触发 */
+.share-link.copyurl {
+    width: 56px;
+    height: 40px;
+    cursor: pointer;
+    align-items: center;
+}
+
+.share-link.copyurl .share-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 40px;
+    pointer-events: none;
+}
+
+.share-link.copyurl .share-button i {
+    line-height: 1;
+    pointer-events: none;
+}
+
+.share-link.copyurl:hover .share-button {
+    background: var(--heo-theme);
+    border-color: var(--heo-theme);
+    color: var(--heo-white);
+    transition: 0.3s;
+    box-shadow: var(--heo-shadow-blue);
+}
+
 @media screen and (min-width: 1300px) {
     .share-button {
         background: var(--heo-card-bg);

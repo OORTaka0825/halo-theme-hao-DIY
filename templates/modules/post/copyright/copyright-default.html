@@ -57,8 +57,9 @@
                    th:href="'https://service.weibo.com/share/share.php?title=' + ${post.spec.title}" title="分享到微博">
                     <i class="haofont hao-icon-weibo" style="font-size:22px"></i></a>
             </div>
-            <div class="share-link copyurl" th:if="${theme.config.post.share_right.copyurl_edit}">
-                <div class="share-button" id="post-share-url" onclick="rm.copyPageUrl()" title="复制链接"><i
+            <div class="share-link copyurl" th:if="${theme.config.post.share_right.copyurl_edit}"
+                 onclick="rm.copyPageUrl();return false;" role="button" tabindex="0" title="复制链接">
+                <div class="share-button" id="post-share-url"><i
                         class="haofont hao-icon-link"></i></div>
             </div>
         </div>

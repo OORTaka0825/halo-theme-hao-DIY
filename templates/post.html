@@ -224,8 +224,10 @@
                     </div>
                 </nav>
                 <!-- 阅读建议 -->
-                <th:block th:replace="~{modules/post/relatedPosts}"/>
-                <hr>
+                <th:block th:if="${not #strings.equals(theme.config.post.recommendQuantity, 'none')}">
+                    <th:block th:replace="~{modules/post/relatedPosts}"/>
+                    <hr>
+                </th:block>
                 <!--/* 评论组件 */-->
                 <th:block
                         th:replace="~{modules/comment :: comment(group = 'content.halo.run',

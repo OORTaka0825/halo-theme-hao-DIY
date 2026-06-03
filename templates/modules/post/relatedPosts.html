@@ -1,6 +1,6 @@
 
 <!-- 阅读建议 -->
-<th:block  th:if="${not #lists.isEmpty(post.categories)}" th:with="recommendQuantity = ${theme.config.post.recommendQuantity},
+<th:block  th:if="${not #lists.isEmpty(post.categories) and not #strings.equals(theme.config.post.recommendQuantity, 'none')}" th:with="recommendQuantity = ${theme.config.post.recommendQuantity},
 recommandPosts = ${postFinder.listByCategory(1,recommendQuantity == 'six' ? 7 : recommendQuantity == 'two' ? 3 : 1,post.categories.get(0).metadata.name)},
 containsTitle = ${#strings.contains(recommandPosts,post.spec.title)},
 postRandomImg=${#strings.contains(theme.config.layout.postRandomImg,'?') ? theme.config.layout.postRandomImg+'&' : theme.config.layout.postRandomImg+'?'}">
