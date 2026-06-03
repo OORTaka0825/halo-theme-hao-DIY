@@ -1606,8 +1606,8 @@ spec:
         - $formkit: radio
           name: menu
           label: 相关链接
-          value: "primary"
-          help: 选择“隐藏”则不渲染页脚相关链接；选择“主菜单”或“侧边栏菜单”则渲染对应菜单组。
+          value: "hide"
+          help: 选择“隐藏”则不渲染页脚相关链接；选择“主菜单”渲染站点主菜单，选择“侧边栏菜单”渲染导航设置中的侧边栏菜单。
           options:
             - label: 隐藏
               value: "hide"

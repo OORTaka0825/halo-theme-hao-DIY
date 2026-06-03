@@ -62,20 +62,51 @@
 
     <!-- 相关地址 / 页脚友链 -->
     <div id="heo-footer" th:if="${relatedMenuEnable || footerGroupEnable}">
-        <th:block th:if="${relatedMenuEnable}" th:with="footMenu = ${menuFinder.getByName(theme.config.footer.menu)}">
-            <th:block th:with="fallbackMenu = ${#strings.equals(theme.config.footer.menu, 'primary') ? menuFinder.getByName('主菜单') : (#strings.equals(theme.config.footer.menu, 'sidebar') ? menuFinder.getByName('侧边栏菜单') : (#strings.equals(theme.config.footer.menu, '主菜单') ? menuFinder.getByName('primary') : (#strings.equals(theme.config.footer.menu, '侧边栏菜单') ? menuFinder.getByName('sidebar') : null)))}">
-                <th:block th:with="realFootMenu = ${footMenu != null ? footMenu : fallbackMenu}">
-                    <th:block th:if="${realFootMenu != null && not #lists.isEmpty(realFootMenu.menuItems)}">
-                        <div class="footer-group" th:each="menuItem : ${realFootMenu.menuItems}">
-                            <h3 class="footer-title" th:text="${menuItem.status.displayName}"></h3>
-                            <div class="footer-links">
-                                <a class="footer-item" th:each="childMenu : ${menuItem.children}"
-                                   th:href="@{${childMenu.status.href}}" th:target="${childMenu.spec.target?.value}"
-                                   th:text="${childMenu.status.displayName}">
-                                </a>
-                            </div>
+        <!-- 主菜单：直接使用 Halo 的主菜单对象，不再拿 primary 去 getByName，避免前台模板报错 -->
+        <th:block th:if="${#strings.equals(theme.config.footer.menu, 'primary')}">
+            <th:block th:if="${menuFinder.getPrimary() != null && not #lists.isEmpty(menuFinder.getPrimary().menuItems)}">
+                <div class="footer-group" th:each="menuItem : ${menuFinder.getPrimary().menuItems}">
+                    <h3 class="footer-title" th:text="${menuItem.status.displayName}"></h3>
+                    <div class="footer-links">
+                        <a class="footer-item" th:each="childMenu : ${menuItem.children}"
+                           th:href="@{${childMenu.status.href}}" th:target="${childMenu.spec.target?.value}"
+                           th:text="${childMenu.status.displayName}">
+                        </a>
+                    </div>
+                </div>
+            </th:block>
+        </th:block>
+
+        <!-- 侧边栏菜单：复用导航栏设置里已经选好的左侧/侧边栏菜单，保持之前 menuRadio 的行为 -->
+        <th:block th:if="${#strings.equals(theme.config.footer.menu, 'sidebar') && not #strings.isEmpty(theme.config.nav.leftMenu)}">
+            <th:block th:with="footMenu = ${menuFinder.getByName(theme.config.nav.leftMenu)}">
+                <th:block th:if="${footMenu != null && not #lists.isEmpty(footMenu.menuItems)}">
+                    <div class="footer-group" th:each="menuItem : ${footMenu.menuItems}">
+                        <h3 class="footer-title" th:text="${menuItem.status.displayName}"></h3>
+                        <div class="footer-links">
+                            <a class="footer-item" th:each="childMenu : ${menuItem.children}"
+                               th:href="@{${childMenu.status.href}}" th:target="${childMenu.spec.target?.value}"
+                               th:text="${childMenu.status.displayName}">
+                            </a>
                         </div>
-                    </th:block>
+                    </div>
+                </th:block>
+            </th:block>
+        </th:block>
+
+        <!-- 兼容旧版保存值：如果以前 menuRadio 保存的是具体菜单名，仍然按旧逻辑渲染 -->
+        <th:block th:if="${relatedMenuEnable && !#strings.equals(theme.config.footer.menu, 'primary') && !#strings.equals(theme.config.footer.menu, 'sidebar')}">
+            <th:block th:with="footMenu = ${menuFinder.getByName(theme.config.footer.menu)}">
+                <th:block th:if="${footMenu != null && not #lists.isEmpty(footMenu.menuItems)}">
+                    <div class="footer-group" th:each="menuItem : ${footMenu.menuItems}">
+                        <h3 class="footer-title" th:text="${menuItem.status.displayName}"></h3>
+                        <div class="footer-links">
+                            <a class="footer-item" th:each="childMenu : ${menuItem.children}"
+                               th:href="@{${childMenu.status.href}}" th:target="${childMenu.spec.target?.value}"
+                               th:text="${childMenu.status.displayName}">
+                            </a>
+                        </div>
+                    </div>
                 </th:block>
             </th:block>
         </th:block>
