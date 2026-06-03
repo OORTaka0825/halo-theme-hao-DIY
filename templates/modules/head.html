@@ -22,8 +22,6 @@
 
     <link rel="stylesheet" th:href="${assets_link + '/zhheo/commentBarrage.css'}">
 
-    <!-- 文章标题背景（独立）：提前注入到 head，避免刷新时先闪主题默认基色 -->
-    <th:block th:if="${#strings.equals(htmlType, 'post')}" th:replace="~{modules/variables/post-hero-override}"></th:block>
 
     <style th:if="${theme.config.other.scrollbarLinearGradientEnable}">
         *::-webkit-scrollbar-thumb {

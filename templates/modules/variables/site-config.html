@@ -87,7 +87,7 @@
                                    theme.config.comments.use == 'Waline' ? 'wl-editor' : 'appearance-none' }]]
             },
             post: {
-                dynamicBackground: [[${theme.config.post.dynamicBackground and not theme.config.post.postHeroColor.enable}]]
+                dynamicBackground: [[${ theme.config.post.dynamicBackground }]]
             },
             tool: {
                 switch: [[${ theme.config.tool.snackbar.switch }]]

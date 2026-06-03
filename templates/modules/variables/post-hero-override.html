@@ -1,36 +1,22 @@
-<!-- 文章标题背景（独立色）覆盖：始终注入到 <head>，以兼容 PJAX -->
-<!-- 仅在你开启该功能时（theme.config.post.postHeroColor.enable）输出样式 -->
+<!-- 文章标题背景（独立色）备用覆盖。v5 主要在 post.html 内输出，保证 PJAX 和整页刷新都不闪色。 -->
 <th:block th:if="${theme.config.post.postHeroColor.enable}">
   <style type="text/css" th:inline="css">
-    /* 1) 为标题区建立独立颜色变量：随 data-theme 切换 */
-    #page-header.post-bg{ --hao-post-hero-bg: [(${theme.config.post.postHeroColor.light})]; }
-    [data-theme="dark"] #page-header.post-bg{ --hao-post-hero-bg: [(${theme.config.post.postHeroColor.dark})]; }
-
-    /* 2) 在标题区作用域内，局部改写主题变量，兼容依赖变量的样式 */
     #page-header.post-bg{
+      --hao-post-hero-light: [(${theme.config.post.postHeroColor.light})];
+      --hao-post-hero-dark: [(${theme.config.post.postHeroColor.dark})];
+      --hao-post-hero-bg: var(--hao-post-hero-light);
+      --heo-main: var(--hao-post-hero-bg) !important;
       --heo-theme: var(--hao-post-hero-bg) !important;
-      --heo-main:  var(--hao-post-hero-bg) !important;
-      --heo-theme-op: color-mix(in srgb, var(--hao-post-hero-bg) 85%, transparent) !important;
-      --heo-theme-op-deep: color-mix(in srgb, var(--hao-post-hero-bg) 93%, transparent) !important;
-      transition: none !important;
-    }
-
-    /* 3) 覆盖本体与常见伪元素/子层的背景，去掉渐变/光晕 */
-    html body #page-header.post-bg,
-    html body #page-header.post-bg::before,
-    html body #page-header .post-bg,
-    html body #page-header .post-bg::before,
-    html body #post-top-cover,
-    html body #post-top-cover::before{
       background-color: var(--hao-post-hero-bg) !important;
-      background-image: none !important;
-      transition: none !important;
-      animation: none !important;
     }
-
-    /* 封面右侧模糊层和内阴影也跟随自定义色，避免闪一下主题默认主色 */
-    html body #page-header.post-bg .coverdiv:after{
-      box-shadow: 110px -130px 300px 60px var(--hao-post-hero-bg) inset !important;
+    [data-theme="dark"] #page-header.post-bg{
+      --hao-post-hero-bg: var(--hao-post-hero-dark);
+    }
+    #page-header.post-bg::before{
+      background-color: var(--hao-post-hero-bg) !important;
+    }
+    #page-header.post-bg .coverdiv:after{
+      box-shadow: 110px -130px 300px 60px var(--hao-post-hero-bg) inset;
     }
   </style>
 </th:block>

@@ -64,7 +64,7 @@
                             <i class="haofont hao-icon-weibo" style="font-size:22px"></i></a>
                     </div>
                     <div class="share-link copyurl" th:if="${theme.config.post.share_right.copyurl_edit}"
-                         onclick="rm.copyPageUrl();return false;" role="button" tabindex="0" title="复制链接">
+                         onclick="return haoCopyCurrentUrl(event);" onkeydown="if(event.key === 'Enter' || event.key === ' '){return haoCopyCurrentUrl(event);}" role="button" tabindex="0" title="复制链接">
                         <div class="share-button" id="post-share-url"><i
                                 class="haofont hao-icon-link"></i></div>
                     </div>

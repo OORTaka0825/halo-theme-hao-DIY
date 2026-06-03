@@ -13168,7 +13168,7 @@ button.el-button.tk-cancel.el-button--default.el-button--small {
 }
 
 
-/* 复制链接按钮：让整个方块区域都可点击，而不是只点中间图标才触发 */
+/* 复制链接按钮：整个方块都可点击，保留图标自身事件，避免复制失效 */
 .share-link.copyurl {
     width: 56px;
     height: 40px;
@@ -13182,12 +13182,10 @@ button.el-button.tk-cancel.el-button--default.el-button--small {
     justify-content: center;
     width: 56px;
     height: 40px;
-    pointer-events: none;
 }
 
 .share-link.copyurl .share-button i {
     line-height: 1;
-    pointer-events: none;
 }
 
 .share-link.copyurl:hover .share-button {

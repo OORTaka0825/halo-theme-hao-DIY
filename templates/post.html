@@ -11,6 +11,34 @@
 <th:block th:fragment="content">
     <div class="post" id="body-wrap">
 
+        <!-- 文章标题背景（独立）：放在文章内容内，PJAX/整页刷新都会跟随文章内容立即生效，避免晚加载导致闪主题色，也避免 head 里重复注入造成卡顿 -->
+        <th:block th:if="${theme.config.post.postHeroColor.enable}">
+            <style data-pjax type="text/css" th:inline="css">
+                #page-header.post-bg{
+                    --hao-post-hero-light: [(${theme.config.post.postHeroColor.light})];
+                    --hao-post-hero-dark: [(${theme.config.post.postHeroColor.dark})];
+                    --hao-post-hero-bg: var(--hao-post-hero-light);
+                    --heo-main: var(--hao-post-hero-bg) !important;
+                    --heo-theme: var(--hao-post-hero-bg) !important;
+                    background-color: var(--hao-post-hero-bg) !important;
+                }
+                [data-theme="dark"] #page-header.post-bg{
+                    --hao-post-hero-bg: var(--hao-post-hero-dark);
+                }
+                #page-header.post-bg::before{
+                    background-color: var(--hao-post-hero-bg) !important;
+                }
+                #page-header.post-bg .coverdiv:after{
+                    box-shadow: 110px -130px 300px 60px var(--hao-post-hero-bg) inset;
+                }
+                @media screen and (max-width: 768px){
+                    #page-header.post-bg .coverdiv:after{
+                        box-shadow: 0 0 205px 59px var(--hao-post-hero-bg) inset;
+                    }
+                }
+            </style>
+        </th:block>
+
         <header class="post-bg" id="page-header">
             <nav th:replace="~{modules/nav :: nav(title = ${post.spec.title})}"></nav>
             <div class="coverdiv loaded" id="coverdiv">
