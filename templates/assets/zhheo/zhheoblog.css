@@ -19143,3 +19143,70 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     z-index: 10;
 }
 
+
+/* Footer settings fix: 使用 footer-info-panel 避免浏览器广告拦截插件误隐藏 footer-banner */
+#footer-info-panel {
+    padding: 1rem;
+    color: var(--heo-fontcolor);
+    margin-top: 1rem;
+    background: var(--heo-secondbg);
+    display: flex;
+    overflow: hidden;
+    z-index: 999;
+    transition: 0.3s;
+    border-top: var(--style-border-always);
+}
+
+#footer-info-panel .footer-banner-links {
+    display: flex;
+    justify-content: space-between;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    line-height: 1;
+}
+
+#footer-info-panel .footer-banner-left {
+    display: flex;
+    flex-wrap: wrap;
+    min-height: 32px;
+    align-items: center;
+}
+
+#footer-info-panel .footer-banner-link {
+    margin: 0 4px;
+    color: var(--heo-fontcolor);
+    font-size: .8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    padding: 8px;
+    border-radius: 12px;
+    line-height: 1;
+}
+
+#footer-info-panel .footer-banner-link.cc {
+    margin-right: 0rem;
+}
+
+#footer-info-panel .footer-banner-link.cc i:not(:last-child) {
+    margin-right: .5rem;
+}
+
+#footer-info-panel .footer-banner-link.cc i {
+    font-size: 18px;
+}
+
+#footer-info-panel .footer-banner-link:hover,
+#footer-info-panel .footer-banner-right a:hover {
+    color: var(--heo-lighttext);
+}
+
+#footer-info-panel .footer-banner-link:hover {
+    background: var(--heo-main-op);
+}
+
+#footer-info-panel > div > div.footer-banner-left > span {
+    margin-right: 1rem;
+}

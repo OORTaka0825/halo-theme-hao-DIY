@@ -1604,20 +1604,17 @@ spec:
                     - label: 图片
                       value: image
         - $formkit: radio
-          name: menu_enable
-          label: 相关链接
-          value: true
-          help: 关闭后不渲染页脚“相关链接”菜单区；开启后可选择要展示的菜单组。
-          options:
-            - label: 显示
-              value: true
-            - label: 隐藏
-              value: false
-        - $formkit: menuRadio
-          if: $get(menu_enable).value
           name: menu
-          label: 相关链接菜单
-          help: 默认只有主菜单，可前往【外观】—>【菜单】新建菜单组
+          label: 相关链接
+          value: "primary"
+          help: 选择“隐藏”则不渲染页脚相关链接；选择“主菜单”或“侧边栏菜单”则渲染对应菜单组。
+          options:
+            - label: 隐藏
+              value: "hide"
+            - label: 主菜单
+              value: "primary"
+            - label: 侧边栏菜单
+              value: "sidebar"
         - $formkit: group
           name: footer_group
           label: 页脚友链

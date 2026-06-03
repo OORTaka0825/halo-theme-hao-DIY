@@ -2,19 +2,20 @@
 <footer id="footer" xmlns:th="http://www.w3.org/1999/xhtml"
         th:with="
         footerBarEnable=${theme.config.footer.footer_bar.footer_bar_enable == true || #strings.equals(theme.config.footer.footer_bar.footer_bar_enable, 'true')},
-        menuEnable=${theme.config.footer.menu_enable == null || theme.config.footer.menu_enable == true || #strings.equals(theme.config.footer.menu_enable, 'true')},
-        footerGroupEnable=${theme.config.footer.footer_group.enable_footer_group == true || #strings.equals(theme.config.footer.footer_group.enable_footer_group, 'true')},
-        defaultFooterEnable=${theme.config.footer.footerContent.default_enable_group.default_enable == true || #strings.equals(theme.config.footer.footerContent.default_enable_group.default_enable, 'true')},
+        relatedMenuEnable=${not #strings.isEmpty(theme.config.footer.menu) && !#strings.equals(theme.config.footer.menu, 'hide') && !#strings.equals(theme.config.footer.menu, 'false')},
+        footerGroupEnable=${theme.config.footer.footer_group.enable_footer_group != false && !#strings.equals(theme.config.footer.footer_group.enable_footer_group, 'false')},
+        defaultFooterEnable=${theme.config.footer.footerContent.default_enable_group.default_enable != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.default_enable, 'false')},
         ownerEnable=${theme.config.footer.footerContent.style_one.owner_enable == true || #strings.equals(theme.config.footer.footerContent.style_one.owner_enable, 'true')},
-        runtimeEnable=${theme.config.footer.footerContent.style_one.runtime_enable == true || #strings.equals(theme.config.footer.footerContent.style_one.runtime_enable, 'true')},
+        runtimeEnable=${theme.config.footer.footerContent.style_one.runtime_enable != false && !#strings.equals(theme.config.footer.footerContent.style_one.runtime_enable, 'false')},
         badgeEnable=${theme.config.footer.footerContent.style_one.bdageitem_enable == true || #strings.equals(theme.config.footer.footerContent.style_one.bdageitem_enable, 'true')},
-        dingyueEnable=${theme.config.footer.footerContent.default_enable_group.dingyue == true || #strings.equals(theme.config.footer.footerContent.default_enable_group.dingyue, 'true')},
-        zhutiEnable=${theme.config.footer.footerContent.default_enable_group.zhuti == true || #strings.equals(theme.config.footer.footerContent.default_enable_group.zhuti, 'true')},
-        aboutEnable=${theme.config.footer.footerContent.default_enable_group.about == true || #strings.equals(theme.config.footer.footerContent.default_enable_group.about, 'true')},
-        icpEnable=${theme.config.footer.footerContent.default_enable_group.icp_icon == true || #strings.equals(theme.config.footer.footerContent.default_enable_group.icp_icon, 'true')},
-        gonganEnable=${theme.config.footer.footerContent.default_enable_group.gongwangan == true || #strings.equals(theme.config.footer.footerContent.default_enable_group.gongwangan, 'true')},
-        privacyEnable=${theme.config.footer.footerContent.default_enable_group.yingsi == true || #strings.equals(theme.config.footer.footerContent.default_enable_group.yingsi, 'true')},
-        cloudEnable=${theme.config.footer.footerContent.default_enable_group.yunzhichi == true || #strings.equals(theme.config.footer.footerContent.default_enable_group.yunzhichi, 'true')}">
+        dingyueEnable=${theme.config.footer.footerContent.default_enable_group.dingyue != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.dingyue, 'false')},
+        zhutiEnable=${theme.config.footer.footerContent.default_enable_group.zhuti != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.zhuti, 'false')},
+        aboutEnable=${theme.config.footer.footerContent.default_enable_group.about != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.about, 'false')},
+        icpEnable=${theme.config.footer.footerContent.default_enable_group.icp_icon != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.icp_icon, 'false')},
+        gonganEnable=${theme.config.footer.footerContent.default_enable_group.gongwangan != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.gongwangan, 'false')},
+        privacyEnable=${theme.config.footer.footerContent.default_enable_group.yingsi != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.yingsi, 'false')},
+        cloudEnable=${theme.config.footer.footerContent.default_enable_group.yunzhichi == true || #strings.equals(theme.config.footer.footerContent.default_enable_group.yunzhichi, 'true')},
+        footerPadding=${#strings.isEmpty(theme.config.footer.footerContent.default_enable_group.footer_banner_padding) ? 1 : theme.config.footer.footerContent.default_enable_group.footer_banner_padding}">
 
     <div id="heo-footer-bar" th:if="${footerBarEnable}">
         <div class="footer-logo"><th:block th:utext="${theme.config.footer.footer_bar.logo}"></th:block></div>
@@ -60,19 +61,22 @@
     </div>
 
     <!-- 相关地址 / 页脚友链 -->
-    <div id="heo-footer" th:if="${(menuEnable && not #strings.isEmpty(theme.config.footer.menu)) || footerGroupEnable}">
-        <th:block th:if="${menuEnable && not #strings.isEmpty(theme.config.footer.menu)}"
-                  th:with="footMenu = ${menuFinder.getByName(theme.config.footer.menu)}">
-            <th:block th:if="${footMenu != null && not #lists.isEmpty(footMenu.menuItems)}">
-                <div class="footer-group" th:each="menuItem : ${footMenu.menuItems}">
-                    <h3 class="footer-title" th:text="${menuItem.status.displayName}"></h3>
-                    <div class="footer-links">
-                        <a class="footer-item" th:each="childMenu : ${menuItem.children}"
-                           th:href="@{${childMenu.status.href}}" th:target="${childMenu.spec.target?.value}"
-                           th:text="${childMenu.status.displayName}">
-                        </a>
-                    </div>
-                </div>
+    <div id="heo-footer" th:if="${relatedMenuEnable || footerGroupEnable}">
+        <th:block th:if="${relatedMenuEnable}" th:with="footMenu = ${menuFinder.getByName(theme.config.footer.menu)}">
+            <th:block th:with="fallbackMenu = ${#strings.equals(theme.config.footer.menu, 'primary') ? menuFinder.getByName('主菜单') : (#strings.equals(theme.config.footer.menu, 'sidebar') ? menuFinder.getByName('侧边栏菜单') : (#strings.equals(theme.config.footer.menu, '主菜单') ? menuFinder.getByName('primary') : (#strings.equals(theme.config.footer.menu, '侧边栏菜单') ? menuFinder.getByName('sidebar') : null)))}">
+                <th:block th:with="realFootMenu = ${footMenu != null ? footMenu : fallbackMenu}">
+                    <th:block th:if="${realFootMenu != null && not #lists.isEmpty(realFootMenu.menuItems)}">
+                        <div class="footer-group" th:each="menuItem : ${realFootMenu.menuItems}">
+                            <h3 class="footer-title" th:text="${menuItem.status.displayName}"></h3>
+                            <div class="footer-links">
+                                <a class="footer-item" th:each="childMenu : ${menuItem.children}"
+                                   th:href="@{${childMenu.status.href}}" th:target="${childMenu.spec.target?.value}"
+                                   th:text="${childMenu.status.displayName}">
+                                </a>
+                            </div>
+                        </div>
+                    </th:block>
+                </th:block>
             </th:block>
         </th:block>
 
@@ -141,7 +145,7 @@
         }
     </style>
 
-    <div th:if="${defaultFooterEnable}" id="footer-banner" th:style="|padding:${theme.config.footer.footerContent.default_enable_group.footer_banner_padding}rem|">
+    <div th:if="${defaultFooterEnable}" id="footer-info-panel" class="footer-banner" th:style="|padding:${footerPadding}rem|">
         <div class="footer-banner-links">
             <div class="footer-banner-left">
                 <div id="footer-banner-tips">
@@ -206,7 +210,7 @@
                 </a>
                 
                 <!-- 订阅 需要 RSS 插件支持 -->
-                <a class="footer-banner-link" href="/rss.xml" th:if="${pluginFinder.available('PluginFeed') and dingyueEnable}">订阅</a>
+                <a class="footer-banner-link" href="/rss.xml" th:if="${dingyueEnable}">订阅</a>
                 <a th:if="${zhutiEnable}" class="footer-banner-link" href="https://github.com/liuzhihang/halo-theme-hao">主题</a>
                 <a th:if="${aboutEnable}" class="footer-banner-link" href="/about">关于</a>
                 <a th:if="${not #strings.isEmpty(theme.config.basics.icp) && icpEnable}"
