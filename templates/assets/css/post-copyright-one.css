@@ -16,9 +16,17 @@
     overflow: visible;
 }
 
-#post .post-copyright.post-copyright-one > :not(.post-copyright-one-decoration) {
+/* 不给 author_group 统一加 position，避免头像绝对定位参照对象改变 */
+#post .post-copyright.post-copyright-one .post-tools,
+#post .post-copyright.post-copyright-one .post-copyright__notice,
+#post .post-copyright.post-copyright-one .post-copyright__author_name,
+#post .post-copyright.post-copyright-one .post-copyright__author_desc {
     position: relative;
     z-index: 1;
+}
+
+#post .post-copyright.post-copyright-one .post-copyright__author_img {
+    z-index: 2;
 }
 
 #post .post-copyright-one-decoration {
@@ -37,7 +45,7 @@
     content: "C";
     position: absolute;
     right: -36px;
-    top: 18px;
+    top: 4px;
     width: 136px;
     height: 136px;
     border-radius: 50%;
@@ -204,10 +212,10 @@ img.post-copyright__author_img_front {
 }
 
 
-/* V11 样式一：原“订阅”按钮改为版权类型按钮 */
+/* V12 样式一：版权类型按钮默认保持原“订阅”按钮的绿色；悬停/按下才变成黄白 */
 .reward-link.mode.copyright-one-source {
-    background: var(--heo-yellow, #f7bd43);
-    box-shadow: var(--heo-shadow-yellow, 0 8px 12px -3px rgba(247, 189, 67, 0.35));
+    background: var(--heo-green);
+    box-shadow: var(--heo-shadow-green);
 }
 
 .reward-link.mode.copyright-one-source a {
@@ -215,14 +223,11 @@ img.post-copyright__author_img_front {
     font-weight: 700;
 }
 
-.reward-link.mode.copyright-one-source.reprint {
-    background: var(--heo-blue, #307af6);
-    box-shadow: var(--heo-shadow-blue, 0 8px 12px -3px rgba(48, 122, 246, 0.35));
-}
-
-.reward-link.mode.copyright-one-source:hover {
-    background: var(--heo-theme);
-    box-shadow: none;
+.reward-link.mode.copyright-one-source:hover,
+.reward-link.mode.copyright-one-source:focus-within,
+.reward-link.mode.copyright-one-source:active {
+    background: var(--heo-yellow, #f7bd43);
+    box-shadow: var(--heo-shadow-yellow, 0 8px 12px -3px rgba(247, 189, 67, 0.35));
 }
 
 /* 捐助工具栏 */
