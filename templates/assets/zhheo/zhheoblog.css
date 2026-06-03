@@ -19537,3 +19537,24 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
         margin-top: 0;
     }
 }
+
+/* v10：文章页右侧固定工具间距与卡片阴影修复
+   1. .post-sidebar-sticky-tools 只是固定容器，不再裁剪内部卡片阴影；
+   2. 容器本身负责和上方卡片保持 1rem 间距，避免“最近发布”贴住作者卡；
+   3. 容器内第一张卡片取消自身顶部外边距，避免出现双倍间距；
+   4. 后续卡片仍使用主题原有 .card-widget 的 1rem 间距和发光样式。 */
+@media screen and (min-width: 1201px) {
+    .post .layout#content-inner > #aside-content > .sticky_layout.post-sidebar-sticky-tools,
+    .post .layout#content-inner.post-left-toc-enabled > #aside-content > .sticky_layout.post-sidebar-sticky-tools {
+        margin-top: 1rem !important;
+        max-height: none !important;
+        overflow: visible !important;
+        overflow-y: visible !important;
+        padding: 0 !important;
+    }
+
+    .post .layout#content-inner > #aside-content > .sticky_layout.post-sidebar-sticky-tools > .card-widget:first-child,
+    .post .layout#content-inner.post-left-toc-enabled > #aside-content > .sticky_layout.post-sidebar-sticky-tools > .card-widget:first-child {
+        margin-top: 0 !important;
+    }
+}
