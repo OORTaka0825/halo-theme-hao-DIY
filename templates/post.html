@@ -177,7 +177,8 @@
                 </svg>
             </section>
         </header>
-        <main class="layout" id="content-inner" th:classappend="${theme.config.sidebar.location}">
+        <main class="layout" id="content-inner"
+              th:classappend="${theme.config.sidebar.location + ((theme.config.sidebar.location != 'hide-aside' && #strings.contains(theme.config.sidebar.widgetss.postWidget, 'toc')) ? ' post-left-toc-enabled' : '')}">
             <div id="post">
 
 
@@ -263,6 +264,14 @@
                   name = ${post.metadata.name},
                   allowComment = ${post.spec.allowComment})}"/>
 
+            </div>
+
+            <!-- 左侧文章目录：大屏固定在正文左侧；窄屏仍由右下角目录按钮弹出 -->
+            <div class="post-left-toc"
+                 th:if="${theme.config.sidebar.location != 'hide-aside' && #strings.contains(theme.config.sidebar.widgetss.postWidget, 'toc')}">
+                <div class="sticky_layout">
+                    <th:block th:replace="~{modules/widgets/aside/toc}"></th:block>
+                </div>
             </div>
 
             <!-- 侧栏 -->

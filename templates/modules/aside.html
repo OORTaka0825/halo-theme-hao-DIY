@@ -35,7 +35,8 @@
             <th:block th:if="${widget_data.widget=='toc'}">
                 <div class="sticky_layout">
             </th:block>
-            <th:block th:unless="${widget_data.widget=='custom_html'}">
+            <!-- 文章页目录已单独放到左侧，这里只负责打开 sticky_layout，不再重复渲染右侧目录 -->
+            <th:block th:unless="${widget_data.widget=='custom_html' || (htmlType == 'post' && widget_data.widget=='toc')}">
                 <th:block th:replace="~{'modules/widgets/aside/'+ ${widget_data.widget}}" />
             </th:block>
             <th:block th:if="${widget_data.widget=='custom_html'}">
