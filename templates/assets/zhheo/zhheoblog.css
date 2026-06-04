@@ -8627,7 +8627,7 @@ li {
 
 .recent-post-item .recent-post-info .recent-post-info-top .article-title {
     line-height: 30px;
-    margin-top: 0;
+    margin-top: 7px;
     font-weight: bold;
     color: var(--heo-fontcolor);
     margin-bottom: 0;
@@ -9664,7 +9664,6 @@ span.recent-post-top-text {
 #recent-posts > .recent-post-item > .recent-post-info > .article-meta-wrap > .post-meta-date {
     right: 0px;
     text-align: right;
-    font-size: 0.9em;
 }
 
 #recent-posts > .recent-post-item > .recent-post-info > .article-meta-wrap > .post-meta-date i {
