@@ -19565,7 +19565,7 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
    - 后续想微调高度，只改下面几个变量即可。 */
 @media screen and (max-width: 768px) {
     .post #page-header.post-bg {
-        --post-mobile-hero-height: 24rem;       /* 手机端文章顶部整体高度：想更矮就调小，想更高就调大 */
+        --post-mobile-hero-height: 28rem;       /* 手机端文章顶部整体高度：想更矮就调小，想更高就调大 */
         --post-mobile-cover-mask-height: 12rem; /* 手机端顶部背景基色/遮罩高度 */
         --post-mobile-info-top: 8.8rem;         /* 标题信息距离顶部的高度：想标题更往上就调小 */
 
