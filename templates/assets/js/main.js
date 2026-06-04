@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // V15：目录跳转只使用 tocbot 自带滚动。高度只改 TOCBOT_SCROLL_OFFSET。
             // 数值越大，标题距离浏览器顶部越远。
-            const TOCBOT_SCROLL_OFFSET = 200;
+            const TOCBOT_SCROLL_OFFSET = 160;
 
             tocbot.init({
                 tocSelector: '.toc-content',
