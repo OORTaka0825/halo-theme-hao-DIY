@@ -10343,7 +10343,7 @@ a.extend.prev {
 
 @media screen and (max-width: 768px) {
     #page-header.post-bg {
-        height: 30rem !important;
+        height: 15.5rem !important;
         margin-bottom: -12px;
     }
 
@@ -10623,7 +10623,7 @@ a.extend.prev {
     #page-header #post-info {
         padding: 0 6%;
         justify-content: normal;
-        padding-top: 18rem;
+        padding-top: 4rem;
     }
 }
 
