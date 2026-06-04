@@ -19483,7 +19483,7 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 .post .post-content h4,
 .post .post-content h5,
 .post .post-content h6 {
-    scroll-margin-top: 90px;
+    scroll-margin-top: 105px;
 }
 
 /* v8：文章页右侧“最新文章 + 标签&归档&统计”组合固定
@@ -19563,16 +19563,17 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 }
 
 
-/* v16：文章目录点击定位和字体修复
-   1. 目录点击滚动由 main.js 统一控制，这里保留同一个锚点预留高度；
-   2. 文章目录标题与目录项强制继承全局字体；图标仍保留 haofont，不受影响。 */
+/* v17：文章目录滚动与字体修复
+   1. 目录点击滚动恢复使用 tocbot 自带平滑滚动，偏移值在 main.js 的 haoTocScrollOffset 中统一调整；
+   2. 这里的 scroll-margin-top 只用于浏览器直接打开 #锚点 时预留顶部高度；
+   3. 文章目录标题与目录项强制继承全局字体；图标仍保留 haofont，不受影响。 */
 .post .post-content h1,
 .post .post-content h2,
 .post .post-content h3,
 .post .post-content h4,
 .post .post-content h5,
 .post .post-content h6 {
-    scroll-margin-top: 90px;
+    scroll-margin-top: 105px;
 }
 
 #card-toc,

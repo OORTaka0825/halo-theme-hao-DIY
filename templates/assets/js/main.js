@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 tocbot.destroy();
             } catch (e) {}
 
-            const haoTocScrollOffset = 90;
+            const haoTocScrollOffset = 105;
 
             tocbot.init({
                 tocSelector: '.toc-content',
@@ -181,9 +181,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 activeLinkClass: 'active',
                 activeListItemClass: 'active',
                 headingsOffset: haoTocScrollOffset,
-                // V16：关闭 tocbot 自带点击滚动，改用下面统一的点击定位。
-                // 这样不会再出现“tocbot 偏移 + 浏览器 hash/scroll-margin 偏移”打架造成的二次跳动。
-                scrollSmooth: false,
+                // V17：恢复 tocbot 自带点击平滑滚动，只保留一组偏移值，避免自定义滚动和 tocbot 互相抢定位。
+                scrollSmooth: true,
+                scrollSmoothOffset: -haoTocScrollOffset,
+                scrollSmoothDuration: 420,
                 tocScrollOffset: 80,
             });
 
@@ -192,37 +193,14 @@ document.addEventListener('DOMContentLoaded', function () {
             const $cardToc = $cardTocLayout.getElementsByClassName('toc-content')[0]
             if (!$cardToc) return
 
-            // V16：目录点击只走一次平滑定位，避免点击后先到一处、再被二次修正导致“跳一下”。
-            if (!$cardToc.dataset.haoTocClickFixed) {
-                $cardToc.dataset.haoTocClickFixed = 'true';
-                $cardToc.addEventListener('click', (event) => {
-                    const link = event.target.closest('a.toc-link');
-                    if (!link) return;
-
-                    const href = link.getAttribute('href');
-                    if (!href || href.charAt(0) !== '#') return;
-
-                    let id = href.slice(1);
-                    try { id = decodeURIComponent(id); } catch (e) {}
-
-                    const target = document.getElementById(id);
-                    if (!target) return;
-
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
-
-                    const top = Math.max(0, target.getBoundingClientRect().top + window.pageYOffset - haoTocScrollOffset);
-                    window.scrollTo({ top: top, behavior: 'smooth' });
-
-                    if (window.history && window.history.pushState) {
-                        window.history.pushState(null, '', '#' + encodeURIComponent(id));
-                    }
-
+            // 目录点击时只负责移动端关闭目录面板，滚动定位交给 tocbot 自带逻辑。
+            if (!$cardToc.dataset.haoTocMobileClose) {
+                $cardToc.dataset.haoTocMobileClose = 'true';
+                $cardToc.addEventListener('click', () => {
                     if (window.innerWidth < 900) {
                         $cardTocLayout.classList.remove("open");
                     }
-                }, true);
+                });
             }
 
         }
