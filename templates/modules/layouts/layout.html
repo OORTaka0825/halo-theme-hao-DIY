@@ -244,8 +244,8 @@
     })();
     </script>
 
-    <script th:if="${theme.config.other.pjax_enable}"
-        th:src="${assets_link + '/libs/pjax/pjax.min.js'}"></script>
+    <!-- PJAX 已强制开启：不再受后台 pjax_enable 开关控制 -->
+    <script th:src="${assets_link + '/libs/pjax/pjax.min.js'}"></script>
 
     <!-- swiper 在瞬间滚动时会使用 -->
     <script th:if="${theme.config.top.moment}" data-pjax  src="/themes/theme-hao/assets/libs/swiper-bundle.min.js"></script>
@@ -279,7 +279,7 @@
 
 
 
-    <th:block th:if="${theme.config.other.pjax_enable}"><script>
+    <script>
         let pjaxSelectors = ['title', '#config-diff', '#body-wrap', '#rightside-config-hide', '#rightside-config-show', '.js-pjax', '#site-config']
 
         pjaxSelectors.unshift('meta[property="og:type"]', 'meta[property="og:image"]', 'meta[property="og:title"]', 'meta[property="og:url"]', 'meta[property="og:description"]'
@@ -359,7 +359,7 @@
                     }
                 }
         )
-    </script></th:block>
+    </script>
 
 
 </div>
