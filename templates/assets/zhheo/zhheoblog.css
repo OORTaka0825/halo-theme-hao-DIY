@@ -19416,7 +19416,6 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 }
 
 .post .post-left-toc #card-toc .toc-content a.toc-link:not(.active) {
-    opacity: 0.6;
     cursor: pointer;
     filter: blur(1px);
     transition: 0.3s;
@@ -19446,10 +19445,10 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
    2. 目录固定高度/顶部距离、字体大小集中放到下面变量里，后续只改这里即可；
    3. 调整目录点击和滚动高亮的偏移，避免高亮项和正文标题错位。 */
 .post .layout#content-inner.post-left-toc-enabled {
-    --post-left-toc-sticky-top: 20px;       /* 页面下滑后，左侧目录距离浏览器顶部的距离；想更靠下就把 20px 调大 */
+    --post-left-toc-sticky-top: 80px;       /* 页面下滑后，左侧目录距离浏览器顶部的距离；想更靠下就把 20px 调大 */
     --post-left-toc-sticky-top-nav: 80px;   /* 顶部导航栏显示时，左侧目录距离浏览器顶部的距离；想更靠下就把 80px 调大 */
     --post-left-toc-font-size: 14px;        /* 普通目录字体大小 */
-    --post-left-toc-active-font-size: 20px; /* 当前高亮目录字体大小 */
+    --post-left-toc-active-font-size: 14px; /* 当前高亮目录字体大小 */
 }
 
 @media screen and (min-width: 1201px) {
@@ -19464,7 +19463,7 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 
 .post .post-left-toc #card-toc .toc-content .toc-link {
     font-size: var(--post-left-toc-font-size);
-    line-height: 1.55;
+    line-height: 2.5;
     min-height: auto;
     cursor: pointer;
 }
