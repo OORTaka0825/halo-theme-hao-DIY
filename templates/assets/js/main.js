@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             // 点击文章目录后的顶部预留高度：数值越大，标题距离浏览器顶部越远
-            const TOC_SCROLL_OFFSET = 150;
+            const TOC_SCROLL_OFFSET = 200;
 
             tocbot.init({
                 tocSelector: '.toc-content',
