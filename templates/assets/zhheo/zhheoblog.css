@@ -2046,7 +2046,7 @@ blockquote footer cite::before {
 #aside-content .aside-list > .aside-list-item .content > .comment,
 #aside-content .aside-list > .aside-list-item .content > .title {
     color: var(--heo-fontcolor);
-    font-size: 85%;
+    font-size: 87%;
     line-height: 1.4;
     -webkit-line-clamp: 2;
 }
