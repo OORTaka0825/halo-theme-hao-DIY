@@ -387,7 +387,7 @@
             selectors: pjaxSelectors,
             cacheBust: false,
             analytics: false,
-            scrollRestoration: false
+            scrollRestoration: true
         })
 
         document.addEventListener('pjax:send', function () {
@@ -509,22 +509,80 @@
   if (window._haoScrollNoFlashInit) return;
   window._haoScrollNoFlashInit = true;
 
-  var POS_PREFIX = 'hao:scroll:';          // 每个 path 的位置
-  var STATE_KEY  = 'hao:restore_state';    // 是否处于“正在恢复”状态：'1'|'0'
+  var POS_PREFIX = 'hao:scroll:';          // 每个列表页 path 的滚动位置
+  var STATE_KEY  = 'hao:restore_state';    // 恢复阶段标记：'1'|'0'
+  var LAST_KEY   = 'hao:last_list_key';     // 最近一次离开的列表页
+  var LAST_POS   = 'hao:last_list_pos';     // 最近一次离开的列表页位置
   var CURRENT_KEY = null;
   var isPop = false;
+  var pendingPop = false;
   var restoring = false;
   var saveTicking = false;
   var rafId = 0;
   var timeoutIds = [];
 
-  function pageKey(){ return location.pathname + location.search; }
+  function normalizeKey(url){
+    try{
+      var u = new URL(url || location.href, location.href);
+      var p = u.pathname || '/';
+      // 统一尾部斜杠，避免 /page/3 与 /page/3/ 两个 key 对不上
+      if (p.length > 1) p = p.replace(/\/+$/, '');
+      if (!p) p = '/';
+      return p + (u.search || '');
+    }catch(e){
+      var p2 = location.pathname || '/';
+      if (p2.length > 1) p2 = p2.replace(/\/+$/, '');
+      return p2 + (location.search || '');
+    }
+  }
+
+  function pageKey(){ return normalizeKey(location.href); }
   function getY(){ return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0; }
-  function setPos(k,v){ try{ sessionStorage.setItem(POS_PREFIX + k, String(v)); }catch(e){} }
-  function getPos(k){ try{ return sessionStorage.getItem(POS_PREFIX + k); }catch(e){ return null; } }
-  function rmPos(k){ try{ sessionStorage.removeItem(POS_PREFIX + k); }catch(e){} }
-  function setState(v){ try{ sessionStorage.setItem(STATE_KEY, v ? '1':'0'); }catch(e){} }
-  function getState(){ try{ return sessionStorage.getItem(STATE_KEY) === '1'; }catch(e){ return false; } }
+  function ssSet(k,v){ try{ sessionStorage.setItem(k, String(v)); }catch(e){} }
+  function ssGet(k){ try{ return sessionStorage.getItem(k); }catch(e){ return null; } }
+  function setState(v){ ssSet(STATE_KEY, v ? '1':'0'); }
+  function getState(){ return ssGet(STATE_KEY) === '1'; }
+
+  function updateHistoryY(y){
+    // 给 pjax 自带 popstate 恢复也补上 scrollPos；必须保留 uid，避免破坏 pjax 的前进/后退判断
+    try{
+      if (!history.replaceState) return;
+      var st = history.state;
+      if (!st || !st.uid) return;
+      var ns = {};
+      for (var k in st) if (Object.prototype.hasOwnProperty.call(st, k)) ns[k] = st[k];
+      ns.url = location.href;
+      ns.title = document.title;
+      ns.scrollPos = [0, y];
+      history.replaceState(ns, document.title, location.href);
+    }catch(e){}
+  }
+
+  function ensurePjaxHistoryState(){
+    // 第一次进入页面时，原 pjax 还没给当前历史项写 uid；这里补一个，后面才能安全更新 scrollPos
+    try{
+      if (!window.pjax || !history.replaceState) return;
+      var st = history.state;
+      if (st && st.uid) return;
+      var uid = window.pjax.lastUid || window.pjax.maxUid || ('pjax' + Date.now());
+      history.replaceState({
+        url: location.href,
+        title: document.title,
+        uid: uid,
+        scrollPos: [0, getY()]
+      }, document.title, location.href);
+    }catch(e){}
+  }
+
+  function setPos(k,v){
+    if (!k) k = pageKey();
+    v = parseInt(v, 10) || 0;
+    ssSet(POS_PREFIX + k, v);
+    ssSet(LAST_KEY, k);
+    ssSet(LAST_POS, v);
+    updateHistoryY(v);
+  }
+  function getPos(k){ return ssGet(POS_PREFIX + k); }
 
   function isListPage(){
     var bw = document.getElementById('body-wrap');
@@ -535,14 +593,20 @@
     return !!(bw && bw.classList && bw.classList.contains('post'));
   }
 
+  function saveNow(){
+    if (!isListPage()) return;
+    CURRENT_KEY = pageKey();
+    ensurePjaxHistoryState();
+    setPos(CURRENT_KEY, getY());
+  }
+
   function throttledSave(){
-    if (!isListPage()) return;     // 只在列表页保存
+    if (!isListPage()) return;
     if (restoring) return;
     if (saveTicking) return;
     saveTicking = true;
     requestAnimationFrame(function(){
-      var k = CURRENT_KEY || pageKey();
-      setPos(k, getY());
+      saveNow();
       saveTicking = false;
     });
   }
@@ -552,7 +616,7 @@
       if (typeof window.scrollToPost === 'function' && !window._scrollToPostWrappedNoFlash){
         var orig = window.scrollToPost;
         window.scrollToPost = function(){
-          if (getState()) return;  // 仅在“正在恢复”时拦截；平时不拦
+          if (getState()) return;  // 恢复位置时，拦截分页的自动滚动，避免把页面又拉回顶部区域
           return orig.apply(this, arguments);
         };
         window._scrollToPostWrappedNoFlash = true;
@@ -574,9 +638,15 @@
     try{
       if (window.pjax && !window.pjax._haoSavePatchedNoFlash){
         var orig = window.pjax.loadUrl;
-        window.pjax.loadUrl = function(url){
-          try{ if (isListPage()) setPos(pageKey(), getY()); }catch(e){}
-          cancelRestore(true);     // 新导航前取消任何恢复
+        window.pjax.loadUrl = function(url, options){
+          // 正常点进文章前、分页前，都先保存当前列表位置；比只等 scroll 事件更稳
+          saveNow();
+
+          // pjax 内部浏览器前进/后退会以 history:false 调用 loadUrl
+          var opt = options || {};
+          pendingPop = !!(opt.history === false || opt.backward || opt.forward || isPop);
+
+          cancelRestore(true);     // 新导航前取消遗留恢复
           setState(false);         // 普通前进导航，确保不拦截 scrollToPost
           return orig.apply(this, arguments);
         };
@@ -589,7 +659,6 @@
     restoring = false;
     if (rafId) { try{ cancelAnimationFrame(rafId); }catch(e){} rafId = 0; }
     while (timeoutIds.length) { try{ clearTimeout(timeoutIds.pop()); }catch(e){} }
-    // 只在“非用户主动操作”时还原 scroll-behavior；用户操作取消恢复会立即允许平滑滚动
     if (!fromNav) { try { document.documentElement.style.scrollBehavior = ''; } catch(e){} }
     setState(false);
   }
@@ -601,67 +670,108 @@
     }, {passive:true});
   });
 
+  // 点击任何站内链接前先保存列表位置：防止某些链接没有走到 pjax.loadUrl 包装层
+  document.addEventListener('click', function(e){
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a) return;
+    if (a.target && a.target !== '_self') return;
+    if (a.hasAttribute('data-no-pjax')) return;
+    if (/^(javascript:|mailto:|tel:)/i.test(a.getAttribute('href') || '')) return;
+    saveNow();
+  }, true);
+
   // 检测浏览器后退/前进
-  window.addEventListener('popstate', function(){ isPop = true; }, true);
+  window.addEventListener('popstate', function(){
+    isPop = true;
+    pendingPop = true;
+  }, true);
 
   // 滚动保存（仅列表页）
   window.addEventListener('scroll', throttledSave, {passive:true});
 
   // 离开前再保存一次（仅列表页）
-  window.addEventListener('beforeunload', function(){ if (isListPage()) setPos(pageKey(), getY()); });
+  window.addEventListener('beforeunload', saveNow, {passive:true});
+  window.addEventListener('pagehide', saveNow, {passive:true});
 
   document.addEventListener('pjax:send', function(){
-    cancelRestore(true);   // 导航前取消遗留恢复，避免文章页打开在中间
+    saveNow();
+    cancelRestore(true);
   });
+
+  function restoreListPosition(){
+    var key = CURRENT_KEY || pageKey();
+    var v = getPos(key);
+
+    // pjax 自带 state 里若有 scrollPos，也作为兜底
+    if (v == null) {
+      try{
+        var st = history.state;
+        if (st && st.scrollPos && st.scrollPos.length > 1) v = st.scrollPos[1];
+      }catch(e){}
+    }
+
+    // 兼容尾部斜杠、首页 / 与空路径等 key 不一致导致取不到的情况
+    if (v == null) {
+      var lk = ssGet(LAST_KEY);
+      var lp = ssGet(LAST_POS);
+      if (lk && normalizeKey(lk) === normalizeKey(key)) v = lp;
+    }
+
+    if (v != null) startRestore(parseInt(v,10) || 0);
+  }
 
   document.addEventListener('pjax:complete', function(){
     CURRENT_KEY = pageKey();
+    ensurePjaxHistoryState();
     patchPjaxLoadUrl();
     hardWrapScrollHelpers();
 
     if (isPostPage()){
-      if (!location.hash){
+      // 正常点进文章：打开到顶部；浏览器前进/后退到文章页时不强抢滚动
+      if (!pendingPop && !location.hash){
         window.scrollTo(0,0);
         timeoutIds.push(setTimeout(function(){ if (!window.__haoTocClicking) window.scrollTo(0,0); }, 60));
-      }
-      return;
-    }
-
-    if (!isListPage()) return;
-
-    if (isPop){
-      var v = getPos(CURRENT_KEY);
-      if (v != null){
-        startRestore(parseInt(v,10) || 0);
-        rmPos(CURRENT_KEY);
       }
       isPop = false;
+      pendingPop = false;
+      return;
     }
+
+    if (isListPage() && (isPop || pendingPop)) {
+      restoreListPosition();
+    }
+
+    isPop = false;
+    pendingPop = false;
   });
 
-  // 支持 BFCache
+  function isBackForwardNav(){
+    try{
+      var entries = performance.getEntriesByType && performance.getEntriesByType('navigation');
+      if (entries && entries[0]) return entries[0].type === 'back_forward';
+    }catch(e){}
+    return false;
+  }
+
+  // 支持 BFCache / 非 PJAX 的浏览器回退
   window.addEventListener('pageshow', function(ev){
     CURRENT_KEY = pageKey();
+    ensurePjaxHistoryState();
     patchPjaxLoadUrl();
     hardWrapScrollHelpers();
 
     if (isPostPage()){
-      if (!location.hash){
+      if (!ev.persisted && !isBackForwardNav() && !location.hash){
         window.scrollTo(0,0);
         timeoutIds.push(setTimeout(function(){ if (!window.__haoTocClicking) window.scrollTo(0,0); }, 60));
       }
       return;
     }
 
-    if (!isListPage()) return;
-    if (ev && ev.persisted){
-      var v = getPos(CURRENT_KEY);
-      if (v != null){
-        startRestore(parseInt(v,10) || 0);
-        rmPos(CURRENT_KEY);
-      }
+    if (isListPage() && ((ev && ev.persisted) || isBackForwardNav())) {
+      restoreListPosition();
     }
-  });
+  }, {passive:true});
 
   function startRestore(y){
     restoring = true;
@@ -673,9 +783,9 @@
     var start = performance.now();
     var lastHeight = document.body.scrollHeight;
     var stableFrames = 0;
-    var EPS = 2;          // 误差阈值（像素）
-    var MAX_MS = 1200;    // 最长恢复时间
-    var MAX_RAF = 40;     // 最多帧数
+    var EPS = 2;
+    var MAX_MS = 1500;
+    var MAX_RAF = 50;
 
     function done(){
       document.documentElement.style.scrollBehavior = prevBehavior || '';
@@ -690,7 +800,6 @@
       var cur = getY();
       var h = document.body.scrollHeight;
 
-      // 若内容高度稳定且位置已接近目标，提前结束（避免继续“抢动”）
       if (Math.abs(cur - y) <= EPS){
         stableFrames++;
         if (stableFrames >= 3){ return done(); }
@@ -698,7 +807,6 @@
         stableFrames = 0;
       }
 
-      // 若页面高度变化，说明懒加载/布局在动，继续校正
       if (h !== lastHeight){
         lastHeight = h;
         stableFrames = 0;
@@ -714,8 +822,7 @@
 
     rafId = requestAnimationFrame(rafTick);
 
-    // 少量兜底（不影响提前结束）：
-    [200, 500, 900].forEach(function(ms){
+    [200, 500, 900, 1300].forEach(function(ms){
       var tid = setTimeout(function(){
         if (restoring) window.scrollTo(0, y);
       }, ms);
@@ -725,14 +832,14 @@
 
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   CURRENT_KEY = pageKey();
+  ensurePjaxHistoryState();
   patchPjaxLoadUrl();
   hardWrapScrollHelpers();
   setState(false);
 })();
 </script>
 
-
-    <!-- DIY × PLUS 一体化 Loader · v12-merge + DreamConfig + SnowRebuildByIdRange -->
+<!-- DIY × PLUS 一体化 Loader · v12-merge + DreamConfig + SnowRebuildByIdRange -->
 <script th:inline="javascript">
 (function(){
   /* ========= 基础 ========= */
