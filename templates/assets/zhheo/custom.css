@@ -2560,7 +2560,7 @@ p.p.gray,span.p.gray {
    只改这里的 150px 即可：数值越大，点击目录后标题距离浏览器顶部越远。
    建议范围：120px ~ 220px。 */
 :root {
-    --hao-toc-anchor-offset: 150px;
+    --hao-toc-anchor-offset: 200px;
 }
 
 html {
