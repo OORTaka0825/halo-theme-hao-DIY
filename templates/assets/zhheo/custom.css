@@ -2555,3 +2555,19 @@ p.p.gray,span.p.gray {
     object-fit: cover !important;
     border-radius: 50% !important;
 }
+/* V15：文章目录锚点跳转顶部预留高度
+   修改这里的 200px：数值越大，标题距离浏览器顶部越远 */
+#article-container h1[id],
+#article-container h2[id],
+#article-container h3[id],
+#article-container h4[id],
+#article-container h5[id],
+#article-container h6[id],
+.post-content h1[id],
+.post-content h2[id],
+.post-content h3[id],
+.post-content h4[id],
+.post-content h5[id],
+.post-content h6[id] {
+    scroll-margin-top: 200px;
+}

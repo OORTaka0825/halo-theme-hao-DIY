@@ -179,10 +179,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // 点击文章目录后的顶部预留高度：数值越大，标题距离浏览器顶部越远
-            // V15 修改点：以后只改这里即可，比如 120 / 160 / 200 / 240
-            const TOC_SCROLL_OFFSET = 200;
-
             tocbot.init({
                 tocSelector: '.toc-content',
                 contentSelector: '.post-content',
@@ -191,64 +187,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 activeLinkClass: 'active',
                 activeListItemClass: 'active',
                 headingsOffset: -400,
-                // 继续关闭 tocbot 自带平滑滚动，统一由下面的目录点击逻辑处理偏移
+                // V15：不再手动接管目录点击滚动，交给浏览器原生锚点跳转
                 scrollSmooth: false,
+                tocScrollOffset: 50,
             });
 
-            const getTocTarget = (href) => {
-                if (!href) return null;
-                const hashIndex = href.indexOf('#');
-                if (hashIndex === -1) return null;
-                const rawId = href.slice(hashIndex + 1);
-                if (!rawId) return null;
-                let decodedId = rawId;
-                try {
-                    decodedId = decodeURIComponent(rawId);
-                } catch (e) {}
-                return document.getElementById(decodedId) || document.getElementById(rawId);
-            }
-
-            let tocScrollFixTimer = null;
-            const scrollToTocTarget = (target, behavior = 'smooth') => {
-                if (!target) return;
-                const currentY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-                const targetTop = target.getBoundingClientRect().top + currentY - TOC_SCROLL_OFFSET;
-                window.scrollTo({
-                    top: Math.max(0, targetTop),
-                    behavior
-                });
-            }
-
-            // 防止 PJAX 或浏览器默认锚点滚动接管目录链接，导致 TOC_SCROLL_OFFSET 看起来“不生效”
-            $cardToc.querySelectorAll('a.toc-link').forEach(link => {
-                link.setAttribute('data-no-pjax', '');
-            })
-
-            // toc元素点击：使用 onclick 覆盖旧绑定，避免 PJAX/重复初始化时多个监听器叠加
-            $cardToc.onclick = (event) => {
-                const tocLink = event.target.closest && event.target.closest('a.toc-link');
-                if (tocLink && $cardToc.contains(tocLink)) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
-
-                    const target = getTocTarget(tocLink.getAttribute('href') || tocLink.hash);
-                    if (target) {
-                        scrollToTocTarget(target, 'smooth');
-
-                        // 懒加载图片/代码块渲染可能让标题位置二次变化，这里滚动结束后再校正一次
-                        if (tocScrollFixTimer) clearTimeout(tocScrollFixTimer);
-                        tocScrollFixTimer = setTimeout(() => scrollToTocTarget(target, 'auto'), 520);
-
-                        if (window.history && window.history.replaceState && target.id) {
-                            window.history.replaceState(null, '', location.pathname + location.search + '#' + encodeURIComponent(target.id));
-                        }
-                    }
-                }
+            // toc元素点击：只负责移动端收起目录，不参与滚动
+            $cardToc.addEventListener('click', () => {
                 if (window.innerWidth < 900) {
                     $cardTocLayout.classList.remove("open");
                 }
-            }
+            })
 
         }
     }
