@@ -774,7 +774,7 @@ body {
     min-height: 100%;
     background: var(--heo-background);
     color: var(--heo-fontcolor);
-    font-size: var(--global-font-size);
+    font-size: 15px;
     font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei";
     line-height: 2;
     -webkit-tap-highlight-color: transparent;
