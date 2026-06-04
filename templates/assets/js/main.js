@@ -155,33 +155,25 @@ document.addEventListener('DOMContentLoaded', function () {
         const postContent = document.querySelector('.post-content');
         if (postContent == null) return;
         const titles = postContent.querySelectorAll('h1,h2,h3,h4,h5,h6');
-        // 没有 toc 目录，则直接移除
-        const hideMobileTocButton = () => {
+        // 没有 toc 目录，则直接移除，并同步去掉左侧目录布局，避免刷新时短暂闪出空目录
+        if (titles.length === 0 || !titles) {
+            const cardToc = document.getElementById("card-toc");
+            cardToc?.remove();
+            document.querySelector('.post-left-toc')?.remove();
+            document.getElementById('content-inner')?.classList.remove('post-left-toc-enabled');
             const $mobileTocButton = document.getElementById("mobile-toc-button")
             if ($mobileTocButton) {
                 $('#mobile-toc-button').attr('style', 'display: none');
             }
-        }
-        if (titles.length === 0 || !titles) {
-            const cardToc = document.getElementById("card-toc");
-            cardToc?.remove();
-            hideMobileTocButton();
         } else {
-            // 文章页侧栏未添加“目录”卡片时，不初始化 tocbot，避免 #card-toc 为空导致 JS 报错
-            const $cardTocLayout = document.getElementById('card-toc')
-            if (!$cardTocLayout) {
-                hideMobileTocButton();
-                return;
-            }
-            const $cardToc = $cardTocLayout.getElementsByClassName('toc-content')[0]
-            if (!$cardToc) {
-                hideMobileTocButton();
-                return;
-            }
+            // PJAX 或重复进入文章页时，先销毁旧实例，防止目录高亮和锚点计算错位
+            try {
+                tocbot.destroy();
+            } catch (e) {}
 
-            // V15：目录跳转只使用 tocbot 自带滚动。高度只改 TOCBOT_SCROLL_OFFSET。
-            // 数值越大，标题距离浏览器顶部越远。
-            const TOCBOT_SCROLL_OFFSET = 210;
+            // v18：目录定位偏移只从 CSS 变量读取，避免 main.js 和 scroll-margin-top 数值不一致。
+            const haoTocScrollOffsetRaw = getComputedStyle(document.documentElement).getPropertyValue('--hao-toc-scroll-offset').trim();
+            const haoTocScrollOffset = parseFloat(haoTocScrollOffsetRaw) || 105;
 
             tocbot.init({
                 tocSelector: '.toc-content',
@@ -190,20 +182,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 listItemClass: 'toc-item',
                 activeLinkClass: 'active',
                 activeListItemClass: 'active',
-                // 目录高亮判定位置，需要和滚动预留高度保持一致，否则会出现点“四”却高亮“三”
-                headingsOffset: TOCBOT_SCROLL_OFFSET,
+                headingsOffset: haoTocScrollOffset,
+                // V17：恢复 tocbot 自带点击平滑滚动，只保留一组偏移值，避免自定义滚动和 tocbot 互相抢定位。
                 scrollSmooth: true,
+                scrollSmoothOffset: -haoTocScrollOffset,
                 scrollSmoothDuration: 420,
-                scrollSmoothOffset: -TOCBOT_SCROLL_OFFSET,
-                tocScrollOffset: 50,
+                tocScrollOffset: 80,
             });
 
-            // toc元素点击：只负责移动端收起目录，不参与滚动
-            $cardToc.addEventListener('click', () => {
-                if (window.innerWidth < 900) {
-                    $cardTocLayout.classList.remove("open");
-                }
-            })
+            const $cardTocLayout = document.getElementById('card-toc')
+            if (!$cardTocLayout) return
+            const $cardToc = $cardTocLayout.getElementsByClassName('toc-content')[0]
+            if (!$cardToc) return
+
+            // 目录点击时只负责移动端关闭目录面板，滚动定位交给 tocbot 自带逻辑。
+            if (!$cardToc.dataset.haoTocMobileClose) {
+                $cardToc.dataset.haoTocMobileClose = 'true';
+                $cardToc.addEventListener('click', () => {
+                    if (window.innerWidth < 900) {
+                        $cardTocLayout.classList.remove("open");
+                    }
+                });
+            }
 
         }
     }
