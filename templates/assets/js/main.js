@@ -179,6 +179,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            // V15：目录跳转只使用 tocbot 自带滚动。高度只改 TOCBOT_SCROLL_OFFSET。
+            // 数值越大，标题距离浏览器顶部越远。
+            const TOCBOT_SCROLL_OFFSET = 200;
+
             tocbot.init({
                 tocSelector: '.toc-content',
                 contentSelector: '.post-content',
@@ -186,9 +190,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 listItemClass: 'toc-item',
                 activeLinkClass: 'active',
                 activeListItemClass: 'active',
-                headingsOffset: -400,
-                // V15：不再手动接管目录点击滚动，交给浏览器原生锚点跳转
-                scrollSmooth: false,
+                // 目录高亮判定位置，需要和滚动预留高度保持一致，否则会出现点“四”却高亮“三”
+                headingsOffset: TOCBOT_SCROLL_OFFSET,
+                scrollSmooth: true,
+                scrollSmoothDuration: 420,
+                scrollSmoothOffset: -TOCBOT_SCROLL_OFFSET,
                 tocScrollOffset: 50,
             });
 
