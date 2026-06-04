@@ -9726,8 +9726,8 @@ span.recent-post-top-text {
 }
 
 #aside-content #card-toc .toc-content .toc-link {
-    line-height: 24px;
-    padding: 8px;
+    line-height: 31px;
+    padding: 7px;
     border-left: 0 solid transparent;
     border-radius: 12px;
     color: var(--heo-secondtext);
