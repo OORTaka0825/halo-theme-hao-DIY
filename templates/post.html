@@ -177,16 +177,7 @@
                 </svg>
             </section>
         </header>
-        <main class="layout" id="content-inner"
-              th:classappend="${theme.config.sidebar.location + ((theme.config.sidebar.location != 'hide-aside'
-                && #strings.contains(theme.config.sidebar.widgetss.postWidget, 'toc')
-                && not #strings.isEmpty(post.content.content)
-                && (#strings.contains(post.content.content, '&lt;h1')
-                  || #strings.contains(post.content.content, '&lt;h2')
-                  || #strings.contains(post.content.content, '&lt;h3')
-                  || #strings.contains(post.content.content, '&lt;h4')
-                  || #strings.contains(post.content.content, '&lt;h5')
-                  || #strings.contains(post.content.content, '&lt;h6'))) ? ' post-left-toc-enabled' : '')}">
+        <main class="layout" id="content-inner" th:classappend="${theme.config.sidebar.location}">
             <div id="post">
 
 
@@ -274,21 +265,6 @@
 
             </div>
 
-            <!-- 左侧文章目录：大屏固定在正文左侧；窄屏仍由右下角目录按钮弹出 -->
-            <div class="post-left-toc"
-                 th:if="${theme.config.sidebar.location != 'hide-aside'
-                   && #strings.contains(theme.config.sidebar.widgetss.postWidget, 'toc')
-                   && not #strings.isEmpty(post.content.content)
-                   && (#strings.contains(post.content.content, '&lt;h1')
-                     || #strings.contains(post.content.content, '&lt;h2')
-                     || #strings.contains(post.content.content, '&lt;h3')
-                     || #strings.contains(post.content.content, '&lt;h4')
-                     || #strings.contains(post.content.content, '&lt;h5')
-                     || #strings.contains(post.content.content, '&lt;h6'))}">
-                <div class="sticky_layout">
-                    <th:block th:replace="~{modules/widgets/aside/toc}"></th:block>
-                </div>
-            </div>
 
             <!-- 侧栏 -->
             <div th:replace="~{modules/aside :: aside(${theme.config.sidebar.widgetss.postWidget})}"></div>

@@ -2,81 +2,50 @@
 <div class="aside-content" id="aside-content" th:fragment="aside(widgets)"
      th:if="${theme.config.sidebar.location != 'hide-aside' && not #lists.isEmpty(widgets)}">
 
-    <!-- v9：文章页右侧固定工具修复
-         1. 文章页目录已经移动到左侧，右侧栏不再重复渲染 toc；
-         2. 最新文章、热门文章、标签&归档&统计合并到同一个 sticky_layout；
-         3. 普通工具先正常渲染，固定工具最后统一渲染，避免目录在左侧时右侧 sticky 失效。 -->
-    <th:block th:if="${htmlType == 'post'}">
-        <!-- 普通侧栏工具：跳过左侧目录、最新文章、热门文章、标签&归档&统计 -->
-        <th:block th:each="widget_data : ${widgets}">
-            <th:block th:unless="${widget_data.widget=='toc' || widget_data.widget=='recent-posts' || widget_data.widget=='visit-posts' || widget_data.widget=='tags-stat'}">
-                <th:block th:unless="${widget_data.widget=='custom_html'}">
+    <!-- 侧栏部件，不包含 toc 则直接遍历 -->
+    <th:block th:if="${not #strings.contains(widgets, 'toc')}">
+        <th:block th:each="widget_data,iterStat : ${widgets}">
+            <th:block th:unless="${widget_data.widget=='custom_html'}">
+                <th:block th:if="not ${iterStat.last}">
                     <th:block th:replace="~{'modules/widgets/aside/'+ ${widget_data.widget}}" />
                 </th:block>
-                <th:block th:if="${widget_data.widget=='custom_html'}">
-                    <th:block th:replace="~{modules/widgets/aside/custom_html :: custom_html(${widget_data})}" />
-                </th:block>
-            </th:block>
-        </th:block>
-
-        <!-- 最新文章 / 热门文章 / 标签&归档&统计：文章页右侧固定组合 -->
-        <div class="sticky_layout post-sidebar-sticky-tools"
-             th:if="${#strings.contains(widgets, 'recent-posts') || #strings.contains(widgets, 'visit-posts') || #strings.contains(widgets, 'tags-stat')}">
-            <th:block th:each="widget_data : ${widgets}">
-                <th:block th:if="${widget_data.widget=='recent-posts' || widget_data.widget=='visit-posts' || widget_data.widget=='tags-stat'}">
-                    <th:block th:replace="~{'modules/widgets/aside/'+ ${widget_data.widget}}" />
-                </th:block>
-            </th:block>
-        </div>
-    </th:block>
-
-    <!-- 非文章页保持原有侧栏逻辑 -->
-    <th:block th:unless="${htmlType == 'post'}">
-        <!-- 侧栏部件，不包含 toc 则直接遍历 -->
-        <th:block th:if="${not #strings.contains(widgets, 'toc')}">
-            <th:block th:each="widget_data,iterStat : ${widgets}">
-                <th:block th:unless="${widget_data.widget=='custom_html'}">
-                    <th:block th:if="not ${iterStat.last}">
-                        <th:block th:replace="~{'modules/widgets/aside/'+ ${widget_data.widget}}" />
-                    </th:block>
-                    <th:block th:if="${iterStat.last}">
-                        <div class="sticky_layout">
-                            <th:block th:replace="~{'modules/widgets/aside/'+ ${widget_data.widget}}" />
-                        </div>
-                    </th:block>
-                </th:block>
-                <th:block th:if="${widget_data.widget=='custom_html'}">
-                    <th:block th:if="not ${iterStat.last}">
-                        <th:block th:replace="~{modules/widgets/aside/custom_html :: custom_html(${widget_data})}" />
-                    </th:block>
-                    <th:block th:if="${iterStat.last}">
-                        <div class="sticky_layout">
-                            <th:block th:replace="~{modules/widgets/aside/custom_html :: custom_html(${widget_data})}" />
-                        </div>
-                    </th:block>
-                </th:block>
-
-            </th:block>
-        </th:block>
-
-        <!-- 侧栏部件，toc 之后的组件需要被 sticky_layout 包裹 -->
-        <th:block th:if="${#strings.contains(widgets, 'toc')}">
-            <th:block th:each="widget_data,iterStat : ${widgets}">
-                <th:block th:if="${widget_data.widget=='toc'}">
+                <th:block th:if="${iterStat.last}">
                     <div class="sticky_layout">
+                        <th:block th:replace="~{'modules/widgets/aside/'+ ${widget_data.widget}}" />
+                    </div>
                 </th:block>
-                <th:block th:unless="${widget_data.widget=='custom_html'}">
-                    <th:block th:replace="~{'modules/widgets/aside/'+ ${widget_data.widget}}" />
-                </th:block>
-                <th:block th:if="${widget_data.widget=='custom_html'}">
+            </th:block>
+            <th:block th:if="${widget_data.widget=='custom_html'}">
+                <th:block th:if="not ${iterStat.last}">
                     <th:block th:replace="~{modules/widgets/aside/custom_html :: custom_html(${widget_data})}" />
                 </th:block>
-                <th:block th:if="${iterStat.count==widgets.size()}">
+                <th:block th:if="${iterStat.last}">
+                    <div class="sticky_layout">
+                        <th:block th:replace="~{modules/widgets/aside/custom_html :: custom_html(${widget_data})}" />
                     </div>
                 </th:block>
             </th:block>
 
         </th:block>
+    </th:block>
+
+    <!-- 侧栏部件，toc 之后的组件需要被 sticky_layout 包裹 -->
+    <th:block th:if="${#strings.contains(widgets, 'toc')}">
+        <th:block th:each="widget_data,iterStat : ${widgets}">
+            <th:block th:if="${widget_data.widget=='toc'}">
+                <div class="sticky_layout">
+            </th:block>
+            <th:block th:unless="${widget_data.widget=='custom_html'}">
+                <th:block th:replace="~{'modules/widgets/aside/'+ ${widget_data.widget}}" />
+            </th:block>
+            <th:block th:if="${widget_data.widget=='custom_html'}">
+                <th:block th:replace="~{modules/widgets/aside/custom_html :: custom_html(${widget_data})}" />
+            </th:block>
+            <th:block th:if="${iterStat.count==widgets.size()}">
+                </div>
+            </th:block>
+        </th:block>
+
     </th:block>
 
 </div>

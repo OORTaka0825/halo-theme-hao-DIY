@@ -155,26 +155,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const postContent = document.querySelector('.post-content');
         if (postContent == null) return;
         const titles = postContent.querySelectorAll('h1,h2,h3,h4,h5,h6');
-        // 没有 toc 目录，则直接移除，并同步去掉左侧目录布局，避免刷新时短暂闪出空目录
+        // 没有 toc 目录，则直接移除
         if (titles.length === 0 || !titles) {
             const cardToc = document.getElementById("card-toc");
             cardToc?.remove();
-            document.querySelector('.post-left-toc')?.remove();
-            document.getElementById('content-inner')?.classList.remove('post-left-toc-enabled');
             const $mobileTocButton = document.getElementById("mobile-toc-button")
             if ($mobileTocButton) {
                 $('#mobile-toc-button').attr('style', 'display: none');
             }
         } else {
-            // PJAX 或重复进入文章页时，先销毁旧实例，防止目录高亮和锚点计算错位
-            try {
-                tocbot.destroy();
-            } catch (e) {}
-
-            // v18：目录定位偏移只从 CSS 变量读取，避免 main.js 和 scroll-margin-top 数值不一致。
-            const haoTocScrollOffsetRaw = getComputedStyle(document.documentElement).getPropertyValue('--hao-toc-scroll-offset').trim();
-            const haoTocScrollOffset = parseFloat(haoTocScrollOffsetRaw) || 105;
-
             tocbot.init({
                 tocSelector: '.toc-content',
                 contentSelector: '.post-content',
@@ -182,28 +171,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 listItemClass: 'toc-item',
                 activeLinkClass: 'active',
                 activeListItemClass: 'active',
-                headingsOffset: haoTocScrollOffset,
-                // V17：恢复 tocbot 自带点击平滑滚动，只保留一组偏移值，避免自定义滚动和 tocbot 互相抢定位。
+                headingsOffset: -400,
                 scrollSmooth: true,
-                scrollSmoothOffset: -haoTocScrollOffset,
-                scrollSmoothDuration: 420,
-                tocScrollOffset: 80,
+                scrollSmoothOffset: -70,
+                tocScrollOffset: 50,
             });
 
             const $cardTocLayout = document.getElementById('card-toc')
-            if (!$cardTocLayout) return
             const $cardToc = $cardTocLayout.getElementsByClassName('toc-content')[0]
-            if (!$cardToc) return
 
-            // 目录点击时只负责移动端关闭目录面板，滚动定位交给 tocbot 自带逻辑。
-            if (!$cardToc.dataset.haoTocMobileClose) {
-                $cardToc.dataset.haoTocMobileClose = 'true';
-                $cardToc.addEventListener('click', () => {
-                    if (window.innerWidth < 900) {
-                        $cardTocLayout.classList.remove("open");
-                    }
-                });
-            }
+            // toc元素點擊
+            $cardToc.addEventListener('click', (ele) => {
+                if (window.innerWidth < 900) {
+                    $cardTocLayout.classList.remove("open");
+                }
+            })
 
         }
     }
