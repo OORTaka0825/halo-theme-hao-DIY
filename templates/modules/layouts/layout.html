@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html th:lang="${#locale.toLanguageTag}" th:fragment="layout(content, htmlType, title, head)" xmlns:th="http://www.thymeleaf.org"
       th:with="assets_link=${theme.config.other.staticResource.use == 'custom' ? theme.config.other.staticResource.cdn_link : '/themes/theme-hao/assets'},
-      theme_version = ${ theme.config.other.staticResource.use == 'local' ? '?v='+ theme.spec.version : ''},
+      theme_version = ${'?v=' + theme.spec.version},
       isLazyload = ${theme.config.other.vanillaLazyload.enable},
       loadingImg = ${theme.config.other.vanillaLazyload.loadingImg},
       siteTitle = ${not #strings.isEmpty(title) ?  title  :  #strings.isEmpty(site.subtitle) ? site.title :  site.title +' - ' +site.subtitle }">
