@@ -509,10 +509,11 @@
   if (window._haoScrollNoFlashInit) return;
   window._haoScrollNoFlashInit = true;
 
-  var POS_PREFIX = 'hao:scroll:';          // 每个列表页 path 的滚动位置
-  var STATE_KEY  = 'hao:restore_state';    // 恢复阶段标记：'1'|'0'
-  var LAST_KEY   = 'hao:last_list_key';     // 最近一次离开的列表页
-  var LAST_POS   = 'hao:last_list_pos';     // 最近一次离开的列表页位置
+  var POS_PREFIX = 'hao:scroll:';              // 每个列表页 path 的滚动位置
+  var STATE_KEY  = 'hao:restore_state';        // 恢复阶段标记：'1'|'0'
+  var LAST_KEY   = 'hao:last_list_key';         // 最近一次离开的列表页
+  var LAST_POS   = 'hao:last_list_pos';         // 最近一次离开的列表页位置
+  var CLOAK_CLASS = 'hao-scroll-restore-cloak'; // 回退恢复期间隐藏新页面，避免先闪到顶部
   var CURRENT_KEY = null;
   var isPop = false;
   var pendingPop = false;
@@ -520,6 +521,32 @@
   var saveTicking = false;
   var rafId = 0;
   var timeoutIds = [];
+  var cloakRevealTimer = 0;
+
+  function injectNoFlashStyle(){
+    try{
+      if (document.getElementById('hao-scroll-restore-style')) return;
+      var style = document.createElement('style');
+      style.id = 'hao-scroll-restore-style';
+      style.textContent = [
+        'html.' + CLOAK_CLASS + ' #body-wrap{opacity:0!important;transition:none!important;}',
+        'html.' + CLOAK_CLASS + ' .js-pjax{opacity:0!important;transition:none!important;}',
+        'html.' + CLOAK_CLASS + '{scroll-behavior:auto!important;}'
+      ].join('\n');
+      (document.head || document.documentElement).appendChild(style);
+    }catch(e){}
+  }
+
+  function showCloak(){
+    injectNoFlashStyle();
+    try{ document.documentElement.classList.add(CLOAK_CLASS); }catch(e){}
+    if (cloakRevealTimer) { try{ clearTimeout(cloakRevealTimer); }catch(e){} cloakRevealTimer = 0; }
+  }
+
+  function hideCloak(){
+    if (cloakRevealTimer) { try{ clearTimeout(cloakRevealTimer); }catch(e){} cloakRevealTimer = 0; }
+    try{ document.documentElement.classList.remove(CLOAK_CLASS); }catch(e){}
+  }
 
   function normalizeKey(url){
     try{
@@ -538,6 +565,11 @@
 
   function pageKey(){ return normalizeKey(location.href); }
   function getY(){ return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0; }
+  function maxScrollY(){
+    var d = document.documentElement;
+    var b = document.body;
+    return Math.max(0, (b ? b.scrollHeight : 0), (d ? d.scrollHeight : 0)) - window.innerHeight;
+  }
   function ssSet(k,v){ try{ sessionStorage.setItem(k, String(v)); }catch(e){} }
   function ssGet(k){ try{ return sessionStorage.getItem(k); }catch(e){ return null; } }
   function setState(v){ ssSet(STATE_KEY, v ? '1':'0'); }
@@ -583,6 +615,33 @@
     updateHistoryY(v);
   }
   function getPos(k){ return ssGet(POS_PREFIX + k); }
+
+  function readSavedYByUrl(url, options){
+    var key = normalizeKey(url || location.href);
+    var v = getPos(key);
+
+    // 兼容尾部斜杠、首页 / 与空路径等 key 不一致导致取不到的情况
+    if (v == null) {
+      var lk = ssGet(LAST_KEY);
+      var lp = ssGet(LAST_POS);
+      if (lk && normalizeKey(lk) === normalizeKey(key)) v = lp;
+    }
+
+    // pjax popstate 自带的 history.state.scrollPos 作为兜底
+    if (v == null && options && options.scrollPos && options.scrollPos.length > 1) {
+      v = options.scrollPos[1];
+    }
+
+    // 当前 history.state 再兜底一次
+    if (v == null) {
+      try{
+        var st = history.state;
+        if (st && st.scrollPos && st.scrollPos.length > 1) v = st.scrollPos[1];
+      }catch(e){}
+    }
+
+    return v == null ? null : (parseInt(v,10) || 0);
+  }
 
   function isListPage(){
     var bw = document.getElementById('body-wrap');
@@ -643,30 +702,44 @@
           saveNow();
 
           // pjax 内部浏览器前进/后退会以 history:false 调用 loadUrl
-          var opt = options || {};
+          var opt = (options && typeof options === 'object') ? options : {};
           pendingPop = !!(opt.history === false || opt.backward || opt.forward || isPop);
 
-          cancelRestore(true);     // 新导航前取消遗留恢复
-          setState(false);         // 普通前进导航，确保不拦截 scrollToPost
-          return orig.apply(this, arguments);
+          if (pendingPop) {
+            var savedY = readSavedYByUrl(url, opt);
+            if (savedY != null) {
+              // 关键：把目标滚动值直接交给 pjax 自己的 popstate 恢复逻辑。
+              // 这样 pjax 在替换 DOM 后会同步 scrollTo 到目标位置，减少先显示顶部再跳回去的闪烁。
+              opt.scrollRestoration = true;
+              opt.scrollPos = [0, savedY];
+            }
+            showCloak();
+          } else {
+            hideCloak();
+          }
+
+          cancelRestore(true, pendingPop);  // 新导航前取消遗留恢复；回退导航保留遮罩
+          setState(pendingPop);            // 回退恢复阶段屏蔽 scrollToPost/btf.scrollToDest
+          return orig.call(this, url, opt);
         };
         window.pjax._haoSavePatchedNoFlash = true;
       }
     }catch(e){}
   }
 
-  function cancelRestore(fromNav){
+  function cancelRestore(fromNav, keepCloak){
     restoring = false;
     if (rafId) { try{ cancelAnimationFrame(rafId); }catch(e){} rafId = 0; }
     while (timeoutIds.length) { try{ clearTimeout(timeoutIds.pop()); }catch(e){} }
     if (!fromNav) { try { document.documentElement.style.scrollBehavior = ''; } catch(e){} }
+    if (!keepCloak) hideCloak();
     setState(false);
   }
 
   // 用户主动滚动/键盘时，立即取消恢复，避免“抢拉动”感
   ['wheel','touchstart','touchmove','keydown','mousedown'].forEach(function(evt){
     window.addEventListener(evt, function(){
-      if (restoring) cancelRestore(false);
+      if (restoring) cancelRestore(false, false);
     }, {passive:true});
   });
 
@@ -680,10 +753,11 @@
     saveNow();
   }, true);
 
-  // 检测浏览器后退/前进
+  // 检测浏览器后退/前进；提前加遮罩，避免目标列表页先露出顶部
   window.addEventListener('popstate', function(){
     isPop = true;
     pendingPop = true;
+    showCloak();
   }, true);
 
   // 滚动保存（仅列表页）
@@ -695,29 +769,15 @@
 
   document.addEventListener('pjax:send', function(){
     saveNow();
-    cancelRestore(true);
+    if (pendingPop || isPop) showCloak();
+    cancelRestore(true, pendingPop || isPop);
+    setState(pendingPop || isPop);
   });
 
   function restoreListPosition(){
     var key = CURRENT_KEY || pageKey();
-    var v = getPos(key);
-
-    // pjax 自带 state 里若有 scrollPos，也作为兜底
-    if (v == null) {
-      try{
-        var st = history.state;
-        if (st && st.scrollPos && st.scrollPos.length > 1) v = st.scrollPos[1];
-      }catch(e){}
-    }
-
-    // 兼容尾部斜杠、首页 / 与空路径等 key 不一致导致取不到的情况
-    if (v == null) {
-      var lk = ssGet(LAST_KEY);
-      var lp = ssGet(LAST_POS);
-      if (lk && normalizeKey(lk) === normalizeKey(key)) v = lp;
-    }
-
-    if (v != null) startRestore(parseInt(v,10) || 0);
+    var v = readSavedYByUrl(location.href, null);
+    if (v != null) startRestore(v);
   }
 
   document.addEventListener('pjax:complete', function(){
@@ -727,6 +787,7 @@
     hardWrapScrollHelpers();
 
     if (isPostPage()){
+      hideCloak();
       // 正常点进文章：打开到顶部；浏览器前进/后退到文章页时不强抢滚动
       if (!pendingPop && !location.hash){
         window.scrollTo(0,0);
@@ -739,6 +800,8 @@
 
     if (isListPage() && (isPop || pendingPop)) {
       restoreListPosition();
+    } else {
+      hideCloak();
     }
 
     isPop = false;
@@ -761,6 +824,7 @@
     hardWrapScrollHelpers();
 
     if (isPostPage()){
+      hideCloak();
       if (!ev.persisted && !isBackForwardNav() && !location.hash){
         window.scrollTo(0,0);
         timeoutIds.push(setTimeout(function(){ if (!window.__haoTocClicking) window.scrollTo(0,0); }, 60));
@@ -769,13 +833,17 @@
     }
 
     if (isListPage() && ((ev && ev.persisted) || isBackForwardNav())) {
+      showCloak();
       restoreListPosition();
+    } else {
+      hideCloak();
     }
   }, {passive:true});
 
   function startRestore(y){
     restoring = true;
     setState(true);  // 在恢复阶段屏蔽主题滚动动画
+    showCloak();
 
     var prevBehavior = document.documentElement.style.scrollBehavior;
     document.documentElement.style.scrollBehavior = 'auto';
@@ -783,14 +851,23 @@
     var start = performance.now();
     var lastHeight = document.body.scrollHeight;
     var stableFrames = 0;
+    var revealed = false;
     var EPS = 2;
     var MAX_MS = 1500;
-    var MAX_RAF = 50;
+    var MAX_RAF = 55;
+
+    function reveal(){
+      if (revealed) return;
+      revealed = true;
+      // 再等一帧，让 scrollTop 生效后再显示，避免肉眼看到顶部瞬间
+      requestAnimationFrame(function(){ hideCloak(); });
+    }
 
     function done(){
       document.documentElement.style.scrollBehavior = prevBehavior || '';
       restoring = false;
       setState(false);
+      reveal();
       if (rafId) { try{ cancelAnimationFrame(rafId); }catch(e){} rafId = 0; }
       while (timeoutIds.length) { try{ clearTimeout(timeoutIds.pop()); }catch(e){} }
     }
@@ -799,20 +876,25 @@
       var now = performance.now();
       var cur = getY();
       var h = document.body.scrollHeight;
+      var canReachTarget = maxScrollY() >= (y - 8);
 
-      if (Math.abs(cur - y) <= EPS){
-        stableFrames++;
-        if (stableFrames >= 3){ return done(); }
-      } else {
-        stableFrames = 0;
-      }
-
+      // 若页面高度变化，说明懒加载/布局在动，继续校正
       if (h !== lastHeight){
         lastHeight = h;
         stableFrames = 0;
       }
 
       window.scrollTo(0, y);
+      cur = getY();
+
+      // 只有真正到达目标位置后才解除遮罩，所以不会先露出顶部页面
+      if (canReachTarget && Math.abs(cur - y) <= EPS){
+        stableFrames++;
+        if (stableFrames >= 1) reveal();
+        if (stableFrames >= 3){ return done(); }
+      } else {
+        stableFrames = 0;
+      }
 
       if ((now - start) >= MAX_MS) return done();
       if (--MAX_RAF <= 0) return done();
@@ -820,9 +902,11 @@
       rafId = requestAnimationFrame(rafTick);
     }
 
+    // 先同步滚一次，减少进入 RAF 前的顶部闪烁
+    window.scrollTo(0, y);
     rafId = requestAnimationFrame(rafTick);
 
-    [200, 500, 900, 1300].forEach(function(ms){
+    [160, 320, 650, 1000, 1350].forEach(function(ms){
       var tid = setTimeout(function(){
         if (restoring) window.scrollTo(0, y);
       }, ms);
@@ -832,10 +916,12 @@
 
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   CURRENT_KEY = pageKey();
+  injectNoFlashStyle();
   ensurePjaxHistoryState();
   patchPjaxLoadUrl();
   hardWrapScrollHelpers();
   setState(false);
+  hideCloak();
 })();
 </script>
 
