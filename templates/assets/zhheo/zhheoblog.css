@@ -19561,3 +19561,27 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
         margin-top: 0 !important;
     }
 }
+
+
+/* v16：文章目录点击定位和字体修复
+   1. 目录点击滚动由 main.js 统一控制，这里保留同一个锚点预留高度；
+   2. 文章目录标题与目录项强制继承全局字体；图标仍保留 haofont，不受影响。 */
+.post .post-content h1,
+.post .post-content h2,
+.post .post-content h3,
+.post .post-content h4,
+.post .post-content h5,
+.post .post-content h6 {
+    scroll-margin-top: 90px;
+}
+
+#card-toc,
+#card-toc .item-headline span,
+#card-toc .toc-content .toc-link {
+    font-family: 'siteFontForce', "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif !important;
+}
+
+#card-toc .haofont,
+#card-toc i.haofont {
+    font-family: "haofont" !important;
+}

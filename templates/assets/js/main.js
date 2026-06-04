@@ -171,6 +171,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 tocbot.destroy();
             } catch (e) {}
 
+            const haoTocScrollOffset = 90;
+
             tocbot.init({
                 tocSelector: '.toc-content',
                 contentSelector: '.post-content',
@@ -178,9 +180,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 listItemClass: 'toc-item',
                 activeLinkClass: 'active',
                 activeListItemClass: 'active',
-                headingsOffset: 90,
-                scrollSmooth: true,
-                scrollSmoothOffset: -90,
+                headingsOffset: haoTocScrollOffset,
+                // V16：关闭 tocbot 自带点击滚动，改用下面统一的点击定位。
+                // 这样不会再出现“tocbot 偏移 + 浏览器 hash/scroll-margin 偏移”打架造成的二次跳动。
+                scrollSmooth: false,
                 tocScrollOffset: 80,
             });
 
@@ -189,12 +192,38 @@ document.addEventListener('DOMContentLoaded', function () {
             const $cardToc = $cardTocLayout.getElementsByClassName('toc-content')[0]
             if (!$cardToc) return
 
-            // toc元素點擊
-            $cardToc.addEventListener('click', (ele) => {
-                if (window.innerWidth < 900) {
-                    $cardTocLayout.classList.remove("open");
-                }
-            })
+            // V16：目录点击只走一次平滑定位，避免点击后先到一处、再被二次修正导致“跳一下”。
+            if (!$cardToc.dataset.haoTocClickFixed) {
+                $cardToc.dataset.haoTocClickFixed = 'true';
+                $cardToc.addEventListener('click', (event) => {
+                    const link = event.target.closest('a.toc-link');
+                    if (!link) return;
+
+                    const href = link.getAttribute('href');
+                    if (!href || href.charAt(0) !== '#') return;
+
+                    let id = href.slice(1);
+                    try { id = decodeURIComponent(id); } catch (e) {}
+
+                    const target = document.getElementById(id);
+                    if (!target) return;
+
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+
+                    const top = Math.max(0, target.getBoundingClientRect().top + window.pageYOffset - haoTocScrollOffset);
+                    window.scrollTo({ top: top, behavior: 'smooth' });
+
+                    if (window.history && window.history.pushState) {
+                        window.history.pushState(null, '', '#' + encodeURIComponent(id));
+                    }
+
+                    if (window.innerWidth < 900) {
+                        $cardTocLayout.classList.remove("open");
+                    }
+                }, true);
+            }
 
         }
     }
