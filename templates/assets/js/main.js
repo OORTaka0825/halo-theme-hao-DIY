@@ -158,8 +158,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const titles = postContent.querySelectorAll('h1,h2,h3,h4,h5,h6');
 
         // 目录点击后，标题距离浏览器顶部的预留高度。
-        // 你要的“图二效果”就改这里：数值越大，标题露得越靠下。
+        // 你现在要的效果是 60：数值越大，标题露得越靠下。
         const TOC_VISIBLE_OFFSET = 60;
+        // 高亮判断要比实际滚动预留高度略大一点。
+        // 否则第一次点击目录时，滚动刚好停在标题边界，tocbot 可能还会把上一个标题判为 active。
+        const TOC_ACTIVE_OFFSET = TOC_VISIBLE_OFFSET + 12;
 
         const hideMobileTocButton = () => {
             const $mobileTocButton = document.getElementById("mobile-toc-button")
@@ -199,8 +202,8 @@ document.addEventListener('DOMContentLoaded', function () {
             listItemClass: 'toc-item',
             activeLinkClass: 'active',
             activeListItemClass: 'active',
-            // 高亮判断必须和实际滚动预留高度一致，否则会出现“点四高亮三”
-            headingsOffset: TOC_VISIBLE_OFFSET,
+            // 高亮判断要比实际滚动预留高度略大一点，避免第一次点击停在边界时高亮上一项
+            headingsOffset: TOC_ACTIVE_OFFSET,
             // 关闭 tocbot 自带点击滚动，只保留它生成目录和滚动高亮；点击滚动由下面这一处统一处理
             scrollSmooth: false,
             tocScrollOffset: 80,
