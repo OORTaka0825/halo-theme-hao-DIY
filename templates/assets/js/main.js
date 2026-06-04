@@ -171,9 +171,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 tocbot.destroy();
             } catch (e) {}
 
-            // v18：目录定位偏移只从 CSS 变量读取，避免 main.js 和 scroll-margin-top 数值不一致。
-            const haoTocScrollOffsetRaw = getComputedStyle(document.documentElement).getPropertyValue('--hao-toc-scroll-offset').trim();
-            const haoTocScrollOffset = parseFloat(haoTocScrollOffsetRaw) || 125;
+            // V15：目录点击定位只交给浏览器原生锚点处理，避免“浏览器锚点 + tocbot 平滑滚动”互相抢位置。
+            // 顶部预留高度统一改 CSS 变量：templates/assets/zhheo/custom.css 里的 --hao-toc-anchor-offset。
+            const haoTocAnchorOffsetRaw = getComputedStyle(document.documentElement).getPropertyValue('--hao-toc-anchor-offset').trim();
+            const haoTocAnchorOffset = parseFloat(haoTocAnchorOffsetRaw) || 150;
 
             tocbot.init({
                 tocSelector: '.toc-content',
@@ -182,11 +183,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 listItemClass: 'toc-item',
                 activeLinkClass: 'active',
                 activeListItemClass: 'active',
-                headingsOffset: haoTocScrollOffset,
-                // V17：恢复 tocbot 自带点击平滑滚动，只保留一组偏移值，避免自定义滚动和 tocbot 互相抢定位。
-                scrollSmooth: true,
-                scrollSmoothOffset: -haoTocScrollOffset,
-                scrollSmoothDuration: 420,
+                headingsOffset: haoTocAnchorOffset,
+                // 关闭 tocbot 自带点击滚动；点击目录时只走浏览器原生锚点 + CSS scroll-margin-top。
+                scrollSmooth: false,
                 tocScrollOffset: 80,
             });
 
@@ -195,7 +194,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const $cardToc = $cardTocLayout.getElementsByClassName('toc-content')[0]
             if (!$cardToc) return
 
-            // 目录点击时只负责移动端关闭目录面板，滚动定位交给 tocbot 自带逻辑。
+            // 目录是同页锚点，不应该被 PJAX 当成页面跳转处理。
+            $cardToc.querySelectorAll('a.toc-link').forEach(link => {
+                link.setAttribute('data-no-pjax', '');
+            });
+
+            // 目录点击时只负责移动端关闭目录面板，滚动定位交给浏览器原生锚点。
             if (!$cardToc.dataset.haoTocMobileClose) {
                 $cardToc.dataset.haoTocMobileClose = 'true';
                 $cardToc.addEventListener('click', () => {
