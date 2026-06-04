@@ -9664,6 +9664,7 @@ span.recent-post-top-text {
 #recent-posts > .recent-post-item > .recent-post-info > .article-meta-wrap > .post-meta-date {
     right: 0px;
     text-align: right;
+    font-size: 0.9em;
 }
 
 #recent-posts > .recent-post-item > .recent-post-info > .article-meta-wrap > .post-meta-date i {
