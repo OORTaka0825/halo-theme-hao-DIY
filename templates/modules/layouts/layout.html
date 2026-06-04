@@ -622,7 +622,7 @@
     if (isPostPage()){
       if (!location.hash){
         window.scrollTo(0,0);
-        timeoutIds.push(setTimeout(function(){ window.scrollTo(0,0); }, 60));
+        timeoutIds.push(setTimeout(function(){ if (!window.__haoTocClicking) window.scrollTo(0,0); }, 60));
       }
       return;
     }
@@ -648,7 +648,7 @@
     if (isPostPage()){
       if (!location.hash){
         window.scrollTo(0,0);
-        timeoutIds.push(setTimeout(function(){ window.scrollTo(0,0); }, 60));
+        timeoutIds.push(setTimeout(function(){ if (!window.__haoTocClicking) window.scrollTo(0,0); }, 60));
       }
       return;
     }
