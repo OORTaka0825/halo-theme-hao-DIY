@@ -179,6 +179,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            // 点击文章目录后的顶部预留高度：数值越大，标题距离浏览器顶部越远
+            const TOC_SCROLL_OFFSET = 150;
+
             tocbot.init({
                 tocSelector: '.toc-content',
                 contentSelector: '.post-content',
@@ -187,14 +190,42 @@ document.addEventListener('DOMContentLoaded', function () {
                 activeLinkClass: 'active',
                 activeListItemClass: 'active',
                 headingsOffset: -400,
-                scrollSmooth: true,
-                // 使用 tocbot 自带滚动偏移：数值越小/越负，标题离页面顶部越远
-                scrollSmoothOffset: -120,
+                // 关闭 tocbot 自带平滑滚动，避免与浏览器锚点 / focus 二次滚动打架
+                scrollSmooth: false,
                 tocScrollOffset: 50,
             });
 
-            // toc元素點擊
-            $cardToc.addEventListener('click', (ele) => {
+            const getTocTarget = (href) => {
+                if (!href) return null;
+                const hashIndex = href.indexOf('#');
+                if (hashIndex === -1) return null;
+                const rawId = href.slice(hashIndex + 1);
+                if (!rawId) return null;
+                let decodedId = rawId;
+                try {
+                    decodedId = decodeURIComponent(rawId);
+                } catch (e) {}
+                return document.getElementById(decodedId) || document.getElementById(rawId);
+            }
+
+            // toc元素点击：手动滚动到标题位置，避免默认锚点跳转把高度又拉回去
+            $cardToc.addEventListener('click', (event) => {
+                const tocLink = event.target.closest && event.target.closest('a.toc-link');
+                if (tocLink && $cardToc.contains(tocLink)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const target = getTocTarget(tocLink.getAttribute('href') || tocLink.hash);
+                    if (target) {
+                        const top = target.getBoundingClientRect().top + window.pageYOffset - TOC_SCROLL_OFFSET;
+                        window.scrollTo({
+                            top: Math.max(0, top),
+                            behavior: 'smooth'
+                        });
+                        if (window.history && window.history.replaceState && target.id) {
+                            window.history.replaceState(null, '', location.pathname + location.search + '#' + encodeURIComponent(target.id));
+                        }
+                    }
+                }
                 if (window.innerWidth < 900) {
                     $cardTocLayout.classList.remove("open");
                 }
