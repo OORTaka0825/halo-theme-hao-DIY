@@ -774,7 +774,7 @@ body {
     min-height: 100%;
     background: var(--heo-background);
     color: var(--heo-fontcolor);
-    font-size: 15px;
+    font-size: var(--global-font-size);
     font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei";
     line-height: 2;
     -webkit-tap-highlight-color: transparent;
@@ -9735,7 +9735,6 @@ span.recent-post-top-text {
     min-height: 40px;
     display: flex;
     align-items: center;
-    font-size: 15.5px;
 
 }
 
