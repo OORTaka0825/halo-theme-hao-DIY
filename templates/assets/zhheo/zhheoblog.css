@@ -19561,7 +19561,7 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
    3. scroll-margin-top 也使用同一个变量，避免 JS 偏移和浏览器锚点偏移不一致导致“跳一下”；
    4. 想调目录点击后的停靠高度，只改 --hao-toc-scroll-offset 这一处即可。 */
 :root {
-    --hao-toc-scroll-offset: 105px;
+    --hao-toc-scroll-offset: 90px;
 }
 
 .post .post-content h1,
