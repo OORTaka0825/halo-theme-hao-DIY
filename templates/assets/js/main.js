@@ -156,14 +156,29 @@ document.addEventListener('DOMContentLoaded', function () {
         if (postContent == null) return;
         const titles = postContent.querySelectorAll('h1,h2,h3,h4,h5,h6');
         // 没有 toc 目录，则直接移除
-        if (titles.length === 0 || !titles) {
-            const cardToc = document.getElementById("card-toc");
-            cardToc?.remove();
+        const hideMobileTocButton = () => {
             const $mobileTocButton = document.getElementById("mobile-toc-button")
             if ($mobileTocButton) {
                 $('#mobile-toc-button').attr('style', 'display: none');
             }
+        }
+        if (titles.length === 0 || !titles) {
+            const cardToc = document.getElementById("card-toc");
+            cardToc?.remove();
+            hideMobileTocButton();
         } else {
+            // 文章页侧栏未添加“目录”卡片时，不初始化 tocbot，避免 #card-toc 为空导致 JS 报错
+            const $cardTocLayout = document.getElementById('card-toc')
+            if (!$cardTocLayout) {
+                hideMobileTocButton();
+                return;
+            }
+            const $cardToc = $cardTocLayout.getElementsByClassName('toc-content')[0]
+            if (!$cardToc) {
+                hideMobileTocButton();
+                return;
+            }
+
             tocbot.init({
                 tocSelector: '.toc-content',
                 contentSelector: '.post-content',
@@ -173,12 +188,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 activeListItemClass: 'active',
                 headingsOffset: -400,
                 scrollSmooth: true,
-                scrollSmoothOffset: -70,
+                // 点击目录后的定位高度：数值越小/越负，标题离页面顶部越远
+                scrollSmoothOffset: -120,
                 tocScrollOffset: 50,
             });
-
-            const $cardTocLayout = document.getElementById('card-toc')
-            const $cardToc = $cardTocLayout.getElementsByClassName('toc-content')[0]
 
             // toc元素點擊
             $cardToc.addEventListener('click', (ele) => {
