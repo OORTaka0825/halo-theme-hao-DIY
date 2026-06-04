@@ -8710,7 +8710,7 @@ li {
 @media screen and (min-width: 1300px) {
 
     .recent-post-item .recent-post-info .recent-post-info-top .article-title {
-        font-size: 20px;
+        font-size: 16px;
         -webkit-line-clamp: 2;
     }
 
@@ -9448,7 +9448,7 @@ span.recent-post-top-text {
         margin-top: 0.25rem;
         margin-bottom: 0.75rem;
         box-shadow: var(--heo-shadow-border);
-        clip-path: inset(0 0 0 0 round 12px);
+        clip-path: inset(0 0 0 0 round 0.px);
     }
 
     #category #recent-posts .recent-post-item, #tag #recent-posts .recent-post-item {
