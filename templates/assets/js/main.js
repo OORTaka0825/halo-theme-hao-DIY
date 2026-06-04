@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // 目录点击后，标题距离浏览器顶部的预留高度。
         // 你要的“图二效果”就改这里：数值越大，标题露得越靠下。
-        const TOC_VISIBLE_OFFSET = 120;
+        const TOC_VISIBLE_OFFSET = 100;
 
         const hideMobileTocButton = () => {
             const $mobileTocButton = document.getElementById("mobile-toc-button")
