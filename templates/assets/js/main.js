@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 tocbot.destroy();
             } catch (e) {}
 
-            const haoTocScrollOffset = 105;
+            const haoTocScrollOffset = 95;
 
             tocbot.init({
                 tocSelector: '.toc-content',
