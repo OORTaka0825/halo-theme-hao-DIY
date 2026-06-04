@@ -171,7 +171,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 tocbot.destroy();
             } catch (e) {}
 
-            const haoTocScrollOffset = 95;
+            // v18：目录定位偏移只从 CSS 变量读取，避免 main.js 和 scroll-margin-top 数值不一致。
+            const haoTocScrollOffsetRaw = getComputedStyle(document.documentElement).getPropertyValue('--hao-toc-scroll-offset').trim();
+            const haoTocScrollOffset = parseFloat(haoTocScrollOffsetRaw) || 105;
 
             tocbot.init({
                 tocSelector: '.toc-content',

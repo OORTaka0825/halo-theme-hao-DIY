@@ -19477,14 +19477,6 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     display: none;
 }
 
-.post .post-content h1,
-.post .post-content h2,
-.post .post-content h3,
-.post .post-content h4,
-.post .post-content h5,
-.post .post-content h6 {
-    scroll-margin-top: 105px;
-}
 
 /* v8：文章页右侧“最新文章 + 标签&归档&统计”组合固定
    - 只影响文章页右侧栏；
@@ -19563,18 +19555,24 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 }
 
 
-/* v17：文章目录滚动与字体修复
-   1. 目录点击滚动恢复使用 tocbot 自带平滑滚动，偏移值在 main.js 的 haoTocScrollOffset 中统一调整；
-   2. 这里的 scroll-margin-top 只用于浏览器直接打开 #锚点 时预留顶部高度；
-   3. 文章目录标题与目录项强制继承全局字体；图标仍保留 haofont，不受影响。 */
+/* v18：文章目录定位偏移统一配置
+   1. 点击目录仍使用 tocbot 自带滚动；
+   2. main.js 会读取下面这个 CSS 变量作为唯一偏移值；
+   3. scroll-margin-top 也使用同一个变量，避免 JS 偏移和浏览器锚点偏移不一致导致“跳一下”；
+   4. 想调目录点击后的停靠高度，只改 --hao-toc-scroll-offset 这一处即可。 */
+:root {
+    --hao-toc-scroll-offset: 105px;
+}
+
 .post .post-content h1,
 .post .post-content h2,
 .post .post-content h3,
 .post .post-content h4,
 .post .post-content h5,
 .post .post-content h6 {
-    scroll-margin-top: 105px;
+    scroll-margin-top: var(--hao-toc-scroll-offset);
 }
+
 
 #card-toc,
 #card-toc .item-headline span,
