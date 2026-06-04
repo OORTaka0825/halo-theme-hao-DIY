@@ -154,63 +154,123 @@ document.addEventListener('DOMContentLoaded', function () {
     const tocFn = function () {
         const postContent = document.querySelector('.post-content');
         if (postContent == null) return;
+
         const titles = postContent.querySelectorAll('h1,h2,h3,h4,h5,h6');
-        // 没有 toc 目录，则直接移除，并同步去掉左侧目录布局，避免刷新时短暂闪出空目录
-        if (titles.length === 0 || !titles) {
-            const cardToc = document.getElementById("card-toc");
-            cardToc?.remove();
-            document.querySelector('.post-left-toc')?.remove();
-            document.getElementById('content-inner')?.classList.remove('post-left-toc-enabled');
+
+        // 目录点击后，标题距离浏览器顶部的预留高度。
+        // 你要的“图二效果”就改这里：数值越大，标题露得越靠下。
+        const TOC_VISIBLE_OFFSET = 140;
+
+        const hideMobileTocButton = () => {
             const $mobileTocButton = document.getElementById("mobile-toc-button")
             if ($mobileTocButton) {
                 $('#mobile-toc-button').attr('style', 'display: none');
             }
-        } else {
-            // PJAX 或重复进入文章页时，先销毁旧实例，防止目录高亮和锚点计算错位
+        }
+
+        if (titles.length === 0 || !titles) {
+            const cardToc = document.getElementById("card-toc");
+            cardToc?.remove();
+            hideMobileTocButton();
+            return;
+        }
+
+        // 文章页侧栏未添加“目录”卡片时，不初始化 tocbot，避免 #card-toc 为空导致 JS 报错
+        const $cardTocLayout = document.getElementById('card-toc')
+        if (!$cardTocLayout) {
+            hideMobileTocButton();
+            return;
+        }
+        const $cardToc = $cardTocLayout.getElementsByClassName('toc-content')[0]
+        if (!$cardToc) {
+            hideMobileTocButton();
+            return;
+        }
+
+        // PJAX 或重复进入文章页时，先销毁旧实例，防止目录高亮和锚点计算错位
+        try {
+            tocbot.destroy();
+        } catch (e) {}
+
+        tocbot.init({
+            tocSelector: '.toc-content',
+            contentSelector: '.post-content',
+            headingSelector: 'h1,h2,h3,h4,h5,h6',
+            listItemClass: 'toc-item',
+            activeLinkClass: 'active',
+            activeListItemClass: 'active',
+            // 高亮判断必须和实际滚动预留高度一致，否则会出现“点四高亮三”
+            headingsOffset: TOC_VISIBLE_OFFSET,
+            // 关闭 tocbot 自带点击滚动，只保留它生成目录和滚动高亮；点击滚动由下面这一处统一处理
+            scrollSmooth: false,
+            tocScrollOffset: 80,
+        });
+
+        // 目录是同页锚点，不应该被 PJAX 当成页面跳转处理
+        $cardToc.querySelectorAll('a.toc-link').forEach(link => {
+            link.setAttribute('data-no-pjax', '');
+        });
+
+        const getTocTarget = (href) => {
+            if (!href) return null;
+            const hashIndex = href.indexOf('#');
+            if (hashIndex === -1) return null;
+            const rawId = href.slice(hashIndex + 1);
+            if (!rawId) return null;
+
+            let decodedId = rawId;
             try {
-                tocbot.destroy();
+                decodedId = decodeURIComponent(rawId);
             } catch (e) {}
 
-            // V15：目录点击定位只交给浏览器原生锚点处理，避免“浏览器锚点 + tocbot 平滑滚动”互相抢位置。
-            // 顶部预留高度统一改 CSS 变量：templates/assets/zhheo/custom.css 里的 --hao-toc-anchor-offset。
-            const haoTocAnchorOffsetRaw = getComputedStyle(document.documentElement).getPropertyValue('--hao-toc-anchor-offset').trim();
-            const haoTocAnchorOffset = parseFloat(haoTocAnchorOffsetRaw) || 150;
+            return document.getElementById(decodedId) || document.getElementById(rawId);
+        }
 
-            tocbot.init({
-                tocSelector: '.toc-content',
-                contentSelector: '.post-content',
-                headingSelector: 'h1,h2,h3,h4,h5,h6',
-                listItemClass: 'toc-item',
-                activeLinkClass: 'active',
-                activeListItemClass: 'active',
-                headingsOffset: haoTocAnchorOffset,
-                // 关闭 tocbot 自带点击滚动；点击目录时只走浏览器原生锚点 + CSS scroll-margin-top。
-                scrollSmooth: false,
-                tocScrollOffset: 80,
-            });
+        const setTocActive = (tocLink) => {
+            if (!tocLink) return;
+            $cardToc.querySelectorAll('a.toc-link.active').forEach(link => link.classList.remove('active'));
+            $cardToc.querySelectorAll('.toc-item.active').forEach(item => item.classList.remove('active'));
+            tocLink.classList.add('active');
+            const li = tocLink.closest('.toc-item');
+            if (li) li.classList.add('active');
+        }
 
-            const $cardTocLayout = document.getElementById('card-toc')
-            if (!$cardTocLayout) return
-            const $cardToc = $cardTocLayout.getElementsByClassName('toc-content')[0]
-            if (!$cardToc) return
+        // 只绑定一次，避免 PJAX 后重复绑定导致多次滚动
+        if (!$cardToc.dataset.haoTitleVisibleClick) {
+            $cardToc.dataset.haoTitleVisibleClick = 'true';
+            $cardToc.addEventListener('click', (event) => {
+                const tocLink = event.target.closest && event.target.closest('a.toc-link');
+                if (tocLink && $cardToc.contains(tocLink)) {
+                    // 阻止浏览器默认 #锚点跳转、PJAX、tocbot 自带点击逻辑抢滚动
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
 
-            // 目录是同页锚点，不应该被 PJAX 当成页面跳转处理。
-            $cardToc.querySelectorAll('a.toc-link').forEach(link => {
-                link.setAttribute('data-no-pjax', '');
-            });
+                    const target = getTocTarget(tocLink.getAttribute('href') || tocLink.hash);
+                    if (target) {
+                        const targetTop = target.getBoundingClientRect().top + window.pageYOffset - TOC_VISIBLE_OFFSET;
+                        window.scrollTo({
+                            top: Math.max(0, targetTop),
+                            behavior: 'smooth'
+                        });
 
-            // 目录点击时只负责移动端关闭目录面板，滚动定位交给浏览器原生锚点。
-            if (!$cardToc.dataset.haoTocMobileClose) {
-                $cardToc.dataset.haoTocMobileClose = 'true';
-                $cardToc.addEventListener('click', () => {
-                    if (window.innerWidth < 900) {
-                        $cardTocLayout.classList.remove("open");
+                        // 不使用 location.hash，避免浏览器再次执行默认锚点跳转
+                        if (window.history && window.history.replaceState && target.id) {
+                            window.history.replaceState(null, '', location.pathname + location.search + '#' + encodeURIComponent(target.id));
+                        }
+
+                        // 点击后先立即高亮当前目录，滚动过程中 tocbot 会继续接管滚动高亮
+                        setTocActive(tocLink);
                     }
-                });
-            }
+                }
 
+                if (window.innerWidth < 900) {
+                    $cardTocLayout.classList.remove("open");
+                }
+            }, true);
         }
     }
+
 
 
     /**
