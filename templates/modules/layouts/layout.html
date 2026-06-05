@@ -390,17 +390,40 @@
         })
 
 
-        // PJAX 后退/前进页面快照缓存：解决浏览器回退时重新 XHR 拉取上一页、卡片/懒加载图片二次加载的问题。
+        // PJAX 后退/前进页面快照缓存 v2：
+        // 关键修正：popstate 触发时浏览器地址已变成“目标页”，但 DOM 仍是“当前页”。
+        // 因此不能用 location.href 保存快照，否则会把文章页 DOM 覆盖到首页 URL 上，导致缓存不命中或命中错误。
         ;(function () {
+            window.__haoPjaxPageCacheReady = false
+            window.__haoPjaxPageCacheHit = false
+            window.__haoPjaxPageCacheSize = 0
+            window.__haoPjaxRenderedUrl = window.location.href
+
             var PAGE_CACHE = {}
             var CACHE_ORDER = []
-            var MAX_CACHE = 8
+            var MAX_CACHE = 10
+            var renderedUrl = window.location.href
 
             function normalizeUrl(url) {
                 var a = document.createElement('a')
                 a.href = url || window.location.href
                 a.hash = ''
                 return a.href
+            }
+
+            function triggerPjaxEvent(names, opts) {
+                names = typeof names === 'string' ? names.split(' ') : names
+                names.forEach(function (name) {
+                    var ev = document.createEvent('HTMLEvents')
+                    ev.initEvent(name, true, true)
+                    ev.eventName = name
+                    if (opts) {
+                        Object.keys(opts).forEach(function (key) {
+                            ev[key] = opts[key]
+                        })
+                    }
+                    document.dispatchEvent(ev)
+                })
             }
 
             function touch(key) {
@@ -411,10 +434,11 @@
                     var old = CACHE_ORDER.shift()
                     try { delete PAGE_CACHE[old] } catch (e) {}
                 }
+                window.__haoPjaxPageCacheSize = CACHE_ORDER.length
             }
 
             function putCache(url, html) {
-                if (!html) return
+                if (!url || !html) return
                 try {
                     var key = normalizeUrl(url)
                     PAGE_CACHE[key] = html
@@ -431,42 +455,40 @@
                 } catch (e) { return null }
             }
 
-            function snapshotCurrentPage() {
+            function snapshotPage(url) {
                 try {
-                    // 保存的是“当前已经渲染好的 DOM”，包括已经完成懒加载后的 img src / class 状态。
-                    // 回退命中缓存时，优先用这个快照恢复，避免上一页重新请求、卡片重新初始化、图片重新懒加载。
-                    putCache(window.location.href, '<!DOCTYPE html>\n' + document.documentElement.outerHTML)
+                    // 保存当前已渲染 DOM。图片如果已经懒加载完成，outerHTML 中通常会保留真实 src 和 lazyload 状态。
+                    putCache(url || renderedUrl || window.location.href, '<!DOCTYPE html>\n' + document.documentElement.outerHTML)
                 } catch (e) {}
             }
 
-            if (window.pjax && !window.pjax._haoPageSnapshotCachePatched) {
+            function fakeRequest(href) {
+                return {
+                    readyState: 4,
+                    status: 200,
+                    responseURL: href,
+                    getResponseHeader: function () { return null },
+                    abort: function () { this.readyState = 4 }
+                }
+            }
+
+            function mergeOptions(base, extra) {
+                var out = {}
+                base = base || {}
+                extra = extra || {}
+                Object.keys(base).forEach(function (k) { out[k] = base[k] })
+                Object.keys(extra).forEach(function (k) { out[k] = extra[k] })
+                return out
+            }
+
+            if (window.pjax && !window.pjax._haoPageSnapshotCachePatchedV2) {
+                var rawLoadUrl = window.pjax.loadUrl
                 var rawDoRequest = window.pjax.doRequest
 
+                // 兜底：普通 PJAX 请求成功后，也缓存一份服务端返回 HTML。
                 window.pjax.doRequest = function (href, options, callback) {
-                    options = options || {}
-                    var cached = (options.backward || options.forward) && getCache(href)
-
-                    if (cached) {
-                        window.__haoPjaxPageCacheHit = true
-                        var aborted = false
-                        var fakeRequest = {
-                            readyState: 1,
-                            status: 200,
-                            responseURL: href,
-                            getResponseHeader: function () { return null },
-                            abort: function () { aborted = true; this.readyState = 4 }
-                        }
-                        setTimeout(function () {
-                            if (aborted) return
-                            fakeRequest.readyState = 4
-                            callback(cached, fakeRequest, href, options)
-                        }, 0)
-                        return fakeRequest
-                    }
-
                     window.__haoPjaxPageCacheHit = false
                     return rawDoRequest.call(this, href, options, function (responseText, request, location, opts) {
-                        // 普通 PJAX 成功请求也顺手缓存，后续前进/后退可直接命中。
                         if (responseText && request && request.status === 200) {
                             putCache(location || href, responseText)
                         }
@@ -474,17 +496,66 @@
                     })
                 }
 
-                window.pjax._haoPageSnapshotCachePatched = true
+                // 核心：浏览器后退/前进时，如果目标页已有快照，直接 loadContent，不发 XHR。
+                window.pjax.loadUrl = function (href, options) {
+                    options = mergeOptions(this.options, options)
+                    var isBackForward = !!(options.backward || options.forward)
+                    var cached = isBackForward && getCache(href)
+
+                    if (cached) {
+                        window.__haoPjaxPageCacheHit = true
+                        window.__haoPjaxBackForwardNav = true
+
+                        options.history = false
+                        options.url = href
+                        options.request = fakeRequest(href)
+
+                        try { this.abortRequest && this.abortRequest(this.request) } catch (e) {}
+
+                        // 手动触发 pjax:send，让主题已有清理逻辑照常执行；因为带 backward/forward，loading-box 会被跳过。
+                        triggerPjaxEvent('pjax:send', options)
+
+                        this.state.href = href
+                        this.state.options = options
+                        this.request = options.request
+
+                        try {
+                            this.loadContent(cached, options)
+                        } catch (e) {
+                            window.__haoPjaxPageCacheHit = false
+                            return rawLoadUrl.call(this, href, options)
+                        }
+
+                        return this.request
+                    }
+
+                    window.__haoPjaxPageCacheHit = false
+                    return rawLoadUrl.call(this, href, options)
+                }
+
+                window.pjax._haoPageSnapshotCachePatchedV2 = true
+                window.__haoPjaxPageCacheReady = true
             }
 
-            // 首屏先缓存一次；离开前再缓存一次，保证列表页已加载好的图片/卡片状态被保存。
-            snapshotCurrentPage()
-            document.addEventListener('pjax:send', snapshotCurrentPage, true)
-            window.addEventListener('pagehide', snapshotCurrentPage, { passive: true })
+            // 首屏缓存当前真实渲染页。
+            snapshotPage(renderedUrl)
+
+            // 普通点击离开：location 仍是当前页，直接保存。
+            // 浏览器回退/前进：location 已变成目标页，所以必须保存 renderedUrl，不能保存 location.href。
+            document.addEventListener('pjax:send', function () {
+                snapshotPage(renderedUrl)
+            }, true)
+
+            window.addEventListener('pagehide', function () {
+                snapshotPage(renderedUrl)
+            }, { passive: true })
+
             document.addEventListener('pjax:complete', function () {
-                setTimeout(snapshotCurrentPage, 0)
-                setTimeout(snapshotCurrentPage, 300)
-                setTimeout(snapshotCurrentPage, 1000)
+                renderedUrl = normalizeUrl(window.location.href)
+                window.__haoPjaxRenderedUrl = renderedUrl
+                setTimeout(function () { snapshotPage(renderedUrl) }, 0)
+                setTimeout(function () { snapshotPage(renderedUrl) }, 300)
+                setTimeout(function () { snapshotPage(renderedUrl) }, 1000)
             })
         })()
 
