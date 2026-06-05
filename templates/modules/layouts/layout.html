@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html th:lang="${#locale.toLanguageTag}" th:fragment="layout(content, htmlType, title, head)" xmlns:th="http://www.thymeleaf.org"
       th:with="assets_link=${theme.config.other.staticResource.use == 'custom' ? theme.config.other.staticResource.cdn_link : '/themes/theme-hao/assets'},
-      theme_version = ${'?v=' + theme.spec.version},
+      theme_version = ${ theme.config.other.staticResource.use == 'local' ? '?v='+ theme.spec.version : ''},
       isLazyload = ${theme.config.other.vanillaLazyload.enable},
       loadingImg = ${theme.config.other.vanillaLazyload.loadingImg},
       siteTitle = ${not #strings.isEmpty(title) ?  title  :  #strings.isEmpty(site.subtitle) ? site.title :  site.title +' - ' +site.subtitle }">
@@ -128,6 +128,7 @@
     <script charset="utf-8" data-pjax th:src="${assets_link + '/zhheo/blogex.js' + theme_version}"></script>
     <script th:src="${assets_link + '/js/tw_cn.js' + theme_version}"></script>
 
+<!-- 
     <!-- ===== Keep PJAX-like behavior when PJAX is OFF (append-only, v5) ===== -->
     <script th:if="${!theme.config.other.pjax_enable}">
     (function () {
@@ -377,82 +378,25 @@
 
     <th:block th:if="${theme.config.other.pjax_enable}"><script>
         let pjaxSelectors = ['title', '#config-diff', '#body-wrap', '#rightside-config-hide', '#rightside-config-show', '.js-pjax', '#site-config']
-
+        
         pjaxSelectors.unshift('meta[property="og:type"]', 'meta[property="og:image"]', 'meta[property="og:title"]', 'meta[property="og:url"]', 'meta[property="og:description"]'
                 , 'meta[name="twitter:title"]', 'meta[name="twitter:url"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]')
-
+        
         var pjax = new Pjax({
-            elements: 'a[href]:not([target="_blank"]):not([data-no-pjax]):not([href^="/console"])',
+            elements: 'a:not([target="_blank"])',
             selectors: pjaxSelectors,
             cacheBust: false,
             analytics: false,
             scrollRestoration: false
         })
-
-        // BFCache / 普通回退兼容：不再让 PJAX 把 history.scrollRestoration 强制改成 manual。
-        // 正常浏览器如果因为登录态、缓存策略或脚本原因不能进入 BFCache，浏览器会重新取页面；
-        // 这时让浏览器原生恢复先工作，再用 PJAX history.state 做一次延迟校正。
-        if ('scrollRestoration' in history) {
-            try { history.scrollRestoration = 'auto'; } catch (e) {}
-        }
-
-        ;(function () {
-            function getY() {
-                return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
-            }
-            function saveCurrentScrollState() {
-                try {
-                    var s = history.state || {}
-                    s.url = s.url || window.location.href
-                    s.title = s.title || document.title
-                    s.uid = s.uid || ('hao' + Date.now())
-                    s.scrollPos = [document.documentElement.scrollLeft || document.body.scrollLeft || 0, getY()]
-                    history.replaceState(s, document.title, window.location.href)
-                } catch (e) {}
-            }
-            function delayedRestore(pos) {
-                if (!pos || pos.length < 2) return
-                var x = parseInt(pos[0], 10) || 0
-                var y = parseInt(pos[1], 10) || 0
-                var oldBehavior = document.documentElement.style.scrollBehavior
-                try { document.documentElement.style.scrollBehavior = 'auto' } catch (e) {}
-                function go() { try { window.scrollTo(x, y) } catch (e) {} }
-                requestAnimationFrame(go)
-                ;[50, 150, 300, 600, 1000, 1500].forEach(function (ms) { setTimeout(go, ms) })
-                setTimeout(function () {
-                    try { document.documentElement.style.scrollBehavior = oldBehavior || '' } catch (e) {}
-                }, 1600)
-            }
-            function isBackForwardDocumentNavigation() {
-                try {
-                    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')
-                    return !!(nav && nav[0] && nav[0].type === 'back_forward')
-                } catch (e) { return false }
-            }
-
-            document.addEventListener('pjax:send', saveCurrentScrollState)
-            window.addEventListener('pagehide', saveCurrentScrollState, { passive: true })
-
-            document.addEventListener('pjax:complete', function (e) {
-                if ((e.backward || e.forward) && e.scrollPos) {
-                    delayedRestore(e.scrollPos)
-                }
-            })
-
-            window.addEventListener('pageshow', function () {
-                if (isBackForwardDocumentNavigation() && history.state && history.state.scrollPos) {
-                    delayedRestore(history.state.scrollPos)
-                }
-            })
-        })()
-
+        
         document.addEventListener('pjax:send', function () {
-
+            
             // removeEventListener toc scroll
             window.removeEventListener('scroll', window.tocScrollFn)
-
+            
             typeof preloader === 'object' && preloader.initLoading()
-
+            
             if (window.aplayers) {
                 for (let i = 0; i < window.aplayers.length; i++) {
                     if (!window.aplayers[i].options.fixed) {
@@ -460,17 +404,17 @@
                     }
                 }
             }
-
+            
             typeof typed === 'object' && typed.destroy()
-
+            
             //reset readmode
             const $bodyClassList = document.body.classList
             $bodyClassList.contains('read-mode') && $bodyClassList.remove('read-mode')
         })
-
+        
         document.addEventListener('pjax:complete', function () {
             window.refreshFn()
-
+            
             document.querySelectorAll('script[data-pjax]').forEach(item => {
                         const newScript = document.createElement('script')
                         const content = item.text || item.textContent || item.innerHTML || ""
@@ -479,33 +423,33 @@
                         item.parentNode.replaceChild(newScript, item)
                     }
             )
-
+            
             GLOBAL_CONFIG.lazyload.enable && window.lazyLoadInstance.update()
-
+            
             typeof chatBtnFn === 'function' && chatBtnFn()
             typeof panguInit === 'function' && panguInit()
-
+            
             // google analytics
             typeof gtag === 'function' && gtag('config', '', {
                 'page_path': window.location.pathname
             });
-
+            
             // baidu analytics
             typeof _hmt === 'object' && _hmt.push(['_trackPageview', window.location.pathname]);
-
+            
             typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
-
+            
             // Analytics
             if (false) {
                 MtaH5.pgv()
             }
-
+            
             // prismjs
             typeof Prism === 'object' && Prism.highlightAll()
-
+            
             typeof preloader === 'object' && preloader.endLoading()
         })
-
+        
         document.addEventListener('pjax:error', (e) => {
                     if (e.request.status === 404 || e.request.status === 500) {
                         window.location.href = e.request.responseURL;
@@ -526,10 +470,8 @@
         // 移除加载动画
         removeLoading();
     }
-    //页脚友链
+    //页脚友联
     GLOBAL_CONFIG.isFriendLinksInFooter && heo.addFriendLinksInFooter()
-    //页脚社交媒体图片弹窗
-    heo.initFooterSocialImage && heo.initFooterSocialImage()
     //音乐页面切换歌曲调用
     if(GLOBAL_CONFIG.isMusic){
         heo.changeMusicBg(false);
@@ -560,7 +502,234 @@
     }
 </script>
 
-<!-- 自定义 PJAX 回退/滚动恢复脚本已关闭：仅保留主题 PJAX 开关与 PJAX 自带 scrollRestoration。 -->
+<script>
+(function(){
+  if (window._haoScrollNoFlashInit) return;
+  window._haoScrollNoFlashInit = true;
+
+  var POS_PREFIX = 'hao:scroll:';          // 每个 path 的位置
+  var STATE_KEY  = 'hao:restore_state';    // 是否处于“正在恢复”状态：'1'|'0'
+  var CURRENT_KEY = null;
+  var isPop = false;
+  var restoring = false;
+  var saveTicking = false;
+  var rafId = 0;
+  var timeoutIds = [];
+
+  function pageKey(){ return location.pathname + location.search; }
+  function getY(){ return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0; }
+  function setPos(k,v){ try{ sessionStorage.setItem(POS_PREFIX + k, String(v)); }catch(e){} }
+  function getPos(k){ try{ return sessionStorage.getItem(POS_PREFIX + k); }catch(e){ return null; } }
+  function rmPos(k){ try{ sessionStorage.removeItem(POS_PREFIX + k); }catch(e){} }
+  function setState(v){ try{ sessionStorage.setItem(STATE_KEY, v ? '1':'0'); }catch(e){} }
+  function getState(){ try{ return sessionStorage.getItem(STATE_KEY) === '1'; }catch(e){ return false; } }
+
+  function isListPage(){
+    var bw = document.getElementById('body-wrap');
+    return !!(bw && bw.classList && bw.classList.contains('page'));
+  }
+  function isPostPage(){
+    var bw = document.getElementById('body-wrap');
+    return !!(bw && bw.classList && bw.classList.contains('post'));
+  }
+
+  function throttledSave(){
+    if (!isListPage()) return;     // 只在列表页保存
+    if (restoring) return;
+    if (saveTicking) return;
+    saveTicking = true;
+    requestAnimationFrame(function(){
+      var k = CURRENT_KEY || pageKey();
+      setPos(k, getY());
+      saveTicking = false;
+    });
+  }
+
+  function hardWrapScrollHelpers(){
+    try{
+      if (typeof window.scrollToPost === 'function' && !window._scrollToPostWrappedNoFlash){
+        var orig = window.scrollToPost;
+        window.scrollToPost = function(){
+          if (getState()) return;  // 仅在“正在恢复”时拦截；平时不拦
+          return orig.apply(this, arguments);
+        };
+        window._scrollToPostWrappedNoFlash = true;
+      }
+    }catch(e){}
+    try{
+      if (window.btf && typeof window.btf.scrollToDest === 'function' && !window.btf._scrollToDestWrappedNoFlash){
+        var orig2 = window.btf.scrollToDest;
+        window.btf.scrollToDest = function(){
+          if (getState()) return;
+          return orig2.apply(this, arguments);
+        };
+        window.btf._scrollToDestWrappedNoFlash = true;
+      }
+    }catch(e){}
+  }
+
+  function patchPjaxLoadUrl(){
+    try{
+      if (window.pjax && !window.pjax._haoSavePatchedNoFlash){
+        var orig = window.pjax.loadUrl;
+        window.pjax.loadUrl = function(url){
+          try{ if (isListPage()) setPos(pageKey(), getY()); }catch(e){}
+          cancelRestore(true);     // 新导航前取消任何恢复
+          setState(false);         // 普通前进导航，确保不拦截 scrollToPost
+          return orig.apply(this, arguments);
+        };
+        window.pjax._haoSavePatchedNoFlash = true;
+      }
+    }catch(e){}
+  }
+
+  function cancelRestore(fromNav){
+    restoring = false;
+    if (rafId) { try{ cancelAnimationFrame(rafId); }catch(e){} rafId = 0; }
+    while (timeoutIds.length) { try{ clearTimeout(timeoutIds.pop()); }catch(e){} }
+    // 只在“非用户主动操作”时还原 scroll-behavior；用户操作取消恢复会立即允许平滑滚动
+    if (!fromNav) { try { document.documentElement.style.scrollBehavior = ''; } catch(e){} }
+    setState(false);
+  }
+
+  // 用户主动滚动/键盘时，立即取消恢复，避免“抢拉动”感
+  ['wheel','touchstart','touchmove','keydown','mousedown'].forEach(function(evt){
+    window.addEventListener(evt, function(){
+      if (restoring) cancelRestore(false);
+    }, {passive:true});
+  });
+
+  // 检测浏览器后退/前进
+  window.addEventListener('popstate', function(){ isPop = true; }, true);
+
+  // 滚动保存（仅列表页）
+  window.addEventListener('scroll', throttledSave, {passive:true});
+
+  // 离开前再保存一次（仅列表页）
+  window.addEventListener('beforeunload', function(){ if (isListPage()) setPos(pageKey(), getY()); });
+
+  document.addEventListener('pjax:send', function(){
+    cancelRestore(true);   // 导航前取消遗留恢复，避免文章页打开在中间
+  });
+
+  document.addEventListener('pjax:complete', function(){
+    CURRENT_KEY = pageKey();
+    patchPjaxLoadUrl();
+    hardWrapScrollHelpers();
+
+    if (isPostPage()){
+      if (!location.hash){
+        window.scrollTo(0,0);
+        timeoutIds.push(setTimeout(function(){ window.scrollTo(0,0); }, 60));
+      }
+      return;
+    }
+
+    if (!isListPage()) return;
+
+    if (isPop){
+      var v = getPos(CURRENT_KEY);
+      if (v != null){
+        startRestore(parseInt(v,10) || 0);
+        rmPos(CURRENT_KEY);
+      }
+      isPop = false;
+    }
+  });
+
+  // 支持 BFCache
+  window.addEventListener('pageshow', function(ev){
+    CURRENT_KEY = pageKey();
+    patchPjaxLoadUrl();
+    hardWrapScrollHelpers();
+
+    if (isPostPage()){
+      if (!location.hash){
+        window.scrollTo(0,0);
+        timeoutIds.push(setTimeout(function(){ window.scrollTo(0,0); }, 60));
+      }
+      return;
+    }
+
+    if (!isListPage()) return;
+    if (ev && ev.persisted){
+      var v = getPos(CURRENT_KEY);
+      if (v != null){
+        startRestore(parseInt(v,10) || 0);
+        rmPos(CURRENT_KEY);
+      }
+    }
+  });
+
+  function startRestore(y){
+    restoring = true;
+    setState(true);  // 在恢复阶段屏蔽主题滚动动画
+
+    var prevBehavior = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = 'auto';
+
+    var start = performance.now();
+    var lastHeight = document.body.scrollHeight;
+    var stableFrames = 0;
+    var EPS = 2;          // 误差阈值（像素）
+    var MAX_MS = 1200;    // 最长恢复时间
+    var MAX_RAF = 40;     // 最多帧数
+
+    function done(){
+      document.documentElement.style.scrollBehavior = prevBehavior || '';
+      restoring = false;
+      setState(false);
+      if (rafId) { try{ cancelAnimationFrame(rafId); }catch(e){} rafId = 0; }
+      while (timeoutIds.length) { try{ clearTimeout(timeoutIds.pop()); }catch(e){} }
+    }
+
+    function rafTick(){
+      var now = performance.now();
+      var cur = getY();
+      var h = document.body.scrollHeight;
+
+      // 若内容高度稳定且位置已接近目标，提前结束（避免继续“抢动”）
+      if (Math.abs(cur - y) <= EPS){
+        stableFrames++;
+        if (stableFrames >= 3){ return done(); }
+      } else {
+        stableFrames = 0;
+      }
+
+      // 若页面高度变化，说明懒加载/布局在动，继续校正
+      if (h !== lastHeight){
+        lastHeight = h;
+        stableFrames = 0;
+      }
+
+      window.scrollTo(0, y);
+
+      if ((now - start) >= MAX_MS) return done();
+      if (--MAX_RAF <= 0) return done();
+
+      rafId = requestAnimationFrame(rafTick);
+    }
+
+    rafId = requestAnimationFrame(rafTick);
+
+    // 少量兜底（不影响提前结束）：
+    [200, 500, 900].forEach(function(ms){
+      var tid = setTimeout(function(){
+        if (restoring) window.scrollTo(0, y);
+      }, ms);
+      timeoutIds.push(tid);
+    });
+  }
+
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  CURRENT_KEY = pageKey();
+  patchPjaxLoadUrl();
+  hardWrapScrollHelpers();
+  setState(false);
+})();
+</script>
+
+
     <!-- DIY × PLUS 一体化 Loader · v12-merge + DreamConfig + SnowRebuildByIdRange -->
 <script th:inline="javascript">
 (function(){
@@ -810,7 +979,6 @@
   }catch(e){}
 })();
 </script>
-
 
 </body>
 
