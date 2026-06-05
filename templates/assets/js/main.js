@@ -154,162 +154,41 @@ document.addEventListener('DOMContentLoaded', function () {
     const tocFn = function () {
         const postContent = document.querySelector('.post-content');
         if (postContent == null) return;
-
         const titles = postContent.querySelectorAll('h1,h2,h3,h4,h5,h6');
-
-        // 文章目录点击后，标题距离浏览器顶部的预留高度。
-        // 当前按你的要求固定为 60：数值越大，标题露得越靠下。
-        const TOC_VISIBLE_OFFSET = 60;
-        // 高亮判断比实际滚动多一点点，避免刚好卡在标题边界时 active 停在上一项。
-        const TOC_ACTIVE_OFFSET = TOC_VISIBLE_OFFSET + 12;
-
-        const hideMobileTocButton = () => {
+        // 没有 toc 目录，则直接移除
+        if (titles.length === 0 || !titles) {
+            const cardToc = document.getElementById("card-toc");
+            cardToc?.remove();
             const $mobileTocButton = document.getElementById("mobile-toc-button")
             if ($mobileTocButton) {
                 $('#mobile-toc-button').attr('style', 'display: none');
             }
-        }
-
-        if (titles.length === 0 || !titles) {
-            const cardToc = document.getElementById("card-toc");
-            cardToc?.remove();
-            hideMobileTocButton();
-            return;
-        }
-
-        // 文章页侧栏未添加“目录”卡片时，不初始化 tocbot，避免 #card-toc 为空导致 JS 报错
-        const $cardTocLayout = document.getElementById('card-toc')
-        if (!$cardTocLayout) {
-            hideMobileTocButton();
-            return;
-        }
-        const $cardToc = $cardTocLayout.getElementsByClassName('toc-content')[0]
-        if (!$cardToc) {
-            hideMobileTocButton();
-            return;
-        }
-
-        const getTocTarget = (href) => {
-            if (!href) return null;
-            const hashIndex = href.indexOf('#');
-            if (hashIndex === -1) return null;
-            const rawId = href.slice(hashIndex + 1);
-            if (!rawId) return null;
-
-            let decodedId = rawId;
-            try {
-                decodedId = decodeURIComponent(rawId);
-            } catch (e) {}
-
-            return document.getElementById(decodedId) || document.getElementById(rawId);
-        }
-
-        const setTocActive = (tocLink) => {
-            if (!tocLink) return;
-            $cardToc.querySelectorAll('a.toc-link.active').forEach(link => link.classList.remove('active'));
-            $cardToc.querySelectorAll('.toc-item.active').forEach(item => item.classList.remove('active'));
-            tocLink.classList.add('active');
-            const li = tocLink.closest('.toc-item');
-            if (li) li.classList.add('active');
-        }
-
-        const scrollToTarget = (target, behavior = 'smooth') => {
-            if (!target) return;
-            const targetTop = target.getBoundingClientRect().top + window.pageYOffset - TOC_VISIBLE_OFFSET;
-            window.scrollTo({
-                top: Math.max(0, targetTop),
-                behavior
+        } else {
+            tocbot.init({
+                tocSelector: '.toc-content',
+                contentSelector: '.post-content',
+                headingSelector: 'h1,h2,h3,h4,h5,h6',
+                listItemClass: 'toc-item',
+                activeLinkClass: 'active',
+                activeListItemClass: 'active',
+                headingsOffset: -400,
+                scrollSmooth: true,
+                scrollSmoothOffset: -70,
+                tocScrollOffset: 50,
             });
-        }
 
-        const correctTocScroll = (target, tocLink) => {
-            if (!target) return;
-            const diff = target.getBoundingClientRect().top - TOC_VISIBLE_OFFSET;
-            // 第一次进入文章时，顶部导航/PJAX/字体渲染可能还没完全稳定，
-            // 这里只在最终位置偏差明显时做一次“无动画校准”，避免肉眼看到二次平滑拉扯。
-            if (Math.abs(diff) > 2) {
-                scrollToTarget(target, 'auto');
-            }
-            setTocActive(tocLink);
-        }
+            const $cardTocLayout = document.getElementById('card-toc')
+            const $cardToc = $cardTocLayout.getElementsByClassName('toc-content')[0]
 
-        const handleTocClick = (event) => {
-            const tocLink = event.target.closest && event.target.closest('a.toc-link');
-            if (!tocLink || !$cardToc.contains(tocLink)) {
+            // toc元素點擊
+            $cardToc.addEventListener('click', (ele) => {
                 if (window.innerWidth < 900) {
                     $cardTocLayout.classList.remove("open");
                 }
-                return;
-            }
+            })
 
-            // 阻止浏览器默认 #锚点跳转、PJAX、tocbot 自带点击逻辑抢滚动。
-            // 关键点：这个监听会在 tocbot.init 之前绑定，所以第一次点击也会先走这里。
-            event.preventDefault();
-            event.stopPropagation();
-            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
-
-            const target = getTocTarget(tocLink.getAttribute('href') || tocLink.hash);
-            if (target) {
-                window.__haoTocClicking = true;
-
-                // 等一帧再计算位置，避开第一次进入文章时目录刚初始化/布局刚稳定造成的首跳偏差。
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        scrollToTarget(target, 'smooth');
-
-                        // 不使用 location.hash，避免浏览器再次执行默认锚点跳转
-                        if (window.history && window.history.replaceState && target.id) {
-                            window.history.replaceState(null, '', location.pathname + location.search + '#' + encodeURIComponent(target.id));
-                        }
-
-                        // 点击后先立即高亮当前目录；滚动结束后再校准一次，解决第一次点击 active 停在上一项的问题。
-                        setTocActive(tocLink);
-                        window.setTimeout(() => correctTocScroll(target, tocLink), 520);
-                        window.setTimeout(() => {
-                            correctTocScroll(target, tocLink);
-                            window.__haoTocClicking = false;
-                        }, 760);
-                    });
-                });
-            }
-
-            if (window.innerWidth < 900) {
-                $cardTocLayout.classList.remove("open");
-            }
         }
-
-        // 先销毁旧实例，避免 PJAX 后目录高亮和锚点计算错位
-        try {
-            tocbot.destroy();
-        } catch (e) {}
-
-        // 必须在 tocbot.init 之前绑定点击捕获。
-        // 否则第一次进入文章后的第一次点击，tocbot/浏览器锚点可能先滚一次，造成首跳和高亮不一致。
-        if (!$cardToc.dataset.haoTitleVisibleClick) {
-            $cardToc.dataset.haoTitleVisibleClick = 'true';
-            $cardToc.addEventListener('click', handleTocClick, true);
-        }
-
-        tocbot.init({
-            tocSelector: '.toc-content',
-            contentSelector: '.post-content',
-            headingSelector: 'h1,h2,h3,h4,h5,h6',
-            listItemClass: 'toc-item',
-            activeLinkClass: 'active',
-            activeListItemClass: 'active',
-            // 高亮判断和实际滚动保持同一套偏移逻辑，只略微放宽 12px，避免边界误判。
-            headingsOffset: TOC_ACTIVE_OFFSET,
-            // 关闭 tocbot 自带点击滚动，只保留它生成目录和滚动高亮；点击滚动由上面的 handleTocClick 统一处理。
-            scrollSmooth: false,
-            tocScrollOffset: 80,
-        });
-
-        // 目录是同页锚点，不应该被 PJAX 当成页面跳转处理
-        $cardToc.querySelectorAll('a.toc-link').forEach(link => {
-            link.setAttribute('data-no-pjax', '');
-        });
     }
-
 
 
     /**
