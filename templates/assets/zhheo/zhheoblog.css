@@ -6137,7 +6137,7 @@ i.fab {
 div#footer_deal {
     justify-content: center;
     display: flex;
-    padding-top: 2rem;
+    padding-top: 0.5rem;
     align-items: center;
 }
 
@@ -14468,8 +14468,8 @@ div#heo-footer-bar a.footer-bar-link {
     padding: 4px 16px;
     background: var(--heo-secondbg);
     border-radius: 20px;
-    margin-top: 8px;
-    font-size: 14px;
+    margin-top: 5px;
+    font-size: 13px;
     cursor: pointer;
     border: var(--style-border-always)
 }
@@ -14482,7 +14482,7 @@ div#heo-footer-bar a.footer-bar-link:hover {
 }
 
 div#heo-footer-bar .footer-logo {
-    font-size: 24px
+    font-size: 19px
 }
 
 div#heo-footer-bar .footer-bar-description {
@@ -19180,10 +19180,10 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 
 /* Footer settings fix: 使用 footer-info-panel 避免浏览器广告拦截插件误隐藏 footer-banner */
 #footer-info-panel {
-    padding: 1rem;
+    padding: 0rem;
     color: var(--heo-fontcolor);
     margin-top: 1rem;
-    background: var(--heo-secondbg);
+    background: #27282b59;
     display: flex;
     overflow: hidden;
     z-index: 999;

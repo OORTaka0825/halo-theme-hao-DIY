@@ -1,4 +1,0 @@
-V8 back no flash optimization
-- In templates/modules/layouts/layout.html, back/forward PJAX no longer triggers loading-box.
-- Scroll restoration now calls window.scrollTo immediately before requestAnimationFrame to avoid a one-frame top flash.
-- Other theme files are unchanged.
