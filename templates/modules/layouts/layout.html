@@ -386,8 +386,65 @@
             selectors: pjaxSelectors,
             cacheBust: false,
             analytics: false,
-            scrollRestoration: true
+            scrollRestoration: false
         })
+
+        // BFCache / 普通回退兼容：不再让 PJAX 把 history.scrollRestoration 强制改成 manual。
+        // 正常浏览器如果因为登录态、缓存策略或脚本原因不能进入 BFCache，浏览器会重新取页面；
+        // 这时让浏览器原生恢复先工作，再用 PJAX history.state 做一次延迟校正。
+        if ('scrollRestoration' in history) {
+            try { history.scrollRestoration = 'auto'; } catch (e) {}
+        }
+
+        ;(function () {
+            function getY() {
+                return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
+            }
+            function saveCurrentScrollState() {
+                try {
+                    var s = history.state || {}
+                    s.url = s.url || window.location.href
+                    s.title = s.title || document.title
+                    s.uid = s.uid || ('hao' + Date.now())
+                    s.scrollPos = [document.documentElement.scrollLeft || document.body.scrollLeft || 0, getY()]
+                    history.replaceState(s, document.title, window.location.href)
+                } catch (e) {}
+            }
+            function delayedRestore(pos) {
+                if (!pos || pos.length < 2) return
+                var x = parseInt(pos[0], 10) || 0
+                var y = parseInt(pos[1], 10) || 0
+                var oldBehavior = document.documentElement.style.scrollBehavior
+                try { document.documentElement.style.scrollBehavior = 'auto' } catch (e) {}
+                function go() { try { window.scrollTo(x, y) } catch (e) {} }
+                requestAnimationFrame(go)
+                ;[50, 150, 300, 600, 1000, 1500].forEach(function (ms) { setTimeout(go, ms) })
+                setTimeout(function () {
+                    try { document.documentElement.style.scrollBehavior = oldBehavior || '' } catch (e) {}
+                }, 1600)
+            }
+            function isBackForwardDocumentNavigation() {
+                try {
+                    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')
+                    return !!(nav && nav[0] && nav[0].type === 'back_forward')
+                } catch (e) { return false }
+            }
+
+            document.addEventListener('pjax:send', saveCurrentScrollState)
+            window.addEventListener('pagehide', saveCurrentScrollState, { passive: true })
+
+            document.addEventListener('pjax:complete', function (e) {
+                if ((e.backward || e.forward) && e.scrollPos) {
+                    delayedRestore(e.scrollPos)
+                }
+            })
+
+            window.addEventListener('pageshow', function () {
+                if (isBackForwardDocumentNavigation() && history.state && history.state.scrollPos) {
+                    delayedRestore(history.state.scrollPos)
+                }
+            })
+        })()
 
         document.addEventListener('pjax:send', function () {
 
