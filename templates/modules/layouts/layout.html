@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html th:lang="${#locale.toLanguageTag}" th:fragment="layout(content, htmlType, title, head)" xmlns:th="http://www.thymeleaf.org"
       th:with="assets_link=${theme.config.other.staticResource.use == 'custom' ? theme.config.other.staticResource.cdn_link : '/themes/theme-hao/assets'},
-      theme_version = ${'?v=' + theme.spec.version},
+      theme_version = ${ theme.config.other.staticResource.use == 'local' ? '?v='+ theme.spec.version : ''},
       isLazyload = ${theme.config.other.vanillaLazyload.enable},
       loadingImg = ${theme.config.other.vanillaLazyload.loadingImg},
       siteTitle = ${not #strings.isEmpty(title) ?  title  :  #strings.isEmpty(site.subtitle) ? site.title :  site.title +' - ' +site.subtitle }">
@@ -378,25 +378,25 @@
 
     <th:block th:if="${theme.config.other.pjax_enable}"><script>
         let pjaxSelectors = ['title', '#config-diff', '#body-wrap', '#rightside-config-hide', '#rightside-config-show', '.js-pjax', '#site-config']
-
+        
         pjaxSelectors.unshift('meta[property="og:type"]', 'meta[property="og:image"]', 'meta[property="og:title"]', 'meta[property="og:url"]', 'meta[property="og:description"]'
                 , 'meta[name="twitter:title"]', 'meta[name="twitter:url"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]')
-
+        
         var pjax = new Pjax({
-            elements: 'a[href]:not([target="_blank"]):not([data-no-pjax]):not([href^="/console"])',
+            elements: 'a:not([target="_blank"])',
             selectors: pjaxSelectors,
             cacheBust: false,
             analytics: false,
             scrollRestoration: false
         })
-
+        
         document.addEventListener('pjax:send', function () {
-
+            
             // removeEventListener toc scroll
             window.removeEventListener('scroll', window.tocScrollFn)
-
+            
             typeof preloader === 'object' && preloader.initLoading()
-
+            
             if (window.aplayers) {
                 for (let i = 0; i < window.aplayers.length; i++) {
                     if (!window.aplayers[i].options.fixed) {
@@ -404,17 +404,17 @@
                     }
                 }
             }
-
+            
             typeof typed === 'object' && typed.destroy()
-
+            
             //reset readmode
             const $bodyClassList = document.body.classList
             $bodyClassList.contains('read-mode') && $bodyClassList.remove('read-mode')
         })
-
+        
         document.addEventListener('pjax:complete', function () {
             window.refreshFn()
-
+            
             document.querySelectorAll('script[data-pjax]').forEach(item => {
                         const newScript = document.createElement('script')
                         const content = item.text || item.textContent || item.innerHTML || ""
@@ -423,33 +423,33 @@
                         item.parentNode.replaceChild(newScript, item)
                     }
             )
-
+            
             GLOBAL_CONFIG.lazyload.enable && window.lazyLoadInstance.update()
-
+            
             typeof chatBtnFn === 'function' && chatBtnFn()
             typeof panguInit === 'function' && panguInit()
-
+            
             // google analytics
             typeof gtag === 'function' && gtag('config', '', {
                 'page_path': window.location.pathname
             });
-
+            
             // baidu analytics
             typeof _hmt === 'object' && _hmt.push(['_trackPageview', window.location.pathname]);
-
+            
             typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
-
+            
             // Analytics
             if (false) {
                 MtaH5.pgv()
             }
-
+            
             // prismjs
             typeof Prism === 'object' && Prism.highlightAll()
-
+            
             typeof preloader === 'object' && preloader.endLoading()
         })
-
+        
         document.addEventListener('pjax:error', (e) => {
                     if (e.request.status === 404 || e.request.status === 500) {
                         window.location.href = e.request.responseURL;
@@ -470,10 +470,8 @@
         // 移除加载动画
         removeLoading();
     }
-    //页脚友链
+    //页脚友联
     GLOBAL_CONFIG.isFriendLinksInFooter && heo.addFriendLinksInFooter()
-    //页脚社交媒体图片弹窗
-    heo.initFooterSocialImage && heo.initFooterSocialImage()
     //音乐页面切换歌曲调用
     if(GLOBAL_CONFIG.isMusic){
         heo.changeMusicBg(false);
@@ -622,7 +620,7 @@
     if (isPostPage()){
       if (!location.hash){
         window.scrollTo(0,0);
-        timeoutIds.push(setTimeout(function(){ if (!window.__haoTocClicking) window.scrollTo(0,0); }, 60));
+        timeoutIds.push(setTimeout(function(){ window.scrollTo(0,0); }, 60));
       }
       return;
     }
@@ -648,7 +646,7 @@
     if (isPostPage()){
       if (!location.hash){
         window.scrollTo(0,0);
-        timeoutIds.push(setTimeout(function(){ if (!window.__haoTocClicking) window.scrollTo(0,0); }, 60));
+        timeoutIds.push(setTimeout(function(){ window.scrollTo(0,0); }, 60));
       }
       return;
     }
@@ -981,7 +979,6 @@
   }catch(e){}
 })();
 </script>
-
 
 </body>
 
