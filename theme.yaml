@@ -52,5 +52,5 @@ spec:
   repo: https://github.com/OORTaka0825/halo-theme-hao-DIY
   settingName: "theme-hao-setting"
   configMapName: "theme-hao-configMap"
-  version: "1.3.10-DIY"
+  version: "1.3.20-DIY-V2-v1-back"
   requires: ">=2.22.1"

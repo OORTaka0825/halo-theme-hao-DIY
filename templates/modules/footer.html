@@ -1,21 +1,44 @@
 <!-- 页脚模块 -->
-<footer id="footer" xmlns:th="http://www.w3.org/1999/xhtml">
+<footer id="footer" xmlns:th="http://www.w3.org/1999/xhtml"
+        th:with="
+        footerBarEnable=${theme.config.footer.footer_bar.footer_bar_enable == true || #strings.equals(theme.config.footer.footer_bar.footer_bar_enable, 'true')},
+        relatedMenuEnable=${not #strings.isEmpty(theme.config.footer.menu) && !#strings.equals(theme.config.footer.menu, 'hide') && !#strings.equals(theme.config.footer.menu, 'false')},
+        footerGroupEnable=${theme.config.footer.footer_group.enable_footer_group != false && !#strings.equals(theme.config.footer.footer_group.enable_footer_group, 'false')},
+        defaultFooterEnable=${theme.config.footer.footerContent.default_enable_group.default_enable != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.default_enable, 'false')},
+        ownerEnable=${theme.config.footer.footerContent.style_one.owner_enable == true || #strings.equals(theme.config.footer.footerContent.style_one.owner_enable, 'true')},
+        runtimeEnable=${theme.config.footer.footerContent.style_one.runtime_enable != false && !#strings.equals(theme.config.footer.footerContent.style_one.runtime_enable, 'false')},
+        badgeEnable=${theme.config.footer.footerContent.style_one.bdageitem_enable == true || #strings.equals(theme.config.footer.footerContent.style_one.bdageitem_enable, 'true')},
+        dingyueEnable=${theme.config.footer.footerContent.default_enable_group.dingyue != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.dingyue, 'false')},
+        zhutiEnable=${theme.config.footer.footerContent.default_enable_group.zhuti != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.zhuti, 'false')},
+        aboutEnable=${theme.config.footer.footerContent.default_enable_group.about != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.about, 'false')},
+        icpEnable=${theme.config.footer.footerContent.default_enable_group.icp_icon != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.icp_icon, 'false')},
+        gonganEnable=${theme.config.footer.footerContent.default_enable_group.gongwangan != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.gongwangan, 'false')},
+        privacyEnable=${theme.config.footer.footerContent.default_enable_group.yingsi != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.yingsi, 'false')},
+        cloudEnable=${theme.config.footer.footerContent.default_enable_group.yunzhichi == true || #strings.equals(theme.config.footer.footerContent.default_enable_group.yunzhichi, 'true')},
+        footerPadding=${#strings.isEmpty(theme.config.footer.footerContent.default_enable_group.footer_banner_padding) ? 1 : theme.config.footer.footerContent.default_enable_group.footer_banner_padding}">
 
-    <div id="heo-footer-bar" th:if="${theme.config.footer.footer_bar.footer_bar_enable}">
+    <div id="heo-footer-bar" th:if="${footerBarEnable}">
         <div class="footer-logo"><th:block th:utext="${theme.config.footer.footer_bar.logo}"></th:block></div>
         <div class="footer-bar-description">[[${theme.config.footer.footer_bar.description}]]</div>
-        <a class="footer-bar-link" href="/" data-pjax-state="">了解更多</a>
+        <a class="footer-bar-link"
+           th:href="@{${#strings.isEmpty(theme.config.footer.footer_bar.link) ? '/' : theme.config.footer.footer_bar.link}}"
+           data-pjax-state="">了解更多</a>
     </div>
 
-    <!-- 社交链接，需要填入 href class title -->
+    <!-- 社交链接：链接类型为 normal 时跳转；链接类型为 image 时弹窗预览 url 中的图片 -->
     <div id="footer_deal">
         <th:block th:with="socialMedias = ${theme.config.footer.social_media.socialMediaLeft}">
-            <a th:class="${socialMedia.option_social_data == 'custom' ? 'custom_socials' : 'deal_link'}" rel="external nofollow" target="_blank" th:each="socialMedia : ${socialMedias}"
-               th:href="${socialMedia.url}" th:title="${socialMedia.name}">
-                <i th:if="${socialMedia.option_social_data == 'icon'  || #strings.isEmpty(socialMedia.option_social_data)}"
-                   th:class="${socialMedia.icon}"></i>
-                <th:block th:if="${socialMedia.option_social_data == 'custom'}" th:utext="${socialMedia.icon}"></th:block>
-            </a>
+            <th:block th:each="socialMedia : ${socialMedias}">
+                <a th:if="${!#strings.equals(socialMedia.urlType, 'image')}" class="deal_link" rel="external nofollow"
+                   target="_blank" th:href="${socialMedia.url}" th:title="${socialMedia.name}">
+                    <i class="haofont " th:classappend="${socialMedia.icon}"></i>
+                </a>
+                <a th:if="${#strings.equals(socialMedia.urlType, 'image')}" class="deal_link footer-social-image fancybox"
+                   rel="external nofollow" th:href="${socialMedia.url}" data-fancybox="footer-social" data-no-pjax
+                   th:data-caption="${socialMedia.name}" th:title="${socialMedia.name}">
+                    <i class="haofont " th:classappend="${socialMedia.icon}"></i>
+                </a>
+            </th:block>
         </th:block>
 
         <img th:if="${not #strings.isEmpty(theme.config.footer.social_media.centerImg)}" class="footer_mini_logo"
@@ -23,54 +46,106 @@
              th:data-lazy-src="${ isLazyload ? img : ''}" title="返回顶部" onclick="btf.scrollToDest(0, 500)">
 
         <th:block th:with="socialMedias = ${theme.config.footer.social_media.socialMediaRight}">
-            <a th:class="${socialMedia.option_social_data == 'custom' ? 'custom_socials' : 'deal_link'}" rel="external nofollow" target="_blank" th:each="socialMedia : ${socialMedias}"
-               th:href="${socialMedia.url}" th:title="${socialMedia.name}">
-                <i th:if="${socialMedia.option_social_data == 'icon' || #strings.isEmpty(socialMedia.option_social_data)}"
-                   th:class="${socialMedia.icon}"></i>
-                <th:block th:if="${socialMedia.option_social_data == 'custom'}" th:utext="${socialMedia.icon}"></th:block>
-            </a>
+            <th:block th:each="socialMedia : ${socialMedias}">
+                <a th:if="${!#strings.equals(socialMedia.urlType, 'image')}" class="deal_link" rel="external nofollow"
+                   target="_blank" th:href="${socialMedia.url}" th:title="${socialMedia.name}">
+                    <i class="haofont " th:classappend="${socialMedia.icon}"></i>
+                </a>
+                <a th:if="${#strings.equals(socialMedia.urlType, 'image')}" class="deal_link footer-social-image fancybox"
+                   rel="external nofollow" th:href="${socialMedia.url}" data-fancybox="footer-social" data-no-pjax
+                   th:data-caption="${socialMedia.name}" th:title="${socialMedia.name}">
+                    <i class="haofont " th:classappend="${socialMedia.icon}"></i>
+                </a>
+            </th:block>
         </th:block>
     </div>
 
-    <!-- 相关地址  -->
-    <th:block th:if="${not #strings.isEmpty(theme.config.footer.menu)}"
-              th:with="footMenu = ${menuFinder.getByName(theme.config.footer.menu)}">
-        <div id="heo-footer" th:if="${not #lists.isEmpty(footMenu.menuItems)}">
-            <div class="footer-group" th:each="menuItem : ${footMenu.menuItems}">
-                <h3 class="footer-title" th:text="${menuItem.status.displayName}"></h3>
-                <div class="footer-links">
-                    <a class="footer-item" th:each="childMenu : ${menuItem.children}"
-                       th:href="@{${childMenu.status.href}}" th:target="${childMenu.spec.target?.value}"
-                       th:text="${childMenu.status.displayName}">
-                    </a>
+    <!-- 相关地址 / 页脚友链 -->
+    <div id="heo-footer" th:if="${relatedMenuEnable || footerGroupEnable}">
+        <!-- 主菜单：直接使用 Halo 的主菜单对象，不再拿 primary 去 getByName，避免前台模板报错 -->
+        <th:block th:if="${#strings.equals(theme.config.footer.menu, 'primary')}">
+            <th:block th:if="${menuFinder.getPrimary() != null && not #lists.isEmpty(menuFinder.getPrimary().menuItems)}">
+                <div class="footer-group" th:each="menuItem : ${menuFinder.getPrimary().menuItems}">
+                    <h3 class="footer-title" th:text="${menuItem.status.displayName}"></h3>
+                    <div class="footer-links">
+                        <a class="footer-item" th:each="childMenu : ${menuItem.children}"
+                           th:href="@{${childMenu.status.href}}" th:target="${childMenu.spec.target?.value}"
+                           th:text="${childMenu.status.displayName}">
+                        </a>
+                    </div>
                 </div>
+            </th:block>
+        </th:block>
+
+        <!-- 侧边栏菜单：复用导航栏设置里已经选好的左侧/侧边栏菜单，保持之前 menuRadio 的行为 -->
+        <th:block th:if="${#strings.equals(theme.config.footer.menu, 'sidebar') && not #strings.isEmpty(theme.config.nav.leftMenu)}">
+            <th:block th:with="footMenu = ${menuFinder.getByName(theme.config.nav.leftMenu)}">
+                <th:block th:if="${footMenu != null && not #lists.isEmpty(footMenu.menuItems)}">
+                    <div class="footer-group" th:each="menuItem : ${footMenu.menuItems}">
+                        <h3 class="footer-title" th:text="${menuItem.status.displayName}"></h3>
+                        <div class="footer-links">
+                            <a class="footer-item" th:each="childMenu : ${menuItem.children}"
+                               th:href="@{${childMenu.status.href}}" th:target="${childMenu.spec.target?.value}"
+                               th:text="${childMenu.status.displayName}">
+                            </a>
+                        </div>
+                    </div>
+                </th:block>
+            </th:block>
+        </th:block>
+
+        <!-- 兼容旧版保存值：如果以前 menuRadio 保存的是具体菜单名，仍然按旧逻辑渲染 -->
+        <th:block th:if="${relatedMenuEnable && !#strings.equals(theme.config.footer.menu, 'primary') && !#strings.equals(theme.config.footer.menu, 'sidebar')}">
+            <th:block th:with="footMenu = ${menuFinder.getByName(theme.config.footer.menu)}">
+                <th:block th:if="${footMenu != null && not #lists.isEmpty(footMenu.menuItems)}">
+                    <div class="footer-group" th:each="menuItem : ${footMenu.menuItems}">
+                        <h3 class="footer-title" th:text="${menuItem.status.displayName}"></h3>
+                        <div class="footer-links">
+                            <a class="footer-item" th:each="childMenu : ${menuItem.children}"
+                               th:href="@{${childMenu.status.href}}" th:target="${childMenu.spec.target?.value}"
+                               th:text="${childMenu.status.displayName}">
+                            </a>
+                        </div>
+                    </div>
+                </th:block>
+            </th:block>
+        </th:block>
+
+        <div th:if="${footerGroupEnable && pluginFinder.available('PluginLinks')}" class="footer-group"
+             th:with="groups = ${linkFinder.groupBy()}">
+            <div class="footer-title-group">
+                <h3 class="footer-title">友链</h3>
+                <a class="random-friends-btn" id="footer-random-friends-btn"
+                   href="javascript:heo.addFriendLinksInFooter();" rel="external nofollow" title="换一批友情链接"
+                   data-pjax-state="external" data-no-pjax><i class="haofont hao-icon-arrow-rotate-right" style="font-size: 16px;"></i></a>
             </div>
-            <div th:if="${theme.config.footer.footer_group.enable_footer_group}" class="footer-group">
-                <div class="footer-title-group">
-                    <h3 class="footer-title">友链</h3>
-                    <a class="random-friends-btn" id="footer-random-friends-btn"
-                       href="javascript:heo.addFriendLinksInFooter();" rel="external nofollow" title="换一批友情链接"
-                       data-pjax-state="external"><i class="haofont hao-icon-arrow-rotate-right" style="font-size: 16px;"></i></a>
-                </div>
-                <div class="footer-links" id="friend-links-in-footer"></div>
+            <div class="footer-links" id="friend-links-in-footer">
+                <th:block th:each="group : ${groups}">
+                    <a class="footer-item footer-friend-source" style="display:none"
+                       th:each="link : ${group.links}"
+                       th:href="${link.spec.url}"
+                       th:attr="data-url=${link.spec.url},data-name=${link.spec.displayName}"
+                       th:text="${link.spec.displayName}"></a>
+                </th:block>
+                <a class="footer-item" th:href="${theme.config.link.linksUrl}">更多</a>
             </div>
         </div>
+    </div>
 
-    </th:block>
     <!-- 底部 banner -->
     <halo:footer />
 
     <div class="copyright"
-         th:if="${not #strings.isEmpty(theme.config.basics.siteStartTime) && theme.config.footer.footerContent.style_one.owner_enable}">
+         th:if="${not #strings.isEmpty(theme.config.basics.siteStartTime) && ownerEnable}">
         ©[[${#strings.arraySplit(theme.config.basics.siteStartTime, '-')[0]}]] - [[${#dates.format(new
         java.util.Date(), 'yyyy')}]] By [[${site.title}]]
     </div>
     <div class="copyright"
-         th:if="${#strings.isEmpty(theme.config.basics.siteStartTime) && theme.config.footer.footerContent.style_one.owner_enable}">
+         th:if="${#strings.isEmpty(theme.config.basics.siteStartTime) && ownerEnable}">
         ©[[${#dates.format(new java.util.Date(), 'yyyy')}]] By [[${site.title}]]
     </div>
-    <div th:if="${theme.config.footer.footerContent.style_one.runtime_enable}" id="workboard"></div>
-    <p th:if="${theme.config.footer.footerContent.style_one.bdageitem_enable && not #lists.isEmpty(theme.config.footer.footerContent.style_one.bdageitem)}"
+    <div th:if="${runtimeEnable}" id="workboard"></div>
+    <p th:if="${badgeEnable && not #lists.isEmpty(theme.config.footer.footerContent.style_one.bdageitem)}"
        th:with="bdageitem = ${theme.config.footer.footerContent.style_one.bdageitem}"
        id="ghbdages" style="width:60%;margin: 0 auto 0;">
         <a class="github-badge" th:each="data : ${bdageitem}" target="_blank" th:href="@{${data.link}}"
@@ -79,7 +154,7 @@
                  th:data-lazy-src="${ isLazyload ? img : ''}" th:alt="${data.message}" />
         </a>
     </p>
-    <span th:if="${!theme.config.footer.footerContent.default_enable_group.default_enable}" style="padding: 5px 5px;">
+    <span th:if="${!defaultFooterEnable}" style="padding: 5px 5px;">
 
     </span>
 
@@ -92,16 +167,16 @@
     </style>
 
     <style
-            th:if="${(theme.config.footer.footerContent.style_one.owner_enable
-            || (not #lists.isEmpty(theme.config.footer.footerContent.style_one.bdageitem) && theme.config.footer.footerContent.style_one.bdageitem_enable )
-            || theme.config.footer.footerContent.style_one.runtime_enable)
-        && theme.config.footer.footerContent.default_enable_group.default_enable}">
+            th:if="${(ownerEnable
+            || (not #lists.isEmpty(theme.config.footer.footerContent.style_one.bdageitem) && badgeEnable )
+            || runtimeEnable)
+        && defaultFooterEnable}">
         #heo-footer {
             margin-bottom: 1rem;
         }
     </style>
 
-    <div th:if="${theme.config.footer.footerContent.default_enable_group.default_enable}" id="footer-banner" th:style="|padding:${theme.config.footer.footerContent.default_enable_group.footer_banner_padding}rem|">
+    <div th:if="${defaultFooterEnable}" id="footer-info-panel" class="footer-banner" th:style="|padding:${footerPadding}rem|">
         <div class="footer-banner-links">
             <div class="footer-banner-left">
                 <div id="footer-banner-tips">
@@ -120,7 +195,7 @@
             <div class="footer-banner-right">
                 
                 <!-- 又拍云 -->
-                <a th:if="${theme.config.footer.footerContent.default_enable_group.yunzhichi && theme.config.footer.footerContent.default_enable_group.yunzhichi_list == 'upyun_cloud'}"
+                <a th:if="${cloudEnable && theme.config.footer.footerContent.default_enable_group.yunzhichi_list == 'upyun_cloud'}"
                    class="footer-banner-link cloud" href="https://www.upyun.com/"
                    rel="noopener external nofollow noreferrer noopener"
                    target="_blank">
@@ -129,7 +204,7 @@
                     &nbsp;&nbsp;<span>提供CDN加速/云存储服务</span>
                 </a>
                 <!-- 阿里云 -->
-                <a th:if="${theme.config.footer.footerContent.default_enable_group.yunzhichi && theme.config.footer.footerContent.default_enable_group.yunzhichi_list == 'aliyun_cloud'}"
+                <a th:if="${cloudEnable && theme.config.footer.footerContent.default_enable_group.yunzhichi_list == 'aliyun_cloud'}"
                    class="footer-banner-link cloud" href="https://www.aliyun.com/"
                    rel="noopener external nofollow noreferrer noopener"
                    target="_blank">
@@ -138,7 +213,7 @@
                     &nbsp;&nbsp;<span>提供CDN加速/云存储服务</span>
                 </a>
                 <!-- 腾讯云 -->
-                <a th:if="${theme.config.footer.footerContent.default_enable_group.yunzhichi && theme.config.footer.footerContent.default_enable_group.yunzhichi_list == 'tencent_cloud'}"
+                <a th:if="${cloudEnable && theme.config.footer.footerContent.default_enable_group.yunzhichi_list == 'tencent_cloud'}"
                    class="footer-banner-link cloud" href="https://cloud.tencent.com/"
                    rel="noopener external nofollow noreferrer noopener"
                    target="_blank">
@@ -147,7 +222,7 @@
                     &nbsp;&nbsp;<span>提供CDN加速/云存储服务</span>
                 </a>
                 <!-- 华为云 -->
-                <a th:if="${theme.config.footer.footerContent.default_enable_group.yunzhichi && theme.config.footer.footerContent.default_enable_group.yunzhichi_list == 'huawei_cloud'}"
+                <a th:if="${cloudEnable && theme.config.footer.footerContent.default_enable_group.yunzhichi_list == 'huawei_cloud'}"
                    class="footer-banner-link cloud" href="https://www.huaweicloud.com/"
                    rel="noopener external nofollow noreferrer noopener"
                    target="_blank">
@@ -156,7 +231,7 @@
                     &nbsp;&nbsp;<span>提供CDN加速/云存储服务</span>
                 </a>
                 <!-- 自定义云服务信息 -->
-                <a th:if="${theme.config.footer.footerContent.default_enable_group.yunzhichi && theme.config.footer.footerContent.default_enable_group.yunzhichi_list == 'custom_cloud' && not #strings.isEmpty(theme.config.footer.footerContent.default_enable_group.yunzhichi_url)}"
+                <a th:if="${cloudEnable && theme.config.footer.footerContent.default_enable_group.yunzhichi_list == 'custom_cloud' && not #strings.isEmpty(theme.config.footer.footerContent.default_enable_group.yunzhichi_url)}"
                    class="footer-banner-link cloud" th:href="@{${theme.config.footer.footerContent.default_enable_group.yunzhichi_url_link}}"
                    rel="noopener external nofollow noreferrer noopener"
                    target="_blank">
@@ -166,10 +241,10 @@
                 </a>
                 
                 <!-- 订阅 需要 RSS 插件支持 -->
-                <a class="footer-banner-link" href="/rss.xml" th:if="${pluginFinder.available('PluginFeed')} and ${theme.config.footer.footerContent.default_enable_group.dingyue}">订阅</a>
-                <a th:if="${theme.config.footer.footerContent.default_enable_group.zhuti}" class="footer-banner-link" href="https://github.com/liuzhihang/halo-theme-hao">主题</a>
-                <a th:if="${theme.config.footer.footerContent.default_enable_group.about}" class="footer-banner-link" href="/about">关于</a>
-                <a th:if="${not #strings.isEmpty(theme.config.basics.icp) && theme.config.footer.footerContent.default_enable_group.icp_icon}"
+                <a class="footer-banner-link" href="/rss.xml" th:if="${dingyueEnable}">订阅</a>
+                <a th:if="${zhutiEnable}" class="footer-banner-link" href="https://github.com/liuzhihang/halo-theme-hao">主题</a>
+                <a th:if="${aboutEnable}" class="footer-banner-link" href="/about">关于</a>
+                <a th:if="${not #strings.isEmpty(theme.config.basics.icp) && icpEnable}"
                    class="footer-banner-link" href="https://beian.miit.gov.cn/#/Integrated/index"
                    rel="noopener external nofollow noreferrer noopener"
                    target="_blank">
@@ -178,7 +253,7 @@
                     <img th:if="${#strings.startsWith(theme.config.basics.icp, 'http')}"
                          th:src="@{${theme.config.basics.icp}}" alt="icp"/>
                 </a>
-                <a th:if="${not #strings.isEmpty(theme.config.basics.gongan) && theme.config.footer.footerContent.default_enable_group.gongwangan}"
+                <a th:if="${not #strings.isEmpty(theme.config.basics.gongan) && gonganEnable}"
                    class="footer-banner-link" href="http://www.beian.gov.cn/portal/registerSystemInfo"
                    rel="noopener external nofollow noreferrer noopener"
                    target="_blank">
@@ -187,7 +262,7 @@
                          th:src="@{${theme.config.basics.gongan}}" alt="gongan"/>
                 </a>
                 <a class="footer-banner-link cc" th:href="${theme.config.basics.copyrightAgreement}"
-                   th:if="${not #strings.isEmpty(theme.config.basics.copyrightAgreement) && theme.config.footer.footerContent.default_enable_group.yingsi}" title="cc协议">
+                   th:if="${not #strings.isEmpty(theme.config.basics.copyrightAgreement) && privacyEnable}" title="cc协议">
                     <i class="haofont hao-icon-copyright-line"></i>
                     <i class="haofont hao-icon-creative-commons-by-line"></i>
                     <i class="haofont hao-icon-creative-commons-nc-line"></i>
@@ -246,4 +321,5 @@
     </th:block>
     
 </footer>
+
 
