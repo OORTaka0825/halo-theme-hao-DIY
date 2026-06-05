@@ -389,6 +389,105 @@
             scrollRestoration: false
         })
 
+
+        // PJAX 后退/前进页面快照缓存：解决浏览器回退时重新 XHR 拉取上一页、卡片/懒加载图片二次加载的问题。
+        ;(function () {
+            var PAGE_CACHE = {}
+            var CACHE_ORDER = []
+            var MAX_CACHE = 8
+
+            function normalizeUrl(url) {
+                var a = document.createElement('a')
+                a.href = url || window.location.href
+                a.hash = ''
+                return a.href
+            }
+
+            function touch(key) {
+                var i = CACHE_ORDER.indexOf(key)
+                if (i !== -1) CACHE_ORDER.splice(i, 1)
+                CACHE_ORDER.push(key)
+                while (CACHE_ORDER.length > MAX_CACHE) {
+                    var old = CACHE_ORDER.shift()
+                    try { delete PAGE_CACHE[old] } catch (e) {}
+                }
+            }
+
+            function putCache(url, html) {
+                if (!html) return
+                try {
+                    var key = normalizeUrl(url)
+                    PAGE_CACHE[key] = html
+                    touch(key)
+                } catch (e) {}
+            }
+
+            function getCache(url) {
+                try {
+                    var key = normalizeUrl(url)
+                    var html = PAGE_CACHE[key]
+                    if (html) touch(key)
+                    return html || null
+                } catch (e) { return null }
+            }
+
+            function snapshotCurrentPage() {
+                try {
+                    // 保存的是“当前已经渲染好的 DOM”，包括已经完成懒加载后的 img src / class 状态。
+                    // 回退命中缓存时，优先用这个快照恢复，避免上一页重新请求、卡片重新初始化、图片重新懒加载。
+                    putCache(window.location.href, '<!DOCTYPE html>\n' + document.documentElement.outerHTML)
+                } catch (e) {}
+            }
+
+            if (window.pjax && !window.pjax._haoPageSnapshotCachePatched) {
+                var rawDoRequest = window.pjax.doRequest
+
+                window.pjax.doRequest = function (href, options, callback) {
+                    options = options || {}
+                    var cached = (options.backward || options.forward) && getCache(href)
+
+                    if (cached) {
+                        window.__haoPjaxPageCacheHit = true
+                        var aborted = false
+                        var fakeRequest = {
+                            readyState: 1,
+                            status: 200,
+                            responseURL: href,
+                            getResponseHeader: function () { return null },
+                            abort: function () { aborted = true; this.readyState = 4 }
+                        }
+                        setTimeout(function () {
+                            if (aborted) return
+                            fakeRequest.readyState = 4
+                            callback(cached, fakeRequest, href, options)
+                        }, 0)
+                        return fakeRequest
+                    }
+
+                    window.__haoPjaxPageCacheHit = false
+                    return rawDoRequest.call(this, href, options, function (responseText, request, location, opts) {
+                        // 普通 PJAX 成功请求也顺手缓存，后续前进/后退可直接命中。
+                        if (responseText && request && request.status === 200) {
+                            putCache(location || href, responseText)
+                        }
+                        callback(responseText, request, location, opts)
+                    })
+                }
+
+                window.pjax._haoPageSnapshotCachePatched = true
+            }
+
+            // 首屏先缓存一次；离开前再缓存一次，保证列表页已加载好的图片/卡片状态被保存。
+            snapshotCurrentPage()
+            document.addEventListener('pjax:send', snapshotCurrentPage, true)
+            window.addEventListener('pagehide', snapshotCurrentPage, { passive: true })
+            document.addEventListener('pjax:complete', function () {
+                setTimeout(snapshotCurrentPage, 0)
+                setTimeout(snapshotCurrentPage, 300)
+                setTimeout(snapshotCurrentPage, 1000)
+            })
+        })()
+
         // BFCache / 普通回退兼容：不再让 PJAX 把 history.scrollRestoration 强制改成 manual。
         // 正常浏览器如果因为登录态、缓存策略或脚本原因不能进入 BFCache，浏览器会重新取页面；
         // 这时让浏览器原生恢复先工作，再用 PJAX history.state 做一次延迟校正。
