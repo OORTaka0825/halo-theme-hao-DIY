@@ -2046,7 +2046,7 @@ blockquote footer cite::before {
 #aside-content .aside-list > .aside-list-item .content > .comment,
 #aside-content .aside-list > .aside-list-item .content > .title {
     color: var(--heo-fontcolor);
-    font-size: 87%;
+    font-size: 95%;
     line-height: 1.4;
     -webkit-line-clamp: 2;
 }
@@ -8627,7 +8627,7 @@ li {
 
 .recent-post-item .recent-post-info .recent-post-info-top .article-title {
     line-height: 30px;
-    margin-top: 7px;
+    margin-top: 0;
     font-weight: bold;
     color: var(--heo-fontcolor);
     margin-bottom: 0;
@@ -8710,7 +8710,7 @@ li {
 @media screen and (min-width: 1300px) {
 
     .recent-post-item .recent-post-info .recent-post-info-top .article-title {
-        font-size: 16px;
+        font-size: 20px;
         -webkit-line-clamp: 2;
     }
 
@@ -9448,7 +9448,7 @@ span.recent-post-top-text {
         margin-top: 0.25rem;
         margin-bottom: 0.75rem;
         box-shadow: var(--heo-shadow-border);
-        clip-path: inset(0 0 0 0 round 0.px);
+        clip-path: inset(0 0 0 0 round 12px);
     }
 
     #category #recent-posts .recent-post-item, #tag #recent-posts .recent-post-item {
@@ -9664,10 +9664,6 @@ span.recent-post-top-text {
 #recent-posts > .recent-post-item > .recent-post-info > .article-meta-wrap > .post-meta-date {
     right: 0px;
     text-align: right;
-    font-size: inherit !important;
-    transform: translateY(1px) scale(0.9);
-    transform-origin: right center;
-    display: inline-block;
 }
 
 #recent-posts > .recent-post-item > .recent-post-info > .article-meta-wrap > .post-meta-date i {
@@ -9712,7 +9708,7 @@ span.recent-post-top-text {
     background-color: var(--heo-card-bg);
     color: var(--heo-lighttext);
     font-weight: 700;
-    font-size: 16px;
+    font-size: 20px;
     position: relative;
 }
 
@@ -9726,8 +9722,8 @@ span.recent-post-top-text {
 }
 
 #aside-content #card-toc .toc-content .toc-link {
-    line-height: 31px;
-    padding: 7px;
+    line-height: 24px;
+    padding: 8px;
     border-left: 0 solid transparent;
     border-radius: 12px;
     color: var(--heo-secondtext);
@@ -9735,7 +9731,6 @@ span.recent-post-top-text {
     min-height: 40px;
     display: flex;
     align-items: center;
-    font-size: 15px;
 
 }
 
@@ -10348,7 +10343,7 @@ a.extend.prev {
 
 @media screen and (max-width: 768px) {
     #page-header.post-bg {
-        height: 15.5rem !important;
+        height: 30rem !important;
         margin-bottom: -12px;
     }
 
@@ -10628,7 +10623,7 @@ a.extend.prev {
     #page-header #post-info {
         padding: 0 6%;
         justify-content: normal;
-        padding-top: 4rem;
+        padding-top: 18rem;
     }
 }
 
@@ -13172,35 +13167,6 @@ button.el-button.tk-cancel.el-button--default.el-button--small {
     line-height: 42px;
 }
 
-
-/* 复制链接按钮：整个方块都可点击，保留图标自身事件，避免复制失效 */
-.share-link.copyurl {
-    width: 56px;
-    height: 40px;
-    cursor: pointer;
-    align-items: center;
-}
-
-.share-link.copyurl .share-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 40px;
-}
-
-.share-link.copyurl .share-button i {
-    line-height: 1;
-}
-
-.share-link.copyurl:hover .share-button {
-    background: var(--heo-theme);
-    border-color: var(--heo-theme);
-    color: var(--heo-white);
-    transition: 0.3s;
-    box-shadow: var(--heo-shadow-blue);
-}
-
 @media screen and (min-width: 1300px) {
     .share-button {
         background: var(--heo-card-bg);
@@ -14458,6 +14424,10 @@ figure.gallery-group:hover .gallery-group-name::after {
 
 
 div#heo-footer-bar {
+    display: none
+}
+
+.post div#heo-footer-bar {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -19177,70 +19147,3 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
     z-index: 10;
 }
 
-
-/* Footer settings fix: 使用 footer-info-panel 避免浏览器广告拦截插件误隐藏 footer-banner */
-#footer-info-panel {
-    padding: 1rem;
-    color: var(--heo-fontcolor);
-    margin-top: 1rem;
-    background: var(--heo-secondbg);
-    display: flex;
-    overflow: hidden;
-    z-index: 999;
-    transition: 0.3s;
-    border-top: var(--style-border-always);
-}
-
-#footer-info-panel .footer-banner-links {
-    display: flex;
-    justify-content: space-between;
-    max-width: 1400px;
-    width: 100%;
-    margin: 0 auto;
-    flex-wrap: wrap;
-    align-items: center;
-    line-height: 1;
-}
-
-#footer-info-panel .footer-banner-left {
-    display: flex;
-    flex-wrap: wrap;
-    min-height: 32px;
-    align-items: center;
-}
-
-#footer-info-panel .footer-banner-link {
-    margin: 0 4px;
-    color: var(--heo-fontcolor);
-    font-size: .8rem;
-    font-weight: 700;
-    white-space: nowrap;
-    padding: 8px;
-    border-radius: 12px;
-    line-height: 1;
-}
-
-#footer-info-panel .footer-banner-link.cc {
-    margin-right: 0rem;
-}
-
-#footer-info-panel .footer-banner-link.cc i:not(:last-child) {
-    margin-right: .5rem;
-}
-
-#footer-info-panel .footer-banner-link.cc i {
-    font-size: 18px;
-}
-
-#footer-info-panel .footer-banner-link:hover,
-#footer-info-panel .footer-banner-right a:hover {
-    color: var(--heo-lighttext);
-}
-
-#footer-info-panel .footer-banner-link:hover {
-    background: var(--heo-main-op);
-}
-
-#footer-info-panel > div > div.footer-banner-left > span {
-    margin-right: 1rem;
-}

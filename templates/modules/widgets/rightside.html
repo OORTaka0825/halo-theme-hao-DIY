@@ -16,10 +16,7 @@
                th:with="editor = ${htmlType == 'post' ? 'posts/editor?name='+ post.metadata.name : htmlType == 'page' ? 'single-pages/editor?name='+ singlePage.metadata.name : '' }"
                sec:authorize="isAuthenticated()"
                th:href="|/console/${editor}&returnToView=true|"
-               title="编辑文章"
-               data-no-pjax
-               rel="external nofollow noreferrer"
-               onclick="try{sessionStorage.setItem('hao:fromPostEditor','1')}catch(e){}; window.location.href=this.href; return false;" >
+               title="编辑文章" >
                 <i class="haofont hao-icon-pencil"></i>
             </a>
         </div>

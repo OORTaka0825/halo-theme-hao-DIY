@@ -1,13 +1,13 @@
 
 <!-- 阅读建议 -->
-<th:block  th:if="${not #lists.isEmpty(post.categories) and not #strings.equals(theme.config.post.recommendQuantity, 'none')}" th:with="recommendQuantity = ${theme.config.post.recommendQuantity},
+<th:block  th:if="${not #lists.isEmpty(post.categories)}" th:with="recommendQuantity = ${theme.config.post.recommendQuantity},
 recommandPosts = ${postFinder.listByCategory(1,recommendQuantity == 'six' ? 7 : recommendQuantity == 'two' ? 3 : 1,post.categories.get(0).metadata.name)},
 containsTitle = ${#strings.contains(recommandPosts,post.spec.title)},
 postRandomImg=${#strings.contains(theme.config.layout.postRandomImg,'?') ? theme.config.layout.postRandomImg+'&' : theme.config.layout.postRandomImg+'?'}">
     <div class="relatedPosts" th:if="${recommandPosts.total>1}">
         <div class="headline">
-            <i class="haofont hao-icon-thumbs-up" style="font-size: 1.15rem;"></i>
-            <span>喜欢这篇文章的人也看了</span>
+            <i class="haofont hao-icon-cainixihuan" style="font-size: 1.1rem;"></i>
+            <span>阅读建议</span>
         </div>
         <!-- 六篇文章 -->
         <div th:if="${#strings.equals(recommendQuantity, 'six')}" class="relatedPosts-list">
