@@ -10381,7 +10381,7 @@ a.extend.prev {
 
     #post-info .post-title {
         width: 1100px;
-        font-size: 2.5rem !important;
+        font-size: 2.1rem !important;
     }
 }
 
@@ -10621,7 +10621,7 @@ a.extend.prev {
     align-items: flex-start;
     height: calc(100% + 0px);
     justify-content: center;
-    animation: slide-in 0.6s 0s backwards;
+    animation: slide-in 1.5s 0s backwards;
 }
 
 @media screen and (max-width: 768px) {
@@ -10635,7 +10635,7 @@ a.extend.prev {
 @media screen and (min-width: 1300px) {
     #page-header #post-info {
         height: calc(100% + 0px);
-        top: 0;
+        top: 10px;
         display: flex;
         justify-content: center;
     }
