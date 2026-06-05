@@ -417,11 +417,14 @@
                 var oldBehavior = document.documentElement.style.scrollBehavior
                 try { document.documentElement.style.scrollBehavior = 'auto' } catch (e) {}
                 function go() { try { window.scrollTo(x, y) } catch (e) {} }
+                // 关键优化：立即恢复一次。原来只放在 requestAnimationFrame 里，
+                // 浏览器有机会先绘制页面顶部，再下一帧跳回保存位置，导致“闪一下顶部”。
+                go()
                 requestAnimationFrame(go)
-                ;[50, 150, 300, 600, 1000, 1500].forEach(function (ms) { setTimeout(go, ms) })
+                ;[30, 80, 150, 300, 600, 1000].forEach(function (ms) { setTimeout(go, ms) })
                 setTimeout(function () {
                     try { document.documentElement.style.scrollBehavior = oldBehavior || '' } catch (e) {}
-                }, 1600)
+                }, 1100)
             }
             function isBackForwardDocumentNavigation() {
                 try {
@@ -446,12 +449,18 @@
             })
         })()
 
-        document.addEventListener('pjax:send', function () {
+        document.addEventListener('pjax:send', function (e) {
+
+            // 浏览器后退/前进时不显示 loading-box。
+            // 否则回退成功前会先闪一下顶部加载层，视觉上像“回到顶部再跳回去”。
+            window.__haoPjaxBackForwardNav = !!(e && (e.backward || e.forward))
 
             // removeEventListener toc scroll
             window.removeEventListener('scroll', window.tocScrollFn)
 
-            typeof preloader === 'object' && preloader.initLoading()
+            if (!window.__haoPjaxBackForwardNav) {
+                typeof preloader === 'object' && preloader.initLoading()
+            }
 
             if (window.aplayers) {
                 for (let i = 0; i < window.aplayers.length; i++) {
@@ -504,6 +513,7 @@
             typeof Prism === 'object' && Prism.highlightAll()
 
             typeof preloader === 'object' && preloader.endLoading()
+            window.__haoPjaxBackForwardNav = false
         })
 
         document.addEventListener('pjax:error', (e) => {
