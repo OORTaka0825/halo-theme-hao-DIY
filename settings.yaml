@@ -1394,6 +1394,7 @@ spec:
             footer_bar_enable: false
             logo: "困困鱼"
             description: "来自 困困鱼 最新设计与科技的文章"
+            link: "/"
           children:
             - $formkit: radio
               name: footer_bar_enable
@@ -1415,6 +1416,12 @@ spec:
               name: description
               label: 描述
               placeholder: 请填写描述内容
+            - $formkit: text
+              if: $get(footer_bar_enable).value
+              name: link
+              label: 了解更多跳转地址
+              value: "/"
+              placeholder: 例如 /、/archives、/about 或完整 URL
         - $formkit: group
           name: social_media
           label: 社交媒体
@@ -1500,12 +1507,13 @@ spec:
                   label: 名称
                 - $formkit: text
                   name: url
-                  label: 链接
+                  label: 链接 / 图片地址
+                  help: 链接类型为“跳转链接”时填跳转地址；链接类型为“图片”时填二维码、收款码、头像等图片地址，点击后弹窗展示。
                 - $formkit: radio
                   name: urlType
                   label: 链接类型
                   value: normal
-                  help: 如果选择了图片类型，那么在访客点击之后会使用弹框的形式加载
+                  help: 选择“图片”不会跳转外链，而是把上面的地址当作图片地址弹窗预览。
                   options:
                     - label: 跳转链接
                       value: normal
@@ -1583,21 +1591,30 @@ spec:
                   label: 名称
                 - $formkit: text
                   name: url
-                  label: 链接
+                  label: 链接 / 图片地址
+                  help: 链接类型为“跳转链接”时填跳转地址；链接类型为“图片”时填二维码、收款码、头像等图片地址，点击后弹窗展示。
                 - $formkit: radio
                   name: urlType
                   label: 链接类型
                   value: normal
-                  help: 如果选择了图片类型，那么在访客点击之后会使用弹框的形式加载
+                  help: 选择“图片”不会跳转外链，而是把上面的地址当作图片地址弹窗预览。
                   options:
                     - label: 跳转链接
                       value: normal
                     - label: 图片
                       value: image
-        - $formkit: menuRadio
+        - $formkit: radio
           name: menu
           label: 相关链接
-          help: 默认只有主菜单，可前往【外观】—>【菜单】新建菜单组
+          value: "hide"
+          help: 选择“隐藏”则不渲染页脚相关链接；选择“主菜单”渲染站点主菜单，选择“侧边栏菜单”渲染导航设置中的侧边栏菜单。
+          options:
+            - label: 隐藏
+              value: "hide"
+            - label: 主菜单
+              value: "primary"
+            - label: 侧边栏菜单
+              value: "sidebar"
         - $formkit: group
           name: footer_group
           label: 页脚友链
@@ -2085,6 +2102,8 @@ spec:
           label: 阅读建议
           value: six
           options:
+            - value: none
+              label: 不显示
             - value: two
               label: 两篇
             - value: six
