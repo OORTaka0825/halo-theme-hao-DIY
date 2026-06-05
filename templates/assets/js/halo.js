@@ -492,52 +492,15 @@ const expandCode = function () {
     checkAd() {
         var default_enable = GLOBAL_CONFIG.source.footer.default_enable
         if (default_enable) {
-            var adElement = document.getElementById("footer-info-panel") || document.getElementById("footer-banner");
+            var adElement = document.getElementById("footer-banner");
             var notMusic = document.body.getAttribute("data-type") != "music"; // 检测是否为音乐页面
-            if (adElement && (adElement.offsetWidth <= 0 || adElement.offsetHeight <= 0) && notMusic) {
+            if ((adElement.offsetWidth <= 0 || adElement.offsetHeight <= 0) && notMusic) {
                 // 元素不可见，可能被拦截
-                console.log("Footer info panel may be hidden by a browser extension");
+                console.log("Element may be blocked by AdBlocker Ultimate");
+                alert("页脚信息可能被AdBlocker Ultimate拦截，请检查广告拦截插件！")
             }
         }
     }
-};
-
-/* === 独立的文章链接复制：不依赖右键菜单，整个复制按钮区域可点击，兼容 PJAX === */
-window.haoCopyCurrentUrl = function (event) {
-    if (event) {
-        event.preventDefault && event.preventDefault();
-        event.stopPropagation && event.stopPropagation();
-        event.stopImmediatePropagation && event.stopImmediatePropagation();
-    }
-    var url = window.location.href.split('#')[0];
-    var done = function () {
-        if (window.btf && typeof btf.snackbarShow === 'function') {
-            btf.snackbarShow('复制本页链接地址成功', false, 2000);
-        }
-    };
-    var fallback = function () {
-        var input = document.createElement('textarea');
-        input.value = url;
-        input.setAttribute('readonly', 'readonly');
-        input.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
-        document.body.appendChild(input);
-        input.focus();
-        input.select();
-        try { document.execCommand('copy'); } catch (e) {}
-        document.body.removeChild(input);
-        done();
-    };
-
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(url).then(done).catch(fallback);
-    } else if (window.rm && typeof rm.copyUrl === 'function') {
-        rm.copyUrl(url);
-        done();
-        if (typeof rm.hideRightMenu === 'function') rm.hideRightMenu();
-    } else {
-        fallback();
-    }
-    return false;
 };
 
 /* === 复制本文链接（挂到文章底部分享区的“链条图标”，支持 PJAX）=== */
@@ -551,7 +514,7 @@ window.haoCopyCurrentUrl = function (event) {
       window.__shareLinkCopy__ = null;
     }
 
-    window.__shareLinkCopy__ = new ClipboardJS('.share-link.copyurl', {
+    window.__shareLinkCopy__ = new ClipboardJS('.share-link .haofont.hao-icon-link', {
       text: () => location.href.split('#')[0]
     });
 

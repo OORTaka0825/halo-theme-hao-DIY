@@ -10,57 +10,6 @@
     border: var(--style-border-always);
 }
 
-
-/* V11 样式一版权卡片右上角装饰：只作用于版权样式一，不影响默认版权样式 */
-#post .post-copyright.post-copyright-one {
-    overflow: visible;
-}
-
-/* 不给 author_group 统一加 position，避免头像绝对定位参照对象改变 */
-#post .post-copyright.post-copyright-one .post-tools,
-#post .post-copyright.post-copyright-one .post-copyright__notice,
-#post .post-copyright.post-copyright-one .post-copyright__author_name,
-#post .post-copyright.post-copyright-one .post-copyright__author_desc {
-    position: relative;
-    z-index: 1;
-}
-
-#post .post-copyright.post-copyright-one .post-copyright__author_img {
-    z-index: 2;
-}
-
-#post .post-copyright-one-decoration {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 165px;
-    height: 145px;
-    overflow: hidden;
-    border-top-right-radius: 12px;
-    pointer-events: none;
-    z-index: 0;
-}
-
-#post .post-copyright-one-decoration::before {
-    content: "C";
-    position: absolute;
-    right: -36px;
-    top: 4px;
-    width: 136px;
-    height: 136px;
-    border-radius: 50%;
-    background: var(--heo-yellow, #f7bd43);
-    color: var(--heo-secondbg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 96px;
-    font-weight: 900;
-    line-height: 1;
-    opacity: 0.98;
-}
-
 @media screen and (max-width: 768px) {
     #post .post-copyright {
         padding: 1rem 1.3rem;
@@ -209,25 +158,6 @@ img.post-copyright__author_img_front {
 .reward-link.mode:hover {
     background: var(--heo-theme);
     box-shadow: none;
-}
-
-
-/* V12 样式一：版权类型按钮默认保持原“订阅”按钮的绿色；悬停/按下才变成黄白 */
-.reward-link.mode.copyright-one-source {
-    background: var(--heo-green);
-    box-shadow: var(--heo-shadow-green);
-}
-
-.reward-link.mode.copyright-one-source a {
-    color: var(--heo-white);
-    font-weight: 700;
-}
-
-.reward-link.mode.copyright-one-source:hover,
-.reward-link.mode.copyright-one-source:focus-within,
-.reward-link.mode.copyright-one-source:active {
-    background: var(--heo-yellow, #f7bd43);
-    box-shadow: var(--heo-shadow-yellow, 0 8px 12px -3px rgba(247, 189, 67, 0.35));
 }
 
 /* 捐助工具栏 */
@@ -384,10 +314,3 @@ img.post-copyright__author_img_front {
     margin: 10px
 }
 
-
-
-@media screen and (max-width: 768px) {
-    #post .post-copyright-one-decoration {
-        display: none;
-    }
-}
