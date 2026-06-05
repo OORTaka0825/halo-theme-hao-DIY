@@ -11,34 +11,6 @@
 <th:block th:fragment="content">
     <div class="post" id="body-wrap">
 
-        <!-- 文章标题背景（独立）：放在文章内容内，PJAX/整页刷新都会跟随文章内容立即生效，避免晚加载导致闪主题色，也避免 head 里重复注入造成卡顿 -->
-        <th:block th:if="${theme.config.post.postHeroColor.enable}">
-            <style data-pjax type="text/css" th:inline="css">
-                #page-header.post-bg{
-                    --hao-post-hero-light: [(${theme.config.post.postHeroColor.light})];
-                    --hao-post-hero-dark: [(${theme.config.post.postHeroColor.dark})];
-                    --hao-post-hero-bg: var(--hao-post-hero-light);
-                    --heo-main: var(--hao-post-hero-bg) !important;
-                    --heo-theme: var(--hao-post-hero-bg) !important;
-                    background-color: var(--hao-post-hero-bg) !important;
-                }
-                [data-theme="dark"] #page-header.post-bg{
-                    --hao-post-hero-bg: var(--hao-post-hero-dark);
-                }
-                #page-header.post-bg::before{
-                    background-color: var(--hao-post-hero-bg) !important;
-                }
-                #page-header.post-bg .coverdiv:after{
-                    box-shadow: 110px -130px 300px 60px var(--hao-post-hero-bg) inset;
-                }
-                @media screen and (max-width: 768px){
-                    #page-header.post-bg .coverdiv:after{
-                        box-shadow: 0 0 205px 59px var(--hao-post-hero-bg) inset;
-                    }
-                }
-            </style>
-        </th:block>
-
         <header class="post-bg" id="page-header">
             <nav th:replace="~{modules/nav :: nav(title = ${post.spec.title})}"></nav>
             <div class="coverdiv loaded" id="coverdiv">
@@ -148,11 +120,9 @@
                                 <i class="haofont hao-icon-spinner fa-spin"></i>
                             </span>
                         </a>
-                        <a class="post-meta-editor"
-   sec:authorize="isAuthenticated()"
-   data-flag-title="编辑文章"
-   title="编辑文章"
-   th:href="@{/console/posts/editor(name=${post.metadata.name},returnToView=true)}">
+                        <a class="post-meta-editor" sec:authorize="isAuthenticated()" data-flag-title="编辑文章"
+                           title="编辑文章"
+                           th:attr="onclick='javascript:window.open(\''+ '/console/posts/editor?name='+${post.metadata.name}+'&returnToView=true\''+ ',' +'\'_self'+'\')'">
                             <i style="margin-top: 2px;" class="haofont hao-icon-bianji post-meta-icon"></i>
                             <span>编辑</span>
                         </a>
@@ -252,10 +222,8 @@
                     </div>
                 </nav>
                 <!-- 阅读建议 -->
-                <th:block th:if="${not #strings.equals(theme.config.post.recommendQuantity, 'none')}">
-                    <th:block th:replace="~{modules/post/relatedPosts}"/>
-                    <hr>
-                </th:block>
+                <th:block th:replace="~{modules/post/relatedPosts}"/>
+                <hr>
                 <!--/* 评论组件 */-->
                 <th:block
                         th:replace="~{modules/comment :: comment(group = 'content.halo.run',
@@ -264,7 +232,6 @@
                   allowComment = ${post.spec.allowComment})}"/>
 
             </div>
-
 
             <!-- 侧栏 -->
             <div th:replace="~{modules/aside :: aside(${theme.config.sidebar.widgetss.postWidget})}"></div>

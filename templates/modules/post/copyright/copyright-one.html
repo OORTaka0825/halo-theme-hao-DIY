@@ -1,11 +1,7 @@
 <!-- 版权样式一 -->
-<th:block th:if="${#strings.equals(theme.config.post.copyrightsStyle, 'one')}"
-          th:with="copyrightType=${#annotations.getOrDefault(post, 'copyrightType','original')},
-                   copyrightUrl=${#annotations.get(post, 'copyrightUrl')},
-                   copyrightEnable=${not #strings.isEmpty(#annotations.get(post, 'copyrightEnable')) ? #annotations.get(post, 'copyrightEnable') == 'true' : theme.config.post.copyrights.enable}">
+<th:block  th:if="${#strings.equals(theme.config.post.copyrightsStyle, 'one')}">
     <!-- 版权声明 -->
-    <div class="post-copyright post-copyright-one">
-        <div class="post-copyright-one-decoration" aria-hidden="true"></div>
+    <div class="post-copyright">
         <div class="post-copyright__author_group"><a class="post-copyright__author_img" href="/about"
                                                      data-pjax-state="">
             <img class="post-copyright__author_img_back entered loading"
@@ -15,7 +11,7 @@
         </div>
         <div class="post-tools" id="post-tools">
             <div class="post-tools-left">
-                <div class="rewardLeftButton" th:if="${theme.config.aboutReward.reward.enable_reward_wz || copyrightEnable}">
+                <div class="rewardLeftButton" th:if="${theme.config.aboutReward.reward.enable_reward_wz || theme.config.post.post_edit.enable_post_edit}">
                     <div th:if="${theme.config.aboutReward.reward.enable_reward_wz}" class="post-reward"
                          onclick="AddRewardMask()">
                         <div class="reward-button button--animated" title="打赏作者"><i class="haofont hao-icon-hand-heart-fill"></i> 打赏作者
@@ -43,14 +39,9 @@
                             </ul>
                         </div>
                     </div>
-                    <div th:if="${copyrightEnable}" class="reward-link mode copyright-one-source"
-                         th:classappend="${#strings.equals(copyrightType,'reprint') ? ' reprint' : ' original'}">
-                        <a class="reward-link-button"
-                           th:href="@{${not #strings.isEmpty(copyrightUrl) ? copyrightUrl : (#strings.equals(copyrightType,'reprint') ? (not #strings.isEmpty(theme.config.post.copyrights.reprintUrl) ? theme.config.post.copyrights.reprintUrl : '#') : (not #strings.isEmpty(theme.config.post.copyrights.originalUrl) ? theme.config.post.copyrights.originalUrl : '#'))}}"
-                           target="_blank" rel="noopener external nofollow noreferrer">
-                            <i class="haofont hao-icon-copyright-line"></i><span th:text="${#strings.equals(copyrightType,'reprint') ? '转载' : '原创'}">原创</span>
-                        </a>
-                    </div>
+                    <div th:if="${theme.config.post.post_edit.enable_post_edit}" class="reward-link mode"><a
+                            class="reward-link-button" th:href="@{${theme.config.post.post_edit.post_edit_url}}"
+                            data-pjax-state=""><i class="haofont hao-icon-plant-fill"></i>订阅</a></div>
                 </div>
                 <div class="shareRight"
                      th:if="${theme.config.post.share_right.mobile_edit  || theme.config.post.share_right.weibo_edit || theme.config.post.share_right.copyurl_edit}">
@@ -72,17 +63,18 @@
                            title="分享到微博">
                             <i class="haofont hao-icon-weibo" style="font-size:22px"></i></a>
                     </div>
-                    <div class="share-link copyurl" th:if="${theme.config.post.share_right.copyurl_edit}"
-                         onclick="return haoCopyCurrentUrl(event);" onkeydown="if(event.key === 'Enter' || event.key === ' '){return haoCopyCurrentUrl(event);}" role="button" tabindex="0" title="复制链接">
-                        <div class="share-button" id="post-share-url"><i
+                    <div class="share-link copyurl" th:if="${theme.config.post.share_right.copyurl_edit}">
+                        <div class="share-button" id="post-share-url" onclick="rm.copyPageUrl()" title="复制链接"><i
                                 class="haofont hao-icon-link"></i></div>
                     </div>
                 </div>
             </div>
         </div>
-        <div th:if="${copyrightEnable}" class="post-copyright__notice">
+        <div th:if="${not #strings.isEmpty(#annotations.get(post, 'copyrightEnable')) ?
+              #annotations.get(post, 'copyrightEnable') == 'true' : theme.config.post.copyrights.enable}"
+             class="post-copyright__notice">
             <span class="post-copyright-info"
-                  th:utext="${#strings.equals(copyrightType,'reprint') ?
+                  th:utext="${#strings.equals(#annotations.getOrDefault(post, 'copyrightType','original'),'reprint') ?
                          theme.config.post.copyrights.reprintContent : theme.config.post.copyrights.content}">
             </span>
         </div>

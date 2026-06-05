@@ -1,5 +1,0 @@
-V2 merge note:
-- Base: theme-hao-V1.zip.
-- Kept V1 browser back / PJAX scroll restoration logic in templates/modules/layouts/layout.html.
-- Applied DIY modified files except layout.html; layout.html only received non-back changes: resource version string and footer social image init.
-- Version label set to 1.3.20-DIY-V2-v1-back.
