@@ -9,22 +9,6 @@
 <!-- head 中自定义的  -->
 
 <head>
-
-    <!-- 刷新不恢复滚动：尽早接管浏览器原生滚动恢复，避免 F5/刷新记住位置 -->
-    <script>
-        (function () {
-            try {
-                if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-            } catch (e) {}
-            try {
-                var nav = performance.getEntriesByType && performance.getEntriesByType('navigation');
-                if (nav && nav[0] && nav[0].type === 'reload') {
-                    window.__haoForceReloadTop = true;
-                    window.scrollTo(0, 0);
-                }
-            } catch (e) {}
-        })();
-    </script>
     <th:block th:replace="~{modules/head :: head(htmlType = ${htmlType})}"/>
     <link th:if="${#strings.equals(theme.config.comments.use, 'Waline')
     && not #strings.isEmpty(theme.config.comments.walines.serverURL)}"
@@ -37,6 +21,19 @@
     <th:block th:if="${head != null}">
         <th:block th:replace="${head}"/>
     </th:block>
+
+    <script>
+    (function(){
+      try {
+        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+        var nav = performance.getEntriesByType && performance.getEntriesByType('navigation');
+        if (nav && nav[0] && nav[0].type === 'reload') {
+          window.__haoReloadTop = true;
+          window.scrollTo(0, 0);
+        }
+      } catch(e) {}
+    })();
+    </script>
 
 </head>
 
@@ -398,297 +395,238 @@
                 , 'meta[name="twitter:title"]', 'meta[name="twitter:url"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]')
 
         var pjax = new Pjax({
-            elements: 'a:not([target="_blank"])',
+            elements: 'a[href]:not([target="_blank"]):not([data-no-pjax]):not([href^="/console"])',
             selectors: pjaxSelectors,
             cacheBust: false,
             analytics: false,
             scrollRestoration: false
         })
 
-        // 旧版 sessionStorage 回退逻辑增强版：
-        // 1) PJAX 自己不恢复滚动（scrollRestoration: false）
-        // 2) 普通 PJAX 跳转前保存当前列表页位置
-        // 3) 浏览器后退/前进时用 sessionStorage 里的位置恢复
-        // 4) F5 / Ctrl+F5 刷新不使用这套位置恢复
+        // Hao V9：回退/前进优先走内存快照缓存，模拟 BFCache，避免返回列表页时重新 XHR 拉取并先闪顶部。
+        // 说明：PJAX 仍负责普通无刷新跳转；浏览器后退/前进如果命中缓存，则直接用当前会话内的 DOM 快照恢复页面。
+        if ('scrollRestoration' in history) {
+            try { history.scrollRestoration = 'manual'; } catch (e) {}
+        }
+
         ;(function () {
-            if (window.__haoLegacyBackRestoreV9) return
-            window.__haoLegacyBackRestoreV9 = true
+            if (window.__haoPjaxSnapshotCacheInit) return
+            window.__haoPjaxSnapshotCacheInit = true
+            window.__haoPjaxCacheReady = true
+            window.__haoPjaxCacheHit = false
 
-            var POS_PREFIX = 'hao:scroll:'
-            var STATE_KEY = 'hao:restore_state'
-            var currentKey = pageKey()
-            var pendingRestore = false
-            var pendingRestoreKey = ''
-            var pendingRestoreY = null
+            var CACHE_LIMIT = 12
+            var cache = window.__haoPjaxSnapshotCache || (window.__haoPjaxSnapshotCache = {})
+            var order = window.__haoPjaxSnapshotCacheOrder || (window.__haoPjaxSnapshotCacheOrder = [])
+            var renderedKey = makeKey(location.href)
             var restoring = false
-            var saveTicking = false
-            var rafId = 0
-            var timers = []
+            var lastRestoreY = null
 
-            function pageKey(url) {
+            function makeKey(url) {
                 try {
-                    var u = url ? new URL(url, location.href) : location
-                    return u.pathname + u.search
+                    var u = new URL(url, location.href)
+                    return u.origin + u.pathname.replace(/\/+$/, '/') + u.search
                 } catch (e) {
-                    return location.pathname + location.search
+                    return String(url || location.href).split('#')[0]
                 }
             }
             function getY() {
                 return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
             }
-            function isListPage() {
-                var bw = document.getElementById('body-wrap')
-                return !!(bw && bw.classList && bw.classList.contains('page'))
-            }
-            function isPostPage() {
-                var bw = document.getElementById('body-wrap')
-                return !!(bw && bw.classList && bw.classList.contains('post'))
-            }
-            function setPos(key, y) {
-                try { sessionStorage.setItem(POS_PREFIX + key, String(Math.max(0, parseInt(y, 10) || 0))) } catch (e) {}
-            }
-            function getPos(key) {
-                try { return sessionStorage.getItem(POS_PREFIX + key) } catch (e) { return null }
-            }
-            function setState(v) {
-                try { sessionStorage.setItem(STATE_KEY, v ? '1' : '0') } catch (e) {}
-            }
-            function getState() {
-                try { return sessionStorage.getItem(STATE_KEY) === '1' } catch (e) { return false }
-            }
-            function getNavigationType() {
-                try {
-                    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')
-                    return nav && nav[0] && nav[0].type
-                } catch (e) {}
-                return ''
+            function getX() {
+                return window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0
             }
             function isReloadNavigation() {
-                return getNavigationType() === 'reload' || window.__haoForceReloadTop
-            }
-
-            function saveCurrentListPosition(force) {
-                if (!force && !isListPage()) return
-                if (restoring) return
-                setPos(currentKey || pageKey(), getY())
-            }
-
-            function throttledSave() {
-                if (!isListPage()) return
-                if (restoring) return
-                if (saveTicking) return
-                saveTicking = true
-                requestAnimationFrame(function () {
-                    saveTicking = false
-                    saveCurrentListPosition(false)
-                })
-            }
-
-            function revealBodyWrap() {
-                var bw = document.getElementById('body-wrap')
-                if (bw) {
-                    bw.style.visibility = ''
-                    bw.style.pointerEvents = ''
-                }
-            }
-
-            function cancelRestore() {
-                restoring = false
-                pendingRestore = false
-                pendingRestoreKey = ''
-                pendingRestoreY = null
-                if (rafId) { try { cancelAnimationFrame(rafId) } catch (e) {} rafId = 0 }
-                while (timers.length) { try { clearTimeout(timers.pop()) } catch (e) {} }
-                setState(false)
-                revealBodyWrap()
-                try { document.documentElement.style.scrollBehavior = '' } catch (e) {}
-            }
-
-            function prepareBackForwardRestore(e) {
-                pendingRestore = true
-                pendingRestoreKey = pageKey((e && e.url) || location.href)
-                var stored = getPos(pendingRestoreKey)
-                pendingRestoreY = stored !== null ? (parseInt(stored, 10) || 0) : null
-                window.__haoPjaxBackForwardNav = true
-
-                var bw = document.getElementById('body-wrap')
-                if (bw) {
-                    bw.style.visibility = 'hidden'
-                    bw.style.pointerEvents = 'none'
-                }
-            }
-
-            // 拦截 pjax.loadUrl：普通跳转前保存列表页位置；回退/前进不保存，避免把文章页位置写到首页 key。
-            function patchPjaxLoadUrl() {
                 try {
-                    if (!window.pjax || window.pjax.__haoLegacyBackRestorePatched) return
-                    var orig = window.pjax.loadUrl
-                    window.pjax.loadUrl = function (url, options) {
-                        options = options || {}
-                        if (!(options.backward || options.forward)) {
-                            if (isListPage()) saveCurrentListPosition(true)
-                            cancelRestore()
-                        } else {
-                            prepareBackForwardRestore({ url: (options && options.url) || url, backward: options.backward, forward: options.forward })
-                        }
-                        return orig.apply(this, arguments)
-                    }
-                    window.pjax.__haoLegacyBackRestorePatched = true
+                    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')
+                    return !!(nav && nav[0] && nav[0].type === 'reload')
+                } catch (e) { return false }
+            }
+            function touchOrder(key) {
+                var i = order.indexOf(key)
+                if (i !== -1) order.splice(i, 1)
+                order.push(key)
+                while (order.length > CACHE_LIMIT) {
+                    var old = order.shift()
+                    try { delete cache[old] } catch (e) {}
+                }
+                window.__haoPjaxCacheSize = order.length
+            }
+            function setScrollForKey(key, x, y) {
+                try {
+                    if (!key) return
+                    sessionStorage.setItem('hao:bf-scroll:' + key, JSON.stringify([x || 0, y || 0]))
                 } catch (e) {}
             }
-
-            function wrapThemeScrollHelpers() {
+            function getScrollForKey(key) {
                 try {
-                    if (typeof window.scrollToPost === 'function' && !window.__haoScrollToPostWrappedV9) {
-                        var orig = window.scrollToPost
-                        window.scrollToPost = function () {
-                            if (getState()) return
-                            return orig.apply(this, arguments)
-                        }
-                        window.__haoScrollToPostWrappedV9 = true
-                    }
+                    var raw = sessionStorage.getItem('hao:bf-scroll:' + key)
+                    if (!raw) return null
+                    var pos = JSON.parse(raw)
+                    if (!pos || pos.length < 2) return null
+                    return [parseInt(pos[0], 10) || 0, parseInt(pos[1], 10) || 0]
+                } catch (e) { return null }
+            }
+            function clearReloadScroll() {
+                // 刷新 / F5 / Ctrl+F5 不沿用自定义保存的位置。
+                if (!isReloadNavigation()) return
+                try {
+                    Object.keys(sessionStorage).forEach(function (k) {
+                        if (k.indexOf('hao:bf-scroll:') === 0) sessionStorage.removeItem(k)
+                    })
                 } catch (e) {}
+                try { window.scrollTo(0, 0) } catch (e) {}
+                requestAnimationFrame(function () { try { window.scrollTo(0, 0) } catch (e) {} })
+                setTimeout(function () { try { window.scrollTo(0, 0) } catch (e) {} }, 60)
+            }
+            function ensureStyle() {
+                if (document.getElementById('hao-pjax-cache-restore-style')) return
+                var style = document.createElement('style')
+                style.id = 'hao-pjax-cache-restore-style'
+                style.textContent = 'html.hao-pjax-cache-restoring #body-wrap{visibility:hidden!important;pointer-events:none!important;} html.hao-pjax-cache-restoring{scroll-behavior:auto!important;}'
+                document.head.appendChild(style)
+            }
+            function saveSnapshot(key) {
                 try {
-                    if (window.btf && typeof window.btf.scrollToDest === 'function' && !window.btf.__haoScrollToDestWrappedV9) {
-                        var orig2 = window.btf.scrollToDest
-                        window.btf.scrollToDest = function () {
-                            if (getState()) return
-                            return orig2.apply(this, arguments)
-                        }
-                        window.btf.__haoScrollToDestWrappedV9 = true
+                    key = key || renderedKey || makeKey(location.href)
+                    if (!key) return
+                    setScrollForKey(key, getX(), getY())
+                    cache[key] = {
+                        html: document.documentElement.outerHTML,
+                        title: document.title,
+                        time: Date.now()
                     }
+                    touchOrder(key)
                 } catch (e) {}
             }
-
-            function startRestore(y) {
-                if (y === null || typeof y === 'undefined') {
-                    revealBodyWrap()
-                    return
-                }
-                y = Math.max(0, parseInt(y, 10) || 0)
-                restoring = true
-                setState(true)
-
-                var prevBehavior = document.documentElement.style.scrollBehavior
+            function dispatchPjaxSend(options) {
+                try {
+                    var ev = document.createEvent('HTMLEvents')
+                    ev.initEvent('pjax:send', true, true)
+                    if (options) Object.keys(options).forEach(function (k) { ev[k] = options[k] })
+                    document.dispatchEvent(ev)
+                } catch (e) {}
+            }
+            function restoreScroll(pos) {
+                if (!pos || pos.length < 2) return
+                var x = parseInt(pos[0], 10) || 0
+                var y = parseInt(pos[1], 10) || 0
+                lastRestoreY = y
+                var oldBehavior = document.documentElement.style.scrollBehavior
                 try { document.documentElement.style.scrollBehavior = 'auto' } catch (e) {}
-
-                var start = Date.now()
-                var lastHeight = document.body.scrollHeight
-                var stableFrames = 0
-                var maxFrames = 42
-
                 function go() {
-                    try { window.scrollTo(0, y) } catch (e) {}
+                    try { window.scrollTo(x, y) } catch (e) {}
                 }
-                function done() {
-                    go()
-                    revealBodyWrap()
-                    restoring = false
-                    pendingRestore = false
-                    pendingRestoreKey = ''
-                    pendingRestoreY = null
-                    setState(false)
-                    try { document.documentElement.style.scrollBehavior = prevBehavior || '' } catch (e) {}
-                    if (rafId) { try { cancelAnimationFrame(rafId) } catch (e) {} rafId = 0 }
-                    while (timers.length) { try { clearTimeout(timers.pop()) } catch (e) {} }
-                }
-                function tick() {
-                    var h = document.body.scrollHeight
-                    var cur = getY()
-                    if (h !== lastHeight) {
-                        lastHeight = h
-                        stableFrames = 0
-                    } else if (Math.abs(cur - y) <= 3) {
-                        stableFrames++
-                    } else {
-                        stableFrames = 0
-                    }
-
-                    go()
-
-                    if (stableFrames >= 3 || Date.now() - start > 1200 || --maxFrames <= 0) return done()
-                    rafId = requestAnimationFrame(tick)
-                }
-
                 go()
-                rafId = requestAnimationFrame(tick)
-                ;[60, 160, 360, 700, 1050].forEach(function (ms) {
-                    timers.push(setTimeout(function () { if (restoring) go() }, ms))
-                })
+                requestAnimationFrame(go)
+                ;[20, 60, 120, 240, 480, 800, 1200].forEach(function (ms) { setTimeout(go, ms) })
+                setTimeout(function () {
+                    try { document.documentElement.style.scrollBehavior = oldBehavior || '' } catch (e) {}
+                }, 1300)
+            }
+            function finishRestore() {
+                var y = lastRestoreY
+                if (y != null) restoreScroll([0, y])
+                setTimeout(function () {
+                    document.documentElement.classList.remove('hao-pjax-cache-restoring')
+                    restoring = false
+                    lastRestoreY = null
+                }, 80)
+                setTimeout(function () {
+                    document.documentElement.classList.remove('hao-pjax-cache-restoring')
+                    restoring = false
+                    lastRestoreY = null
+                }, 700)
             }
 
-            patchPjaxLoadUrl()
-            wrapThemeScrollHelpers()
-            currentKey = pageKey()
-            setState(false)
+            ensureStyle()
+            clearReloadScroll()
 
-            window.addEventListener('scroll', throttledSave, { passive: true })
+            // 初始页面也放入缓存；稍后再更新一次，尽量记录懒加载图片/卡片稳定后的 DOM。
+            setTimeout(function () { saveSnapshot(renderedKey) }, 120)
+            setTimeout(function () { saveSnapshot(renderedKey) }, 1200)
 
-            ;['wheel', 'touchstart', 'touchmove', 'keydown', 'mousedown'].forEach(function (evt) {
-                window.addEventListener(evt, function () {
-                    if (restoring) cancelRestore()
-                }, { passive: true })
-            })
-
+            // 普通 PJAX 跳转前：保存当前页面快照和滚动位置。刷新不会触发这个事件。
             document.addEventListener('pjax:send', function (e) {
-                if (e && (e.backward || e.forward)) {
-                    prepareBackForwardRestore(e)
-                    return
-                }
-                if (isListPage()) saveCurrentListPosition(true)
-                pendingRestore = false
-                pendingRestoreKey = ''
-                pendingRestoreY = null
+                if (e && e._haoCacheRestore) return
+                if (isReloadNavigation()) return
+                saveSnapshot(renderedKey)
             })
+
+            // 回退/前进：如果目标页有快照，则阻止 PJAX 原生 popstate XHR，直接恢复快照。
+            window.addEventListener('popstate', function (ev) {
+                try {
+                    var st = ev.state || {}
+                    var targetUrl = st.url || location.href
+                    var targetKey = makeKey(targetUrl)
+                    var item = cache[targetKey]
+                    window.__haoPjaxCacheHit = false
+                    if (!item || !item.html || !window.pjax || typeof window.pjax.loadContent !== 'function') return
+
+                    // 此时 location 已经变成目标地址，但 DOM 仍是离开的页面，所以必须用 renderedKey 保存当前 DOM。
+                    saveSnapshot(renderedKey)
+
+                    ev.stopImmediatePropagation()
+                    ev.preventDefault && ev.preventDefault()
+
+                    var pos = getScrollForKey(targetKey) || st.scrollPos || [0, 0]
+                    var backward = false
+                    var forward = false
+                    try {
+                        if (typeof st.uid !== 'undefined' && window.pjax) {
+                            backward = st.uid < window.pjax.lastUid
+                            forward = st.uid > window.pjax.lastUid
+                            window.pjax.lastUid = st.uid
+                        }
+                    } catch (e) {}
+
+                    restoring = true
+                    window.__haoPjaxCacheHit = true
+                    document.documentElement.classList.add('hao-pjax-cache-restoring')
+                    restoreScroll(pos)
+
+                    var options = Object.assign({}, window.pjax.options || {}, {
+                        url: targetUrl,
+                        title: st.title || item.title || document.title,
+                        history: false,
+                        scrollRestoration: false,
+                        scrollTo: false,
+                        scrollPos: pos,
+                        backward: backward || !forward,
+                        forward: forward,
+                        _haoCacheRestore: true
+                    })
+
+                    dispatchPjaxSend(options)
+                    window.pjax.abortRequest && window.pjax.abortRequest(window.pjax.request)
+                    window.pjax.state.href = targetUrl
+                    window.pjax.state.options = options
+                    window.pjax.loadContent(item.html, options)
+                    renderedKey = targetKey
+                    restoreScroll(pos)
+                } catch (e) {
+                    document.documentElement.classList.remove('hao-pjax-cache-restoring')
+                    restoring = false
+                }
+            }, true)
 
             document.addEventListener('pjax:complete', function (e) {
-                currentKey = pageKey()
-                patchPjaxLoadUrl()
-                wrapThemeScrollHelpers()
-
-                if (isPostPage()) {
-                    if (!location.hash && !(e && (e.backward || e.forward))) {
-                        window.scrollTo(0, 0)
-                        timers.push(setTimeout(function () { if (!window.__haoTocClicking) window.scrollTo(0, 0) }, 60))
-                    }
-                    revealBodyWrap()
-                    return
+                renderedKey = makeKey(location.href)
+                if (e && e._haoCacheRestore) {
+                    var pos = getScrollForKey(renderedKey) || e.scrollPos || [0, 0]
+                    restoreScroll(pos)
+                    finishRestore()
                 }
-
-                if (pendingRestore || (e && (e.backward || e.forward))) {
-                    var key = pendingRestoreKey || currentKey
-                    var stored = pendingRestoreY !== null ? pendingRestoreY : getPos(key)
-                    setTimeout(function () {
-                        startRestore(stored !== null ? parseInt(stored, 10) || 0 : 0)
-                    }, 0)
-                } else {
-                    revealBodyWrap()
-                }
+                setTimeout(function () { saveSnapshot(renderedKey) }, 120)
+                setTimeout(function () { saveSnapshot(renderedKey) }, 1200)
             })
 
-            window.addEventListener('pageshow', function (ev) {
-                currentKey = pageKey()
-                patchPjaxLoadUrl()
-                wrapThemeScrollHelpers()
-                if (isReloadNavigation()) {
-                    try { window.scrollTo(0, 0) } catch (e) {}
-                    return
-                }
-                if (ev && ev.persisted && isListPage()) {
-                    var stored = getPos(currentKey)
-                    if (stored !== null) startRestore(parseInt(stored, 10) || 0)
-                }
+            window.addEventListener('pageshow', function () {
+                clearReloadScroll()
+                renderedKey = makeKey(location.href)
+                setTimeout(function () { saveSnapshot(renderedKey) }, 200)
             })
-
-            // 刷新不保存；这里只在进入 BFCache 时补一次。
-            window.addEventListener('pagehide', function (ev) {
-                if (ev && ev.persisted && isListPage()) saveCurrentListPosition(true)
-            }, { passive: true })
-
-            if ('scrollRestoration' in history) {
-                try { history.scrollRestoration = 'manual' } catch (e) {}
-            }
         })()
+
 
         document.addEventListener('pjax:send', function (e) {
 
@@ -811,7 +749,7 @@
     }
 </script>
 
-<!-- PJAX 回退/滚动恢复：使用旧版 sessionStorage 逻辑增强版。 -->
+<!-- 自定义 PJAX 回退/滚动恢复脚本已关闭：仅保留主题 PJAX 开关与 PJAX 自带 scrollRestoration。 -->
     <!-- DIY × PLUS 一体化 Loader · v12-merge + DreamConfig + SnowRebuildByIdRange -->
 <script th:inline="javascript">
 (function(){
