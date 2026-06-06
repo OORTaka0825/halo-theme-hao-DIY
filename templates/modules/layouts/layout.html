@@ -26,12 +26,25 @@
         })();
     </script>
     <style>
-        /* PJAX 浏览器回退/前进恢复期间短暂隐藏新页面内容，避免先看到首页顶部再跳到目标位置 */
+        /* PJAX 浏览器回退/前进恢复期间隐藏正文，并临时撑高页面，避免先看到首页顶部再跳到目标位置 */
         html.hao-pjax-restore-lock #body-wrap {
+            opacity: 0 !important;
             visibility: hidden !important;
+            pointer-events: none !important;
         }
-        html.hao-pjax-restore-lock {
+        html.hao-pjax-restore-lock,
+        html.hao-pjax-restore-lock body {
             scroll-behavior: auto !important;
+            overflow-anchor: none !important;
+        }
+        #hao-pjax-restore-spacer {
+            display: block !important;
+            width: 1px !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            overflow: hidden !important;
+            clear: both !important;
         }
     </style>
     <th:block th:replace="~{modules/head :: head(htmlType = ${htmlType})}"/>
@@ -427,6 +440,8 @@
             var savedBodyMinHeight = ''
             var pendingRestorePos = null
             var locked = false
+            var restoreToken = 0
+            var SPACER_ID = 'hao-pjax-restore-spacer'
 
             function scrollEl() {
                 return document.scrollingElement || document.documentElement || document.body
@@ -455,25 +470,60 @@
                 try { document.documentElement.scrollTop = y } catch (e) {}
                 try { document.body.scrollTop = y } catch (e) {}
             }
-            function prepareHeight(pos) {
-                pos = normalizePos(pos)
-                if (!pos) return
-                var y = pos[1]
+            function getSpacer() {
+                var s = document.getElementById(SPACER_ID)
+                if (!s && document.body) {
+                    s = document.createElement('div')
+                    s.id = SPACER_ID
+                    s.setAttribute('aria-hidden', 'true')
+                    s.style.cssText = 'display:block!important;width:1px!important;height:0;opacity:0!important;visibility:hidden!important;pointer-events:none!important;overflow:hidden!important;clear:both!important;'
+                    document.body.appendChild(s)
+                }
+                return s
+            }
+            function getSpacerHeight() {
+                var s = document.getElementById(SPACER_ID)
+                return s ? (s.offsetHeight || parseInt(s.style.height, 10) || 0) : 0
+            }
+            function getNaturalHeight() {
                 var body = document.body
-                try {
-                    var needHeight = Math.max(
-                        html.scrollHeight || 0,
-                        body ? body.scrollHeight || 0 : 0,
-                        y + window.innerHeight + 260
-                    )
-                    html.style.minHeight = needHeight + 'px'
-                    if (body && body.style) body.style.minHeight = needHeight + 'px'
-                } catch (e) {}
+                var spacerH = getSpacerHeight()
+                return Math.max(
+                    (html.scrollHeight || 0) - spacerH,
+                    body ? (body.scrollHeight || 0) - spacerH : 0
+                )
+            }
+            function ensureRestoreHeight(pos) {
+                pos = normalizePos(pos)
+                if (!pos || !document.body) return
+                var y = pos[1]
+                // 多预留一点高度，避免新 DOM 刚替换、懒加载图片未撑开时滚动条被浏览器夹回顶部。
+                var needHeight = Math.max(y + window.innerHeight + 900, window.innerHeight + 1200)
+                var naturalHeight = getNaturalHeight()
+                var spacer = getSpacer()
+                var spacerHeight = Math.max(0, needHeight - naturalHeight)
+                try { spacer.style.height = spacerHeight + 'px' } catch (e) {}
+                try { html.style.minHeight = Math.max(needHeight, naturalHeight) + 'px' } catch (e) {}
+                try { document.body.style.minHeight = Math.max(needHeight, naturalHeight) + 'px' } catch (e) {}
+            }
+            function clearRestoreHeight(pos, force) {
+                var spacer = document.getElementById(SPACER_ID)
+                if (spacer && spacer.parentNode) {
+                    try { spacer.parentNode.removeChild(spacer) } catch (e) {}
+                }
+                try { html.style.minHeight = savedHtmlMinHeight || '' } catch (e) {}
+                try { if (document.body && document.body.style) document.body.style.minHeight = savedBodyMinHeight || '' } catch (e) {}
+                if (pos) {
+                    setScroll(pos)
+                    requestAnimationFrame(function () { setScroll(pos) })
+                    ;[60, 160, 360].forEach(function (ms) { setTimeout(function () { setScroll(pos) }, ms) })
+                }
             }
             function lockForRestore(pos) {
                 pos = normalizePos(pos)
                 if (!pos) return
                 pendingRestorePos = pos
+                restoreToken++
                 if (!locked) {
                     savedHtmlBehavior = html.style.scrollBehavior || ''
                     savedHtmlMinHeight = html.style.minHeight || ''
@@ -482,17 +532,59 @@
                 }
                 try { html.classList.add('hao-pjax-restore-lock') } catch (e) {}
                 try { html.style.scrollBehavior = 'auto' } catch (e) {}
-                prepareHeight(pos)
-                // 关键：回退开始时先把滚动条放到目标位置。
-                // 后续 PJAX 替换 DOM 时，页面会在这个位置附近完成刷新，而不是先显示顶部。
+                window.__haoPjaxRestoring = true
+                ensureRestoreHeight(pos)
                 setScroll(pos)
             }
-            function unlockRestore() {
+            function revealAtPosition(pos) {
+                pos = normalizePos(pos)
+                if (!pos) return
+                ensureRestoreHeight(pos)
+                setScroll(pos)
                 try { html.classList.remove('hao-pjax-restore-lock') } catch (e) {}
                 try { html.style.scrollBehavior = savedHtmlBehavior || '' } catch (e) {}
-                try { html.style.minHeight = savedHtmlMinHeight || '' } catch (e) {}
-                try { if (document.body && document.body.style) document.body.style.minHeight = savedBodyMinHeight || '' } catch (e) {}
                 locked = false
+
+                // 关键：显示页面后先不要立刻移除撑高高度。
+                // 否则图片/瀑布流还没撑开时，浏览器会把滚动条夹回顶部，造成“顶部刷新完再跳”。
+                holdHeightUntilStable(pos, ++restoreToken)
+            }
+            function holdHeightUntilStable(pos, token) {
+                pos = normalizePos(pos)
+                if (!pos) return
+                var start = Date.now()
+                var lastNatural = -1
+                var stable = 0
+                function check() {
+                    if (token !== restoreToken) return
+                    ensureRestoreHeight(pos)
+                    setScroll(pos)
+                    var natural = getNaturalHeight()
+                    if (Math.abs(natural - lastNatural) < 3) stable++
+                    else stable = 0
+                    lastNatural = natural
+                    var safeHeight = natural >= pos[1] + window.innerHeight + 120
+                    var enoughTime = Date.now() - start > 900
+                    if ((safeHeight && stable >= 3 && enoughTime) || Date.now() - start > 6000) {
+                        if (safeHeight) {
+                            clearRestoreHeight(pos)
+                        }
+                        // 如果 6 秒后仍然没有足够高度，宁可保留透明 spacer，避免再次跳顶。
+                        // 后续普通 PJAX 跳转会清理它。
+                        window.__haoPjaxRestoring = false
+                        return
+                    }
+                    setTimeout(check, 120)
+                }
+                check()
+                ;[60, 160, 360, 700, 1100, 1800, 2800].forEach(function (ms) {
+                    setTimeout(function () {
+                        if (token === restoreToken) {
+                            ensureRestoreHeight(pos)
+                            setScroll(pos)
+                        }
+                    }, ms)
+                })
             }
             function saveCurrentScrollState() {
                 // 回退/前进时 location 已经变成目标地址，但 DOM 可能还是旧文章页；这时不能保存。
@@ -542,19 +634,13 @@
                 var start = Date.now()
                 var tries = 0
                 function tick() {
-                    prepareHeight(pos)
+                    ensureRestoreHeight(pos)
                     setScroll(pos)
                     tries++
                     var close = Math.abs(getY() - pos[1]) <= 4
-                    var expired = Date.now() - start > 1200
-                    // 至少等几帧，让 refreshFn/lazyload 初始化有机会完成；但只要位置已经正确，就尽快显示。
-                    if ((close && tries >= 4) || expired) {
-                        setScroll(pos)
-                        unlockRestore()
-                        // 解锁后图片/瀑布流可能继续改变高度，短时间内再校正几次。
-                        ;[60, 160, 360, 700, 1100].forEach(function (ms) {
-                            setTimeout(function () { setScroll(pos) }, ms)
-                        })
+                    var expired = Date.now() - start > 1800
+                    if ((close && tries >= 3) || expired) {
+                        revealAtPosition(pos)
                         pendingRestorePos = null
                         return
                     }
@@ -563,8 +649,7 @@
                 requestAnimationFrame(tick)
             }
 
-            // 在 PJAX 真正替换 #body-wrap 的瞬间就先撑高并跳到目标位置。
-            // 这样新首页不是先在顶部渲染完再跳，而是在目标滚动位置附近完成渲染。
+            // 在 PJAX 替换 #body-wrap 的瞬间就先撑高并跳到目标位置。
             try {
                 pjax.options.switches = pjax.options.switches || {}
                 var oldBodyWrapSwitch = pjax.options.switches['#body-wrap']
@@ -572,12 +657,17 @@
                     if (options && (options.backward || options.forward) && options.scrollPos) {
                         lockForRestore(options.scrollPos)
                         oldEl.outerHTML = newEl.outerHTML
-                        prepareHeight(options.scrollPos)
+                        ensureRestoreHeight(options.scrollPos)
                         setScroll(options.scrollPos)
-                        requestAnimationFrame(function () { setScroll(options.scrollPos) })
+                        requestAnimationFrame(function () {
+                            ensureRestoreHeight(options.scrollPos)
+                            setScroll(options.scrollPos)
+                        })
                         this.onSwitch()
                         return
                     }
+                    // 普通 PJAX 导航时清掉上一次为回退保留的透明撑高层。
+                    clearRestoreHeight(null, true)
                     if (typeof oldBodyWrapSwitch === 'function') {
                         return oldBodyWrapSwitch.call(this, oldEl, newEl, options)
                     }
@@ -603,6 +693,7 @@
                     lockForRestore(e.scrollPos || (history.state && history.state.scrollPos) || pendingRestorePos)
                     return
                 }
+                clearRestoreHeight(null, true)
                 saveCurrentScrollState()
             })
 
@@ -612,8 +703,9 @@
             }, { passive: true })
 
             document.addEventListener('pjax:error', function () {
-                unlockRestore()
+                try { html.classList.remove('hao-pjax-restore-lock') } catch (e) {}
                 pendingRestorePos = null
+                window.__haoPjaxRestoring = false
             })
 
             document.addEventListener('pjax:complete', function (e) {
