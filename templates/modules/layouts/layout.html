@@ -468,7 +468,10 @@
                 go()
                 requestAnimationFrame(function () {
                     go()
-                    requestAnimationFrame(unlock)
+                    requestAnimationFrame(function () {
+                        go()
+                        requestAnimationFrame(unlock)
+                    })
                 })
                 ;[30, 80, 150, 300, 600, 1000, 1400].forEach(function (ms) { setTimeout(go, ms) })
                 setTimeout(function () {
@@ -506,13 +509,43 @@
                 ;[50, 150, 350, 700].forEach(function (ms) { setTimeout(top, ms) })
             }
 
-            document.addEventListener('pjax:send', saveCurrentScrollState)
-            // 只在 PJAX 导航时记录滚动位置；普通浏览器刷新 / F5 / Ctrl+F5 不写入自定义位置。
+            function beginBackForwardVisualLock(pos) {
+                // 关键：回退/前进一开始就隐藏 #body-wrap，而不是等 pjax:complete 后再隐藏。
+                // 否则新首页 DOM 已经替换并先绘制到顶部，用户会看到“顶部闪一下再跳回位置”。
+                if (!pos || pos.length < 2) return
+                try { window.__haoPjaxBackForwardNav = true } catch (e) {}
+                try {
+                    document.documentElement.classList.add('hao-pjax-restore-lock')
+                    document.documentElement.style.scrollBehavior = 'auto'
+                } catch (e) {}
+            }
+
+            // 捕获浏览器后退/前进，尽量早于 PJAX 的普通 popstate 处理进入隐藏状态。
+            // 注意这里只做视觉锁，不保存位置，避免 popstate 后 location 已变成目标页时误把文章页位置写到首页 state。
+            window.addEventListener('popstate', function (ev) {
+                try {
+                    var st = ev && ev.state
+                    if (st && st.scrollPos) beginBackForwardVisualLock(st.scrollPos)
+                } catch (e) {}
+            }, true)
+
+            document.addEventListener('pjax:send', function (e) {
+                if (e && (e.backward || e.forward)) {
+                    beginBackForwardVisualLock(e.scrollPos || (history.state && history.state.scrollPos))
+                    return
+                }
+                saveCurrentScrollState()
+            })
+            // 只在 PJAX 普通点击导航时记录滚动位置；普通浏览器刷新 / F5 / Ctrl+F5 不写入自定义位置。
             // pagehide 在刷新时也会触发，若这里无条件保存，会让刷新被自定义回退逻辑影响。
             window.addEventListener('pagehide', function (ev) {
                 // 进入 BFCache 时可安全保存；普通 reload / hard reload 的 ev.persisted 为 false，不处理。
                 if (ev && ev.persisted) saveCurrentScrollState()
             }, { passive: true })
+
+            document.addEventListener('pjax:error', function () {
+                try { document.documentElement.classList.remove('hao-pjax-restore-lock') } catch (e) {}
+            })
 
             document.addEventListener('pjax:complete', function (e) {
                 if ((e.backward || e.forward) && e.scrollPos) {
