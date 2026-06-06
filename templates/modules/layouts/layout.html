@@ -18,6 +18,54 @@
     <script th:if="${pluginFinder.available('plugin-katex')}" defer=""
             src="/plugins/plugin-katex/assets/static/katex.min.js"></script>
     <script th:src="${assets_link + '/js/custom.js' + theme_version}"></script>
+    <!-- 刷新/F5/Ctrl+F5 不恢复旧滚动位置：只影响 reload，不影响浏览器后退/前进 -->
+    <script>
+    (function () {
+        function getNavType() {
+            try {
+                var nav = performance.getEntriesByType && performance.getEntriesByType('navigation');
+                if (nav && nav[0] && nav[0].type) return nav[0].type;
+            } catch (e) {}
+            try {
+                if (performance.navigation && performance.navigation.type === 1) return 'reload';
+            } catch (e) {}
+            return '';
+        }
+
+        var navType = getNavType();
+        window.__haoInitialNavType = navType;
+        window.__haoReloadNoRestore = navType === 'reload';
+
+        if (!window.__haoReloadNoRestore) return;
+
+        if ('scrollRestoration' in history) {
+            try { history.scrollRestoration = 'manual'; } catch (e) {}
+        }
+
+        try {
+            var s = history.state || {};
+            if (s && s.scrollPos) {
+                delete s.scrollPos;
+                history.replaceState(s, document.title, location.href);
+            }
+        } catch (e) {}
+
+        function topNow() {
+            try { window.scrollTo(0, 0); } catch (e) {}
+            try { document.documentElement.scrollTop = 0; } catch (e) {}
+            try { document.body.scrollTop = 0; } catch (e) {}
+        }
+
+        topNow();
+        document.addEventListener('DOMContentLoaded', topNow, { once: true });
+        window.addEventListener('load', function () {
+            topNow();
+            setTimeout(topNow, 30);
+            setTimeout(topNow, 120);
+            setTimeout(topNow, 300);
+        }, { once: true });
+    })();
+    </script>
     <th:block th:if="${head != null}">
         <th:block th:replace="${head}"/>
     </th:block>
@@ -376,27 +424,102 @@
 
 
     <th:block th:if="${theme.config.other.pjax_enable}"><script>
-        // S9 原版 PJAX 逻辑：只保留 PJAX 自身切页与刷新流程，不额外接管回退位置。
-        // 这样浏览器能进 BFCache 时，会表现得更接近无痕模式的“原页面现场恢复”。
         let pjaxSelectors = ['title', '#config-diff', '#body-wrap', '#rightside-config-hide', '#rightside-config-show', '.js-pjax', '#site-config']
 
         pjaxSelectors.unshift('meta[property="og:type"]', 'meta[property="og:image"]', 'meta[property="og:title"]', 'meta[property="og:url"]', 'meta[property="og:description"]'
                 , 'meta[name="twitter:title"]', 'meta[name="twitter:url"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]')
 
         var pjax = new Pjax({
-            elements: 'a:not([target="_blank"])',
+            elements: 'a[href]:not([target="_blank"]):not([data-no-pjax]):not([href^="/console"])',
             selectors: pjaxSelectors,
             cacheBust: false,
             analytics: false,
             scrollRestoration: false
         })
 
-        document.addEventListener('pjax:send', function () {
+        // BFCache / 普通回退兼容：后退/前进允许浏览器原生恢复；
+        // 但刷新 / F5 / Ctrl+F5 不恢复旧滚动位置，避免刷新后停在原位置。
+        if ('scrollRestoration' in history) {
+            try {
+                history.scrollRestoration = window.__haoReloadNoRestore ? 'manual' : 'auto';
+            } catch (e) {}
+        }
+
+        ;(function () {
+            function getY() {
+                return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
+            }
+            function saveCurrentScrollState() {
+                try {
+                    var s = history.state || {}
+                    s.url = s.url || window.location.href
+                    s.title = s.title || document.title
+                    s.uid = s.uid || ('hao' + Date.now())
+                    s.scrollPos = [document.documentElement.scrollLeft || document.body.scrollLeft || 0, getY()]
+                    history.replaceState(s, document.title, window.location.href)
+                } catch (e) {}
+            }
+            function delayedRestore(pos) {
+                if (!pos || pos.length < 2) return
+                var x = parseInt(pos[0], 10) || 0
+                var y = parseInt(pos[1], 10) || 0
+                var oldBehavior = document.documentElement.style.scrollBehavior
+                try { document.documentElement.style.scrollBehavior = 'auto' } catch (e) {}
+                function go() { try { window.scrollTo(x, y) } catch (e) {} }
+                // 关键优化：立即恢复一次。原来只放在 requestAnimationFrame 里，
+                // 浏览器有机会先绘制页面顶部，再下一帧跳回保存位置，导致“闪一下顶部”。
+                go()
+                requestAnimationFrame(go)
+                ;[30, 80, 150, 300, 600, 1000].forEach(function (ms) { setTimeout(go, ms) })
+                setTimeout(function () {
+                    try { document.documentElement.style.scrollBehavior = oldBehavior || '' } catch (e) {}
+                }, 1100)
+            }
+            function isBackForwardDocumentNavigation() {
+                try {
+                    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')
+                    return !!(nav && nav[0] && nav[0].type === 'back_forward')
+                } catch (e) { return false }
+            }
+
+            document.addEventListener('pjax:send', saveCurrentScrollState)
+            // 只在 PJAX 导航时记录滚动位置；普通浏览器刷新 / F5 / Ctrl+F5 不写入自定义位置。
+            // pagehide 在刷新时也会触发，若这里无条件保存，会让刷新被自定义回退逻辑影响。
+            window.addEventListener('pagehide', function (ev) {
+                // 进入 BFCache 时可安全保存；普通 reload / hard reload 的 ev.persisted 为 false，不处理。
+                if (ev && ev.persisted) saveCurrentScrollState()
+            }, { passive: true })
+
+            document.addEventListener('pjax:complete', function (e) {
+                if ((e.backward || e.forward) && e.scrollPos) {
+                    delayedRestore(e.scrollPos)
+                }
+            })
+
+            window.addEventListener('pageshow', function () {
+                // 刷新 / F5 / Ctrl+F5：不做回退恢复，保持正常刷新到顶部
+                if (window.__haoReloadNoRestore) {
+                    try { window.scrollTo(0, 0) } catch (e) {}
+                    return
+                }
+                if (isBackForwardDocumentNavigation() && history.state && history.state.scrollPos) {
+                    delayedRestore(history.state.scrollPos)
+                }
+            })
+        })()
+
+        document.addEventListener('pjax:send', function (e) {
+
+            // 浏览器后退/前进时不显示 loading-box。
+            // 否则回退成功前会先闪一下顶部加载层，视觉上像“回到顶部再跳回去”。
+            window.__haoPjaxBackForwardNav = !!(e && (e.backward || e.forward))
 
             // removeEventListener toc scroll
             window.removeEventListener('scroll', window.tocScrollFn)
 
-            typeof preloader === 'object' && preloader.initLoading()
+            if (!window.__haoPjaxBackForwardNav) {
+                typeof preloader === 'object' && preloader.initLoading()
+            }
 
             if (window.aplayers) {
                 for (let i = 0; i < window.aplayers.length; i++) {
@@ -449,6 +572,7 @@
             typeof Prism === 'object' && Prism.highlightAll()
 
             typeof preloader === 'object' && preloader.endLoading()
+            window.__haoPjaxBackForwardNav = false
         })
 
         document.addEventListener('pjax:error', (e) => {
