@@ -22,73 +22,6 @@
         <th:block th:replace="${head}"/>
     </th:block>
 
-    <!-- Hao back/refresh early guard: refresh starts normally, back/forward prepares no-flash restore -->
-    <style>
-      html.hao-back-restoring body {
-        visibility: hidden !important;
-        pointer-events: none !important;
-      }
-      html.hao-back-restoring,
-      html.hao-back-restoring * {
-        scroll-behavior: auto !important;
-      }
-    </style>
-    <script>
-    (function () {
-      var KEY_PREFIX = 'hao:back:y:';
-      function pageKey(url) {
-        try {
-          var u = new URL(url || location.href, location.origin);
-          return u.origin + u.pathname + u.search;
-        } catch (e) {
-          return location.origin + location.pathname + location.search;
-        }
-      }
-      function navType() {
-        try {
-          var nav = performance.getEntriesByType && performance.getEntriesByType('navigation');
-          if (nav && nav[0] && nav[0].type) return nav[0].type;
-        } catch (e) {}
-        try {
-          if (performance.navigation && performance.navigation.type === 1) return 'reload';
-          if (performance.navigation && performance.navigation.type === 2) return 'back_forward';
-        } catch (e) {}
-        return 'navigate';
-      }
-
-      var type = navType();
-      window.__haoBackNavType = type;
-
-      if ('scrollRestoration' in history) {
-        try { history.scrollRestoration = 'manual'; } catch (e) {}
-      }
-
-      if (type === 'reload') {
-        // F5 / Ctrl+F5 / browser refresh: do not restore old position.
-        try { sessionStorage.removeItem(KEY_PREFIX + pageKey()); } catch (e) {}
-        window.__haoBackReloadTop = true;
-        try { window.scrollTo(0, 0); } catch (e) {}
-        setTimeout(function(){ try { window.scrollTo(0, 0); } catch (e) {} }, 0);
-        return;
-      }
-
-      if (type === 'back_forward') {
-        try {
-          var y = sessionStorage.getItem(KEY_PREFIX + pageKey());
-          if (y !== null) {
-            window.__haoBackEarlyRestore = true;
-            window.__haoBackEarlyY = parseInt(y, 10) || 0;
-            document.documentElement.classList.add('hao-back-restoring');
-            // Fail-safe: never leave the page hidden if a later script errors.
-            setTimeout(function () {
-              document.documentElement.classList.remove('hao-back-restoring');
-            }, 2500);
-          }
-        } catch (e) {}
-      }
-    })();
-    </script>
-
 </head>
 
 <body>
@@ -453,21 +386,24 @@
             selectors: pjaxSelectors,
             cacheBust: false,
             analytics: false,
-            // 关闭 PJAX 自带滚动恢复，避免和主题自定义回退恢复抢控制权
             scrollRestoration: false
         })
 
-        ;(function () {
-            var KEY_PREFIX = 'hao:back:y:';
-            var RESTORE_CLASS = 'hao-back-restoring';
-            var restoringBack = false;
-            var timeoutIds = [];
-            var rafId = 0;
-            var INITIAL_NAV_TYPE = null; // 页面首次进入方式；reload 只在初始化阶段使用，不能阻止后续 PJAX 点击保存
+        // Hao 回退快照缓存：刷新不恢复位置；浏览器回退优先恢复 PJAX 页面快照，尽量接近无痕/BFCache 效果。
+        if ('scrollRestoration' in history) {
+            try { history.scrollRestoration = 'manual'; } catch (e) {}
+        }
 
-            window.__haoBackV9Fixed = true;
-            window.__haoBackHit = false;
-            window.__haoBackReason = 'init';
+        ;(function () {
+            var SNAP_PREFIX = 'hao:bf:snap:';
+            var RENDERED_URL = location.href; // 当前 DOM 实际对应的 URL。popstate 时 location 会先变，不能直接用 location.href。
+            var restoringFromSnapshot = false;
+            var restoreTimers = [];
+            var rafId = 0;
+
+            window.__haoSnapBackReady = true;
+            window.__haoSnapBackHit = false;
+            window.__haoSnapBackReason = 'init';
 
             function pageKey(url) {
                 try {
@@ -476,45 +412,6 @@
                 } catch (e) {
                     return location.origin + location.pathname + location.search;
                 }
-            }
-
-            function getY() {
-                return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-            }
-
-            function getX() {
-                return window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
-            }
-
-            function setSaved(url, x, y, reason) {
-                try {
-                    var key = KEY_PREFIX + pageKey(url);
-                    sessionStorage.setItem(key, JSON.stringify({
-                        x: parseInt(x, 10) || 0,
-                        y: parseInt(y, 10) || 0,
-                        t: Date.now(),
-                        reason: reason || ''
-                    }));
-                    window.__haoBackLastSavedKey = pageKey(url);
-                    window.__haoBackLastSavedY = parseInt(y, 10) || 0;
-                    window.__haoBackLastSavedReason = reason || '';
-                } catch (e) {}
-            }
-
-            function getSaved(url) {
-                try {
-                    var raw = sessionStorage.getItem(KEY_PREFIX + pageKey(url));
-                    if (!raw) return null;
-                    var obj = JSON.parse(raw);
-                    if (!obj || typeof obj.y === 'undefined') return null;
-                    return obj;
-                } catch (e) {
-                    return null;
-                }
-            }
-
-            function removeSaved(url) {
-                try { sessionStorage.removeItem(KEY_PREFIX + pageKey(url)); } catch (e) {}
             }
 
             function navType() {
@@ -529,17 +426,104 @@
                 return 'navigate';
             }
 
-            INITIAL_NAV_TYPE = navType();
+            var INITIAL_NAV_TYPE = navType();
+            window.__haoSnapBackInitialNavType = INITIAL_NAV_TYPE;
 
-            function isInitialReloadNav() {
-                return INITIAL_NAV_TYPE === 'reload';
+            function getY() {
+                return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
             }
 
-            function saveCurrent(reason) {
-                // 注意：不能用 navType()==='reload' 来阻止保存。
-                // performance navigation type 在 F5 后会一直保持 reload，
-                // 如果这里 return，用户刷新后再点击文章就永远不会记录首页位置。
-                setSaved(location.href, getX(), getY(), reason || 'save');
+            function getX() {
+                return window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
+            }
+
+            function esc(s) {
+                return String(s == null ? '' : s).replace(/[&<>\"]/g, function (c) {
+                    return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c] || c;
+                });
+            }
+
+            function attrsToString(el) {
+                var out = [];
+                try {
+                    Array.prototype.slice.call(el.attributes || []).forEach(function (a) {
+                        out.push(a.name + '="' + esc(a.value) + '"');
+                    });
+                } catch (e) {}
+                return out.length ? ' ' + out.join(' ') : '';
+            }
+
+            function buildSnapshotHtml() {
+                var headParts = ['<title>' + esc(document.title) + '</title>'];
+                var bodyParts = [];
+
+                try {
+                    pjaxSelectors.forEach(function (selector) {
+                        if (selector === 'title') return;
+                        var nodes = document.querySelectorAll(selector);
+                        Array.prototype.slice.call(nodes || []).forEach(function (node) {
+                            if (!node || !node.outerHTML) return;
+                            var tag = (node.tagName || '').toLowerCase();
+                            if (tag === 'meta' || tag === 'link' || tag === 'style') headParts.push(node.outerHTML);
+                            else bodyParts.push(node.outerHTML);
+                        });
+                    });
+                } catch (e) {
+                    // selector 快照失败时退回完整 HTML，尽量保证能恢复。
+                    return document.documentElement.outerHTML;
+                }
+
+                return '<!DOCTYPE html><html' + attrsToString(document.documentElement) + '><head>' + headParts.join('\n') + '</head><body>' + bodyParts.join('\n') + '</body></html>';
+            }
+
+            function saveSnapshot(reason, url) {
+                try {
+                    var key = pageKey(url || RENDERED_URL || location.href);
+                    var snap = {
+                        url: key,
+                        title: document.title,
+                        x: getX(),
+                        y: getY(),
+                        html: buildSnapshotHtml(),
+                        t: Date.now(),
+                        reason: reason || ''
+                    };
+                    sessionStorage.setItem(SNAP_PREFIX + key, JSON.stringify(snap));
+                    window.__haoSnapBackLastSavedKey = key;
+                    window.__haoSnapBackLastSavedY = snap.y;
+                    window.__haoSnapBackLastSavedReason = reason || '';
+                    window.__haoSnapBackSize = getCacheSize();
+                    return true;
+                } catch (e) {
+                    window.__haoSnapBackReason = 'save-error:' + (e && e.name ? e.name : e);
+                    return false;
+                }
+            }
+
+            function getSnapshot(url) {
+                try {
+                    var raw = sessionStorage.getItem(SNAP_PREFIX + pageKey(url));
+                    if (!raw) return null;
+                    var snap = JSON.parse(raw);
+                    if (!snap || !snap.html) return null;
+                    return snap;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function removeSnapshot(url) {
+                try { sessionStorage.removeItem(SNAP_PREFIX + pageKey(url)); } catch (e) {}
+            }
+
+            function getCacheSize() {
+                var n = 0;
+                try {
+                    for (var i = 0; i < sessionStorage.length; i++) {
+                        if ((sessionStorage.key(i) || '').indexOf(SNAP_PREFIX) === 0) n++;
+                    }
+                } catch (e) {}
+                return n;
             }
 
             function shouldSaveLink(a) {
@@ -553,25 +537,23 @@
                     if (u.origin !== location.origin) return false;
                     if (u.pathname.indexOf('/console') === 0) return false;
                     if (u.pathname === location.pathname && u.search === location.search && u.hash) return false;
-                } catch (e) {
-                    return false;
-                }
+                } catch (e) { return false; }
                 return true;
             }
 
-            function clearTimers() {
+            function clearRestoreTimers() {
                 if (rafId) {
                     try { cancelAnimationFrame(rafId); } catch (e) {}
                     rafId = 0;
                 }
-                while (timeoutIds.length) {
-                    try { clearTimeout(timeoutIds.pop()); } catch (e) {}
+                while (restoreTimers.length) {
+                    try { clearTimeout(restoreTimers.pop()); } catch (e) {}
                 }
             }
 
             function ensureSpacer(y) {
                 if (!document.body) return null;
-                var id = 'hao-back-restore-spacer';
+                var id = 'hao-snapshot-restore-spacer';
                 var spacer = document.getElementById(id);
                 if (!spacer) {
                     spacer = document.createElement('div');
@@ -580,43 +562,14 @@
                     spacer.style.cssText = 'position:absolute;left:0;top:0;width:1px;visibility:hidden;pointer-events:none;z-index:-1;';
                     document.body.appendChild(spacer);
                 }
-                var targetH = Math.max(document.body.scrollHeight, y + window.innerHeight + 240);
-                spacer.style.height = targetH + 'px';
+                spacer.style.height = Math.max(document.body.scrollHeight, y + window.innerHeight + 320) + 'px';
                 return spacer;
             }
 
-            function finishRestore(spacer, oldBehavior) {
-                try { document.documentElement.style.scrollBehavior = oldBehavior || ''; } catch (e) {}
-                document.documentElement.classList.remove(RESTORE_CLASS);
-                restoringBack = false;
-                timeoutIds.push(setTimeout(function () {
-                    if (spacer && spacer.parentNode) {
-                        try { spacer.parentNode.removeChild(spacer); } catch (e) {}
-                    }
-                }, 1200));
-            }
-
-            function restoreFor(url, reason) {
-                var saved = getSaved(url || location.href);
-                if (!saved) {
-                    window.__haoBackHit = false;
-                    window.__haoBackReason = 'miss:' + (reason || '');
-                    document.documentElement.classList.remove(RESTORE_CLASS);
-                    return false;
-                }
-
-                clearTimers();
-                restoringBack = true;
-                window.__haoBackHit = true;
-                window.__haoBackReason = 'hit:' + (reason || '');
-                window.__haoBackRestoreY = parseInt(saved.y, 10) || 0;
-
-                var x = parseInt(saved.x, 10) || 0;
-                var y = parseInt(saved.y, 10) || 0;
+            function restoreScroll(x, y, reason) {
+                clearRestoreTimers();
                 var oldBehavior = document.documentElement.style.scrollBehavior;
                 try { document.documentElement.style.scrollBehavior = 'auto'; } catch (e) {}
-                document.documentElement.classList.add(RESTORE_CLASS);
-
                 var spacer = ensureSpacer(y);
 
                 function go() {
@@ -624,119 +577,171 @@
                     try { window.scrollTo(x, y); } catch (e) {}
                 }
 
-                // 先同步定位，再分阶段校正。这样即使图片/瀑布流稍后撑高，也尽量停在目标位置附近。
                 go();
                 rafId = requestAnimationFrame(go);
-
                 [16, 32, 60, 100, 180, 300, 500, 800, 1200].forEach(function (ms) {
-                    timeoutIds.push(setTimeout(go, ms));
+                    restoreTimers.push(setTimeout(go, ms));
                 });
+                restoreTimers.push(setTimeout(function () {
+                    try { document.documentElement.style.scrollBehavior = oldBehavior || ''; } catch (e) {}
+                    restoringFromSnapshot = false;
+                    window.__haoPjaxBackForwardNav = false;
+                    if (spacer && spacer.parentNode) {
+                        try { spacer.parentNode.removeChild(spacer); } catch (e) {}
+                    }
+                }, 1300));
 
-                timeoutIds.push(setTimeout(function () {
-                    go();
-                    finishRestore(spacer, oldBehavior);
-                }, 420));
-
-                return true;
+                window.__haoSnapBackHit = true;
+                window.__haoSnapBackReason = 'hit:' + (reason || 'restore');
+                window.__haoSnapBackRestoreY = y;
             }
 
-            // 普通点击文章 / 页面链接前保存当前位置；刷新不会走这里。
-            // 用 pointerdown/mousedown/touchstart 比 click 更早，避免 PJAX 先接管跳转导致保存来不及。
+            function restoreSnapshot(targetUrl, snap, reason, state) {
+                if (!snap || !snap.html || !window.pjax || typeof window.pjax.loadContent !== 'function') return false;
+                restoringFromSnapshot = true;
+                window.__haoPjaxBackForwardNav = true;
+
+                var x = parseInt(snap.x, 10) || 0;
+                var y = parseInt(snap.y, 10) || 0;
+                ensureSpacer(y);
+                try { window.scrollTo(x, y); } catch (e) {}
+
+                try {
+                    if (window.pjax.abortRequest) window.pjax.abortRequest(window.pjax.request);
+                } catch (e) {}
+
+                var options = Object.assign({}, window.pjax.options || {}, {
+                    url: targetUrl,
+                    title: snap.title || document.title,
+                    history: false,
+                    scrollTo: false,
+                    scrollRestoration: false,
+                    scrollPos: [x, y],
+                    backward: true
+                });
+
+                try {
+                    if (state && state.uid && window.pjax) window.pjax.lastUid = state.uid;
+                    window.pjax.state.href = targetUrl;
+                    window.pjax.state.options = options;
+                    window.pjax.loadContent(snap.html, options);
+                    RENDERED_URL = targetUrl;
+                    restoreScroll(x, y, reason || 'snapshot');
+                    return true;
+                } catch (e) {
+                    restoringFromSnapshot = false;
+                    window.__haoPjaxBackForwardNav = false;
+                    window.__haoSnapBackHit = false;
+                    window.__haoSnapBackReason = 'restore-error:' + (e && e.message ? e.message : e);
+                    return false;
+                }
+            }
+
+            // F5 / Ctrl+F5：本页不恢复旧位置，强制从顶部重新开始；但刷新后用户再点击文章，仍会重新保存新位置。
+            if (INITIAL_NAV_TYPE === 'reload') {
+                removeSnapshot(location.href);
+                try { window.scrollTo(0, 0); } catch (e) {}
+                setTimeout(function () { try { window.scrollTo(0, 0); } catch (e) {} }, 0);
+            }
+
+            // 初始页面稳定后保存一次，避免用户没有点击普通链接但后续需要回退缓存。
+            [800, 1800, 3000].forEach(function (ms) {
+                setTimeout(function () {
+                    if (INITIAL_NAV_TYPE !== 'reload') saveSnapshot('initial-' + ms, RENDERED_URL);
+                }, ms);
+            });
+
+            // 普通点击链接前保存当前 DOM 快照。刷新不会走这里。
             function saveByLinkEvent(ev, reason) {
                 var target = ev && ev.target;
                 var a = target && target.closest ? target.closest('a[href]') : null;
-                if (shouldSaveLink(a)) saveCurrent(reason || 'link');
+                if (shouldSaveLink(a)) saveSnapshot(reason || 'link', RENDERED_URL);
             }
             ['pointerdown','mousedown','touchstart','click'].forEach(function (evt) {
-                document.addEventListener(evt, function (ev) {
-                    saveByLinkEvent(ev, evt);
-                }, true);
+                document.addEventListener(evt, function (ev) { saveByLinkEvent(ev, evt); }, true);
             });
 
-            // 兜底：如果是代码里直接 pjax.loadUrl(url)，也在离开当前页前保存。
+            // 兜底：代码调用 pjax.loadUrl 时也保存当前页快照；回退/前进由 popstate 处理，不在这里保存。
             try {
-                if (window.pjax && typeof window.pjax.loadUrl === 'function' && !window.pjax._haoBackSavePatched) {
-                    var _haoOrigLoadUrl = window.pjax.loadUrl;
+                if (window.pjax && typeof window.pjax.loadUrl === 'function' && !window.pjax._haoSnapshotPatched) {
+                    var origLoadUrl = window.pjax.loadUrl;
                     window.pjax.loadUrl = function (url, options) {
                         var isBack = !!(options && (options.backward || options.forward));
-                        if (!isBack) saveCurrent('pjax-loadUrl');
-                        return _haoOrigLoadUrl.apply(this, arguments);
+                        if (!isBack) saveSnapshot('pjax-loadUrl', RENDERED_URL);
+                        return origLoadUrl.apply(this, arguments);
                     };
-                    window.pjax._haoBackSavePatched = true;
+                    window.pjax._haoSnapshotPatched = true;
                 }
             } catch (e) {}
 
-            // 浏览器回退/前进的捕获阶段，先隐藏，避免看到首页顶部闪一下。
-            window.addEventListener('popstate', function () {
-                restoringBack = true;
-                window.__haoPjaxBackForwardNav = true;
-                document.documentElement.classList.add(RESTORE_CLASS);
-            }, true);
+            // 关键：在捕获阶段拦截浏览器后退/前进。命中快照时不让 PJAX 再 XHR 请求上一页。
+            window.addEventListener('popstate', function (ev) {
+                var targetUrl = (ev && ev.state && ev.state.url) ? ev.state.url : location.href;
+                // location 已经变成目标 URL，但 DOM 仍是离开前页面，先按 RENDERED_URL 保存当前 DOM，便于再前进。
+                saveSnapshot('popstate-leave', RENDERED_URL);
 
-            // BFCache 场景：如果浏览器真的保留了页面，则这里会非常接近无痕模式体验。
-            window.addEventListener('pageshow', function (ev) {
-                if (isInitialReloadNav()) {
-                    removeSaved(location.href);
-                    try { window.scrollTo(0, 0); } catch (e) {}
-                    document.documentElement.classList.remove(RESTORE_CLASS);
-                    return;
+                var snap = getSnapshot(targetUrl);
+                if (snap && window.pjax && typeof window.pjax.loadContent === 'function') {
+                    try { ev.preventDefault(); } catch (e) {}
+                    try { ev.stopImmediatePropagation(); } catch (e) {}
+                    restoreSnapshot(targetUrl, snap, 'popstate-snapshot', ev.state);
+                } else {
+                    window.__haoSnapBackHit = false;
+                    window.__haoSnapBackReason = 'miss:popstate:' + pageKey(targetUrl);
+                    window.__haoPjaxBackForwardNav = true;
                 }
-                if ((ev && ev.persisted) || INITIAL_NAV_TYPE === 'back_forward' || window.__haoBackEarlyRestore) {
-                    restoreFor(location.href, 'pageshow-' + INITIAL_NAV_TYPE);
-                }
-            });
+            }, true);
 
             document.addEventListener('pjax:send', function (e) {
                 var isBack = !!(e && (e.backward || e.forward));
-                window.__haoPjaxBackForwardNav = isBack || window.__haoPjaxBackForwardNav === true;
+                if (!isBack) saveSnapshot('pjax-send', RENDERED_URL);
+            }, true);
 
-                if (window.__haoPjaxBackForwardNav) {
-                    restoringBack = true;
-                    document.documentElement.classList.add(RESTORE_CLASS);
-                } else {
-                    saveCurrent('pjax-send');
+            document.addEventListener('pjax:complete', function () {
+                if (!restoringFromSnapshot) {
+                    RENDERED_URL = location.href;
+                    setTimeout(function () { saveSnapshot('pjax-complete-800', RENDERED_URL); }, 800);
                 }
             }, true);
 
-            document.addEventListener('pjax:complete', function (e) {
-                var isBack = !!(e && (e.backward || e.forward)) || window.__haoPjaxBackForwardNav === true || restoringBack;
-                if (isBack) {
-                    restoreFor(location.href, 'pjax-complete');
+            // 如果浏览器真的走了文档级 back_forward，但没被 popstate 捕获，就只恢复滚动，不隐藏黑屏。
+            window.addEventListener('pageshow', function (ev) {
+                if (INITIAL_NAV_TYPE === 'reload') return;
+                if ((ev && ev.persisted) || INITIAL_NAV_TYPE === 'back_forward') {
+                    var snap = getSnapshot(location.href);
+                    if (snap) restoreScroll(parseInt(snap.x, 10) || 0, parseInt(snap.y, 10) || 0, 'pageshow-' + INITIAL_NAV_TYPE);
+                    else {
+                        window.__haoSnapBackHit = false;
+                        window.__haoSnapBackReason = 'miss:pageshow:' + pageKey(location.href);
+                    }
                 }
-            }, true);
+            });
 
-            // 刷新：明确从顶部开始，不使用自定义保存的位置。
-            // 只在页面初始化阶段判断 reload；之后用户再点击文章，仍然要允许保存位置。
-            if (isInitialReloadNav()) {
-                removeSaved(location.href);
-                try { window.scrollTo(0, 0); } catch (e) {}
-                setTimeout(function () { try { window.scrollTo(0, 0); } catch (e) {} }, 0);
-            } else if (window.__haoBackEarlyRestore) {
-                setTimeout(function () {
-                    restoreFor(location.href, 'early-back-forward');
-                }, 0);
-            }
-
-            window.__haoBackDebug = function () {
+            window.__haoBackDebug = window.__haoSnapBackDebug = function () {
                 return {
-                    ready: window.__haoBackV9Fixed,
-                    hit: window.__haoBackHit,
-                    reason: window.__haoBackReason,
+                    ready: window.__haoSnapBackReady,
+                    hit: window.__haoSnapBackHit,
+                    reason: window.__haoSnapBackReason,
                     navType: navType(),
                     initialNavType: INITIAL_NAV_TYPE,
-                    lastSavedKey: window.__haoBackLastSavedKey,
-                    lastSavedY: window.__haoBackLastSavedY,
-                    lastSavedReason: window.__haoBackLastSavedReason,
-                    currentKey: pageKey(),
-                    currentSaved: getSaved(location.href)
+                    cacheSize: getCacheSize(),
+                    renderedUrl: RENDERED_URL,
+                    currentKey: pageKey(location.href),
+                    lastSavedKey: window.__haoSnapBackLastSavedKey,
+                    lastSavedY: window.__haoSnapBackLastSavedY,
+                    lastSavedReason: window.__haoSnapBackLastSavedReason,
+                    currentSnapshot: !!getSnapshot(location.href),
+                    restoreY: window.__haoSnapBackRestoreY
                 };
             };
-        })();
+        })()
+
 
         document.addEventListener('pjax:send', function (e) {
 
-            // 浏览器后退/前进时不显示 loading-box，普通点击仍显示。
-            window.__haoPjaxBackForwardNav = !!(e && (e.backward || e.forward)) || window.__haoPjaxBackForwardNav === true
+            // 浏览器后退/前进时不显示 loading-box。
+            // 否则回退成功前会先闪一下顶部加载层，视觉上像“回到顶部再跳回去”。
+            window.__haoPjaxBackForwardNav = !!(e && (e.backward || e.forward))
 
             // removeEventListener toc scroll
             window.removeEventListener('scroll', window.tocScrollFn)
@@ -760,7 +765,7 @@
             $bodyClassList.contains('read-mode') && $bodyClassList.remove('read-mode')
         })
 
-        document.addEventListener('pjax:complete', function (e) {
+        document.addEventListener('pjax:complete', function () {
             window.refreshFn()
 
             document.querySelectorAll('script[data-pjax]').forEach(item => {
@@ -796,12 +801,7 @@
             typeof Prism === 'object' && Prism.highlightAll()
 
             typeof preloader === 'object' && preloader.endLoading()
-
-            if (window.__haoPjaxBackForwardNav) {
-                setTimeout(function () {
-                    window.__haoPjaxBackForwardNav = false
-                }, 800)
-            }
+            window.__haoPjaxBackForwardNav = false
         })
 
         document.addEventListener('pjax:error', (e) => {
