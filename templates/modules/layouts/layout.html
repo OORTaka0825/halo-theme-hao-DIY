@@ -18,46 +18,76 @@
     <script th:if="${pluginFinder.available('plugin-katex')}" defer=""
             src="/plugins/plugin-katex/assets/static/katex.min.js"></script>
     <script th:src="${assets_link + '/js/custom.js' + theme_version}"></script>
-
-    <!-- Hao V9：回退快照提前隐藏，避免浏览器 back_forward 先渲染首页顶部 -->
-    <script>
-    (function(){
-      try {
-        function navType(){
-          var n = performance.getEntriesByType && performance.getEntriesByType('navigation');
-          return n && n[0] ? n[0].type : '';
-        }
-        function makeKey(url){
-          var u = new URL(url || location.href, location.href);
-          var path = u.pathname || '/';
-          path = path.replace(/\/+$/, '') || '/';
-          if (path !== '/') path += '/';
-          return u.origin + path + u.search;
-        }
-        var type = navType();
-        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-        if (type === 'reload') {
-          window.__haoRefreshNavigation = true;
-          try { window.scrollTo(0, 0); } catch(e) {}
-        }
-        if (type === 'back_forward') {
-          var key = 'hao:pbf:snap:' + makeKey(location.href);
-          if (sessionStorage.getItem(key)) {
-            window.__haoPersistentBFNeedRestore = true;
-            document.documentElement.classList.add('hao-pbf-early-hide');
-            var st = document.createElement('style');
-            st.id = 'hao-pbf-early-style';
-            st.textContent = 'html.hao-pbf-early-hide body{visibility:hidden!important;}';
-            (document.head || document.documentElement).appendChild(st);
-          }
-        }
-      } catch(e) {}
-    })();
-    </script>
-
     <th:block th:if="${head != null}">
         <th:block th:replace="${head}"/>
     </th:block>
+
+    <!-- Hao back/refresh early guard: refresh starts normally, back/forward prepares no-flash restore -->
+    <style>
+      html.hao-back-restoring body {
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+      html.hao-back-restoring,
+      html.hao-back-restoring * {
+        scroll-behavior: auto !important;
+      }
+    </style>
+    <script>
+    (function () {
+      var KEY_PREFIX = 'hao:back:y:';
+      function pageKey(url) {
+        try {
+          var u = new URL(url || location.href, location.origin);
+          return u.origin + u.pathname + u.search;
+        } catch (e) {
+          return location.origin + location.pathname + location.search;
+        }
+      }
+      function navType() {
+        try {
+          var nav = performance.getEntriesByType && performance.getEntriesByType('navigation');
+          if (nav && nav[0] && nav[0].type) return nav[0].type;
+        } catch (e) {}
+        try {
+          if (performance.navigation && performance.navigation.type === 1) return 'reload';
+          if (performance.navigation && performance.navigation.type === 2) return 'back_forward';
+        } catch (e) {}
+        return 'navigate';
+      }
+
+      var type = navType();
+      window.__haoBackNavType = type;
+
+      if ('scrollRestoration' in history) {
+        try { history.scrollRestoration = 'manual'; } catch (e) {}
+      }
+
+      if (type === 'reload') {
+        // F5 / Ctrl+F5 / browser refresh: do not restore old position.
+        try { sessionStorage.removeItem(KEY_PREFIX + pageKey()); } catch (e) {}
+        window.__haoBackReloadTop = true;
+        try { window.scrollTo(0, 0); } catch (e) {}
+        setTimeout(function(){ try { window.scrollTo(0, 0); } catch (e) {} }, 0);
+        return;
+      }
+
+      if (type === 'back_forward') {
+        try {
+          var y = sessionStorage.getItem(KEY_PREFIX + pageKey());
+          if (y !== null) {
+            window.__haoBackEarlyRestore = true;
+            window.__haoBackEarlyY = parseInt(y, 10) || 0;
+            document.documentElement.classList.add('hao-back-restoring');
+            // Fail-safe: never leave the page hidden if a later script errors.
+            setTimeout(function () {
+              document.documentElement.classList.remove('hao-back-restoring');
+            }, 2500);
+          }
+        } catch (e) {}
+      }
+    })();
+    </script>
 
 </head>
 
@@ -423,380 +453,263 @@
             selectors: pjaxSelectors,
             cacheBust: false,
             analytics: false,
+            // 关闭 PJAX 自带滚动恢复，避免和主题自定义回退恢复抢控制权
             scrollRestoration: false
         })
 
-        // Hao V9：持久化类 BFCache 回退修复版
-        // 目标：即使浏览器回退发生了整页重载，也能用 sessionStorage 中的上一页快照恢复，接近无痕/BFCache 的回退效果。
-        // 注意：F5 / Ctrl+F5 刷新不恢复位置，仍然按正常刷新从顶部开始。
-        if ('scrollRestoration' in history) {
-            try { history.scrollRestoration = 'manual'; } catch (e) {}
-        }
-
         ;(function () {
-            if (window.__haoPersistentBFInit) return
-            window.__haoPersistentBFInit = true
+            var KEY_PREFIX = 'hao:back:y:';
+            var RESTORE_CLASS = 'hao-back-restoring';
+            var restoringBack = false;
+            var timeoutIds = [];
+            var rafId = 0;
 
-            var SNAP_PREFIX = 'hao:pbf:snap:'
-            var INDEX_KEY = 'hao:pbf:index'
-            var CACHE_LIMIT = 8
-            var renderedKey = makeKey(location.href)
-            var restoring = false
-            var lastRestorePos = null
-            var saveTimer = 0
+            window.__haoBackV9Fixed = true;
+            window.__haoBackHit = false;
+            window.__haoBackReason = 'init';
 
-            window.__haoPersistentBFReady = true
-            window.__haoPersistentBFHit = false
-            window.__haoPersistentBFReason = 'init'
-            window.__haoPersistentBFLastSavedKey = ''
-            window.__haoPersistentBFLastSavedReason = ''
-
-            function makeKey(url) {
+            function pageKey(url) {
                 try {
-                    var u = new URL(url || location.href, location.href)
-                    var path = u.pathname || '/'
-                    path = path.replace(/\/+$/, '') || '/'
-                    if (path !== '/') path += '/'
-                    return u.origin + path + u.search
+                    var u = new URL(url || location.href, location.origin);
+                    return u.origin + u.pathname + u.search;
                 } catch (e) {
-                    return String(url || location.href).split('#')[0]
+                    return location.origin + location.pathname + location.search;
                 }
+            }
+
+            function getY() {
+                return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            }
+
+            function getX() {
+                return window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
+            }
+
+            function setSaved(url, x, y, reason) {
+                try {
+                    var key = KEY_PREFIX + pageKey(url);
+                    sessionStorage.setItem(key, JSON.stringify({
+                        x: parseInt(x, 10) || 0,
+                        y: parseInt(y, 10) || 0,
+                        t: Date.now(),
+                        reason: reason || ''
+                    }));
+                    window.__haoBackLastSavedKey = pageKey(url);
+                    window.__haoBackLastSavedY = parseInt(y, 10) || 0;
+                    window.__haoBackLastSavedReason = reason || '';
+                } catch (e) {}
+            }
+
+            function getSaved(url) {
+                try {
+                    var raw = sessionStorage.getItem(KEY_PREFIX + pageKey(url));
+                    if (!raw) return null;
+                    var obj = JSON.parse(raw);
+                    if (!obj || typeof obj.y === 'undefined') return null;
+                    return obj;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function removeSaved(url) {
+                try { sessionStorage.removeItem(KEY_PREFIX + pageKey(url)); } catch (e) {}
             }
 
             function navType() {
                 try {
-                    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')
-                    return nav && nav[0] ? nav[0].type : ''
-                } catch (e) { return '' }
-            }
-
-            function isReloadNavigation() {
-                return navType() === 'reload' || window.__haoRefreshNavigation === true
-            }
-
-            function isBackForwardNavigation() {
-                return navType() === 'back_forward' || window.__haoPersistentBFNeedRestore === true
-            }
-
-            function getX() { return window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0 }
-            function getY() { return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0 }
-
-            function readIndex() {
-                try {
-                    var raw = sessionStorage.getItem(INDEX_KEY)
-                    var arr = raw ? JSON.parse(raw) : []
-                    return Array.isArray(arr) ? arr : []
-                } catch (e) { return [] }
-            }
-
-            function writeIndex(arr) {
-                try { sessionStorage.setItem(INDEX_KEY, JSON.stringify(arr || [])) } catch (e) {}
-                window.__haoPersistentBFSize = (arr || []).length
-            }
-
-            function touchIndex(key) {
-                var arr = readIndex().filter(function (k) { return k !== key })
-                arr.push(key)
-                while (arr.length > CACHE_LIMIT) {
-                    var old = arr.shift()
-                    try { sessionStorage.removeItem(SNAP_PREFIX + old) } catch (e) {}
-                }
-                writeIndex(arr)
-            }
-
-            function getSelectors() {
-                try {
-                    if (Array.isArray(pjaxSelectors)) return pjaxSelectors.slice()
+                    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation');
+                    if (nav && nav[0] && nav[0].type) return nav[0].type;
                 } catch (e) {}
-                return ['title', '#config-diff', '#body-wrap', '#rightside-config-hide', '#rightside-config-show', '.js-pjax', '#site-config']
-            }
-
-            function escHtml(str) {
-                return String(str || '').replace(/[&<>"']/g, function (m) {
-                    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
-                })
-            }
-
-            function collectParts() {
-                var parts = {}
-                getSelectors().forEach(function (selector) {
-                    try {
-                        var arr = []
-                        document.querySelectorAll(selector).forEach(function (el) {
-                            arr.push(el.outerHTML)
-                        })
-                        if (arr.length) parts[selector] = arr
-                    } catch (e) {}
-                })
-                return parts
-            }
-
-            function buildHtml(item) {
-                var head = '<title>' + escHtml(item.title || document.title) + '</title>'
-                var body = ''
-                var parts = item.parts || {}
-                Object.keys(parts).forEach(function (selector) {
-                    var arr = parts[selector] || []
-                    arr.forEach(function (html) {
-                        if (/^meta\[|^title$/i.test(selector)) head += html
-                        else body += html
-                    })
-                })
-                return '<!DOCTYPE html><html><head>' + head + '</head><body>' + body + '</body></html>'
-            }
-
-            function saveSnapshot(reason, key) {
-                if (restoring || isReloadNavigation()) return
                 try {
-                    key = key || renderedKey || makeKey(location.href)
-                    var item = {
-                        url: key,
-                        title: document.title,
-                        scroll: [getX(), getY()],
-                        parts: collectParts(),
-                        time: Date.now(),
-                        reason: reason || 'save'
-                    }
-                    sessionStorage.setItem(SNAP_PREFIX + key, JSON.stringify(item))
-                    touchIndex(key)
-                    window.__haoPersistentBFLastSavedKey = key
-                    window.__haoPersistentBFLastSavedReason = reason || 'save'
-                    window.__haoPersistentBFSize = readIndex().length
+                    if (performance.navigation && performance.navigation.type === 1) return 'reload';
+                    if (performance.navigation && performance.navigation.type === 2) return 'back_forward';
+                } catch (e) {}
+                return 'navigate';
+            }
+
+            function isReloadNav() {
+                return navType() === 'reload';
+            }
+
+            function saveCurrent(reason) {
+                if (isReloadNav()) return;
+                setSaved(location.href, getX(), getY(), reason || 'save');
+            }
+
+            function shouldSaveLink(a) {
+                if (!a) return false;
+                var href = a.getAttribute('href') || '';
+                if (!href || href.indexOf('javascript:') === 0) return false;
+                if (a.target === '_blank' || a.hasAttribute('download') || a.hasAttribute('data-no-pjax')) return false;
+                if (href.indexOf('#') === 0) return false;
+                try {
+                    var u = new URL(a.href, location.href);
+                    if (u.origin !== location.origin) return false;
+                    if (u.pathname.indexOf('/console') === 0) return false;
+                    if (u.pathname === location.pathname && u.search === location.search && u.hash) return false;
                 } catch (e) {
-                    window.__haoPersistentBFReason = 'save-error:' + (e && e.message ? e.message : e)
+                    return false;
+                }
+                return true;
+            }
+
+            function clearTimers() {
+                if (rafId) {
+                    try { cancelAnimationFrame(rafId); } catch (e) {}
+                    rafId = 0;
+                }
+                while (timeoutIds.length) {
+                    try { clearTimeout(timeoutIds.pop()); } catch (e) {}
                 }
             }
 
-            function getSnapshot(key) {
-                try {
-                    var raw = sessionStorage.getItem(SNAP_PREFIX + key)
-                    return raw ? JSON.parse(raw) : null
-                } catch (e) { return null }
+            function ensureSpacer(y) {
+                if (!document.body) return null;
+                var id = 'hao-back-restore-spacer';
+                var spacer = document.getElementById(id);
+                if (!spacer) {
+                    spacer = document.createElement('div');
+                    spacer.id = id;
+                    spacer.setAttribute('aria-hidden', 'true');
+                    spacer.style.cssText = 'position:absolute;left:0;top:0;width:1px;visibility:hidden;pointer-events:none;z-index:-1;';
+                    document.body.appendChild(spacer);
+                }
+                var targetH = Math.max(document.body.scrollHeight, y + window.innerHeight + 240);
+                spacer.style.height = targetH + 'px';
+                return spacer;
             }
 
-            function clearEarlyHideSoon(delay) {
-                setTimeout(function () {
-                    document.documentElement.classList.remove('hao-pbf-early-hide')
-                    document.documentElement.classList.remove('hao-pbf-restoring')
-                    var st = document.getElementById('hao-pbf-early-style')
-                    if (st && st.parentNode) st.parentNode.removeChild(st)
-                    restoring = false
-                }, delay || 0)
-            }
-
-            function ensureStyle() {
-                if (document.getElementById('hao-pbf-style')) return
-                var style = document.createElement('style')
-                style.id = 'hao-pbf-style'
-                style.textContent = 'html.hao-pbf-restoring{scroll-behavior:auto!important;}html.hao-pbf-restoring #body-wrap{visibility:hidden!important;pointer-events:none!important;}'
-                document.head.appendChild(style)
-            }
-
-            function restoreScroll(pos) {
-                if (!pos || pos.length < 2) return
-                var x = parseInt(pos[0], 10) || 0
-                var y = parseInt(pos[1], 10) || 0
-                lastRestorePos = [x, y]
-                var old = document.documentElement.style.scrollBehavior
-                try { document.documentElement.style.scrollBehavior = 'auto' } catch (e) {}
-                function go() { try { window.scrollTo(x, y) } catch (e) {} }
-                go()
-                requestAnimationFrame(go)
-                ;[16, 33, 66, 120, 240, 480, 800, 1200].forEach(function (ms) { setTimeout(go, ms) })
-                setTimeout(function () { try { document.documentElement.style.scrollBehavior = old || '' } catch (e) {} }, 1300)
-            }
-
-            function restoreViaPjaxContent(item, source) {
-                if (!item) return false
-                try {
-                    restoring = true
-                    window.__haoPersistentBFHit = true
-                    window.__haoPersistentBFReason = 'hit:' + source + ':' + item.url
-                    document.documentElement.classList.add('hao-pbf-restoring')
-                    var pos = item.scroll || [0, 0]
-                    restoreScroll(pos)
-
-                    if (window.pjax && typeof window.pjax.loadContent === 'function') {
-                        window.pjax.loadContent(buildHtml(item), {
-                            history: false,
-                            analytics: false,
-                            cacheBust: false,
-                            scrollRestoration: false,
-                            backward: true,
-                            scrollPos: pos
-                        })
-                    } else {
-                        replaceParts(item)
-                        try {
-                            var ev = document.createEvent('HTMLEvents')
-                            ev.initEvent('pjax:complete', true, true)
-                            ev.backward = true
-                            document.dispatchEvent(ev)
-                        } catch (e) {}
+            function finishRestore(spacer, oldBehavior) {
+                try { document.documentElement.style.scrollBehavior = oldBehavior || ''; } catch (e) {}
+                document.documentElement.classList.remove(RESTORE_CLASS);
+                restoringBack = false;
+                timeoutIds.push(setTimeout(function () {
+                    if (spacer && spacer.parentNode) {
+                        try { spacer.parentNode.removeChild(spacer); } catch (e) {}
                     }
+                }, 1200));
+            }
 
-                    renderedKey = item.url
-                    restoreScroll(pos)
-                    setTimeout(function () { restoreScroll(pos); clearEarlyHideSoon(0) }, 80)
-                    setTimeout(function () { restoreScroll(pos); clearEarlyHideSoon(0) }, 500)
-                    setTimeout(function () { clearEarlyHideSoon(0) }, 1500)
-                    return true
-                } catch (e) {
-                    window.__haoPersistentBFHit = false
-                    window.__haoPersistentBFReason = 'restore-error:' + (e && e.message ? e.message : e)
-                    clearEarlyHideSoon(0)
-                    return false
+            function restoreFor(url, reason) {
+                var saved = getSaved(url || location.href);
+                if (!saved) {
+                    window.__haoBackHit = false;
+                    window.__haoBackReason = 'miss:' + (reason || '');
+                    document.documentElement.classList.remove(RESTORE_CLASS);
+                    return false;
                 }
-            }
 
-            function replaceParts(item) {
-                var tmp = document.implementation.createHTMLDocument('hao-pbf')
-                tmp.documentElement.innerHTML = buildHtml(item)
-                getSelectors().forEach(function (selector) {
-                    if (selector === 'title') {
-                        if (item.title) document.title = item.title
-                        return
-                    }
-                    try {
-                        var newEls = tmp.querySelectorAll(selector)
-                        var oldEls = document.querySelectorAll(selector)
-                        if (!newEls.length || !oldEls.length) return
-                        var n = Math.min(newEls.length, oldEls.length)
-                        for (var i = 0; i < n; i++) oldEls[i].outerHTML = newEls[i].outerHTML
-                    } catch (e) {}
-                })
-            }
+                clearTimers();
+                restoringBack = true;
+                window.__haoBackHit = true;
+                window.__haoBackReason = 'hit:' + (reason || '');
+                window.__haoBackRestoreY = parseInt(saved.y, 10) || 0;
 
-            function restoreCurrentIfBackForward() {
-                if (!isBackForwardNavigation()) return false
-                var key = makeKey(location.href)
-                var item = getSnapshot(key)
-                if (!item) {
-                    window.__haoPersistentBFHit = false
-                    window.__haoPersistentBFReason = 'back_forward-miss:' + key
-                    clearEarlyHideSoon(0)
-                    return false
+                var x = parseInt(saved.x, 10) || 0;
+                var y = parseInt(saved.y, 10) || 0;
+                var oldBehavior = document.documentElement.style.scrollBehavior;
+                try { document.documentElement.style.scrollBehavior = 'auto'; } catch (e) {}
+                document.documentElement.classList.add(RESTORE_CLASS);
+
+                var spacer = ensureSpacer(y);
+
+                function go() {
+                    try { ensureSpacer(y); } catch (e) {}
+                    try { window.scrollTo(x, y); } catch (e) {}
                 }
-                return restoreViaPjaxContent(item, 'navigation-back_forward')
+
+                // 先同步定位，再分阶段校正。这样即使图片/瀑布流稍后撑高，也尽量停在目标位置附近。
+                go();
+                rafId = requestAnimationFrame(go);
+
+                [16, 32, 60, 100, 180, 300, 500, 800, 1200].forEach(function (ms) {
+                    timeoutIds.push(setTimeout(go, ms));
+                });
+
+                timeoutIds.push(setTimeout(function () {
+                    go();
+                    finishRestore(spacer, oldBehavior);
+                }, 420));
+
+                return true;
             }
 
-            function handleReloadTop() {
-                if (!isReloadNavigation()) return
-                try { window.scrollTo(0, 0) } catch (e) {}
-                requestAnimationFrame(function(){ try { window.scrollTo(0, 0) } catch(e){} })
-                setTimeout(function(){ try { window.scrollTo(0, 0) } catch(e){} }, 80)
-            }
-
-            ensureStyle()
-            writeIndex(readIndex())
-            handleReloadTop()
-
-            // 初始页和图片/卡片稳定后的快照。保存到 sessionStorage，能跨整页回退重载使用。
-            setTimeout(function(){ saveSnapshot('initial-120') }, 120)
-            setTimeout(function(){ saveSnapshot('initial-1200') }, 1200)
-            setTimeout(function(){ saveSnapshot('initial-2500') }, 2500)
-
-            // 当前页面如果是通过浏览器后退/前进重新加载出来的，下一轮事件循环直接恢复快照。
-            setTimeout(restoreCurrentIfBackForward, 0)
-
-            // 捕获所有内部链接点击：即使这次点击没有被 PJAX 接管，也能在离开前保存当前页快照。
+            // 普通点击文章 / 页面链接前保存当前位置；刷新不会走这里。
             document.addEventListener('click', function (ev) {
-                try {
-                    var a = ev.target && ev.target.closest ? ev.target.closest('a[href]') : null
-                    if (!a) return
-                    var href = a.getAttribute('href') || ''
-                    if (!href || href.indexOf('javascript:') === 0 || href.charAt(0) === '#') return
-                    if (a.target && a.target === '_blank') return
-                    var u = new URL(href, location.href)
-                    if (u.origin !== location.origin) return
-                    saveSnapshot('click-capture', renderedKey)
-                } catch (e) {}
-            }, true)
+                var a = ev.target && ev.target.closest ? ev.target.closest('a[href]') : null;
+                if (shouldSaveLink(a)) saveCurrent('click');
+            }, true);
 
-            // 普通 PJAX 跳转前保存；回退/前进不保存，避免把文章页错误写到首页 key。
-            document.addEventListener('pjax:send', function (e) {
-                if (e && (e.backward || e.forward)) return
-                saveSnapshot('pjax-send', renderedKey)
-            }, true)
+            // 浏览器回退/前进的捕获阶段，先隐藏，避免看到首页顶部闪一下。
+            window.addEventListener('popstate', function () {
+                restoringBack = true;
+                window.__haoPjaxBackForwardNav = true;
+                document.documentElement.classList.add(RESTORE_CLASS);
+            }, true);
 
-            // PJAX 回退仍发生在同一文档时，直接从 sessionStorage 快照恢复，避免 XHR 重拉。
-            if (window.pjax && typeof window.pjax.loadUrl === 'function' && !window.pjax._haoPersistentBFPatch) {
-                var rawLoadUrl = window.pjax.loadUrl
-                window.pjax.loadUrl = function (href, options) {
-                    options = typeof options === 'object' ? Object.assign({}, options) : {}
-                    var isBackForward = !!(options.backward || options.forward || options.history === false)
-                    var key = makeKey(href || options.url || location.href)
-                    if (!isBackForward) saveSnapshot('before-normal-loadUrl', renderedKey)
-                    if (isBackForward) {
-                        var item = getSnapshot(key)
-                        if (item && restoreViaPjaxContent(item, 'loadUrl-session-cache')) return
-                        window.__haoPersistentBFHit = false
-                        window.__haoPersistentBFReason = 'loadUrl-miss:' + key
-                    }
-                    return rawLoadUrl.call(this, href, options)
+            // BFCache 场景：如果浏览器真的保留了页面，则这里会非常接近无痕模式体验。
+            window.addEventListener('pageshow', function (ev) {
+                if (isReloadNav()) {
+                    removeSaved(location.href);
+                    try { window.scrollTo(0, 0); } catch (e) {}
+                    document.documentElement.classList.remove(RESTORE_CLASS);
+                    return;
                 }
-                window.pjax._haoPersistentBFPatch = true
+                if ((ev && ev.persisted) || navType() === 'back_forward' || window.__haoBackEarlyRestore) {
+                    restoreFor(location.href, 'pageshow-' + navType());
+                }
+            });
+
+            document.addEventListener('pjax:send', function (e) {
+                var isBack = !!(e && (e.backward || e.forward));
+                window.__haoPjaxBackForwardNav = isBack || window.__haoPjaxBackForwardNav === true;
+
+                if (window.__haoPjaxBackForwardNav) {
+                    restoringBack = true;
+                    document.documentElement.classList.add(RESTORE_CLASS);
+                } else {
+                    saveCurrent('pjax-send');
+                }
+            }, true);
+
+            document.addEventListener('pjax:complete', function (e) {
+                var isBack = !!(e && (e.backward || e.forward)) || window.__haoPjaxBackForwardNav === true || restoringBack;
+                if (isBack) {
+                    restoreFor(location.href, 'pjax-complete');
+                }
+            }, true);
+
+            // 刷新：明确从顶部开始，不使用自定义保存的位置
+            if (isReloadNav()) {
+                removeSaved(location.href);
+                try { window.scrollTo(0, 0); } catch (e) {}
+                setTimeout(function () { try { window.scrollTo(0, 0); } catch (e) {} }, 0);
+            } else if (window.__haoBackEarlyRestore) {
+                setTimeout(function () {
+                    restoreFor(location.href, 'early-back-forward');
+                }, 0);
             }
 
-            document.addEventListener('pjax:complete', function (e) {
-                if (lastRestorePos) restoreScroll(lastRestorePos)
-                renderedKey = makeKey(location.href)
-                if (e && (e.backward || e.forward)) {
-                    var item = getSnapshot(renderedKey)
-                    if (item && item.scroll) restoreScroll(item.scroll)
-                    return
-                }
-                setTimeout(function(){ saveSnapshot('complete-150', renderedKey) }, 150)
-                setTimeout(function(){ saveSnapshot('complete-1200', renderedKey) }, 1200)
-            })
-
-            window.addEventListener('pageshow', function (ev) {
-                handleReloadTop()
-                renderedKey = makeKey(location.href)
-                if (ev && ev.persisted) {
-                    window.__haoPersistentBFHit = true
-                    window.__haoPersistentBFReason = 'native-bfcache'
-                    clearEarlyHideSoon(0)
-                    saveSnapshot('pageshow-persisted', renderedKey)
-                    return
-                }
-                if (isBackForwardNavigation()) setTimeout(restoreCurrentIfBackForward, 0)
-                else setTimeout(function(){ saveSnapshot('pageshow-200', renderedKey) }, 200)
-            })
-
-            // 防止早期隐藏异常残留。
-            setTimeout(function(){ clearEarlyHideSoon(0) }, 2500)
-        })()
-
-        document.addEventListener('pjax:send', function (e) {
-                if (!(e && (e.backward || e.forward))) saveSnapshot(renderedKey, 'pjax-send')
-            }, true)
-
-            document.addEventListener('pjax:complete', function (e) {
-                if (lastRestorePos) restoreScroll(lastRestorePos)
-                renderedKey = makeKey(location.href)
-                if (e && e._haoBfCaptureRestore) {
-                    if (e.scrollPos) restoreScroll(e.scrollPos)
-                    setTimeout(function(){ if (e.scrollPos) restoreScroll(e.scrollPos) }, 120)
-                    return
-                }
-                setTimeout(function(){ saveSnapshot(renderedKey, 'complete-150') }, 150)
-                setTimeout(function(){ saveSnapshot(renderedKey, 'complete-1200') }, 1200)
-            })
-
-            window.addEventListener('pageshow', function (ev) {
-                clearReloadState()
-                renderedKey = makeKey(location.href)
-                if (ev && ev.persisted) saveSnapshot(renderedKey, 'pageshow-persisted')
-                else setTimeout(function(){ saveSnapshot(renderedKey, 'pageshow-200') }, 200)
-            })
-        })()
+            window.__haoBackDebug = function () {
+                return {
+                    ready: window.__haoBackV9Fixed,
+                    hit: window.__haoBackHit,
+                    reason: window.__haoBackReason,
+                    navType: navType(),
+                    lastSavedKey: window.__haoBackLastSavedKey,
+                    lastSavedY: window.__haoBackLastSavedY,
+                    lastSavedReason: window.__haoBackLastSavedReason,
+                    currentKey: pageKey(),
+                    currentSaved: getSaved(location.href)
+                };
+            };
+        })();
 
         document.addEventListener('pjax:send', function (e) {
 
-            // 浏览器后退/前进时不显示 loading-box。
-            // 否则回退成功前会先闪一下顶部加载层，视觉上像“回到顶部再跳回去”。
-            window.__haoPjaxBackForwardNav = !!(e && (e.backward || e.forward))
+            // 浏览器后退/前进时不显示 loading-box，普通点击仍显示。
+            window.__haoPjaxBackForwardNav = !!(e && (e.backward || e.forward)) || window.__haoPjaxBackForwardNav === true
 
             // removeEventListener toc scroll
             window.removeEventListener('scroll', window.tocScrollFn)
@@ -820,7 +733,7 @@
             $bodyClassList.contains('read-mode') && $bodyClassList.remove('read-mode')
         })
 
-        document.addEventListener('pjax:complete', function () {
+        document.addEventListener('pjax:complete', function (e) {
             window.refreshFn()
 
             document.querySelectorAll('script[data-pjax]').forEach(item => {
@@ -856,7 +769,12 @@
             typeof Prism === 'object' && Prism.highlightAll()
 
             typeof preloader === 'object' && preloader.endLoading()
-            window.__haoPjaxBackForwardNav = false
+
+            if (window.__haoPjaxBackForwardNav) {
+                setTimeout(function () {
+                    window.__haoPjaxBackForwardNav = false
+                }, 800)
+            }
         })
 
         document.addEventListener('pjax:error', (e) => {
