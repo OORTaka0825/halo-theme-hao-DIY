@@ -22,19 +22,6 @@
         <th:block th:replace="${head}"/>
     </th:block>
 
-    <script>
-    (function(){
-      try {
-        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-        var nav = performance.getEntriesByType && performance.getEntriesByType('navigation');
-        if (nav && nav[0] && nav[0].type === 'reload') {
-          window.__haoReloadTop = true;
-          window.scrollTo(0, 0);
-        }
-      } catch(e) {}
-    })();
-    </script>
-
 </head>
 
 <body>
@@ -402,32 +389,33 @@
             scrollRestoration: false
         })
 
-        // Hao V9：类 BFCache 回退修复版。
-        // 核心思路：不拦 popstate；改为补丁 pjax.loadUrl。
-        // 这样 PJAX 自己的 popstate 触发后，会调用这里的 loadUrl；若命中缓存，则直接 loadContent，避免 XHR 重新拉首页。
+        // Hao V9：类 BFCache 回退（capture 修复版）
+        // 目标：浏览器回退时优先恢复上一页快照，阻止 PJAX 重新 XHR 请求上一页，效果更接近无痕/BFCache。
+        // 注意：F5 / Ctrl+F5 刷新不恢复滚动位置。
         if ('scrollRestoration' in history) {
             try { history.scrollRestoration = 'manual'; } catch (e) {}
         }
 
         ;(function () {
-            if (window.__haoPjaxBfLikeV2Init) return
-            window.__haoPjaxBfLikeV2Init = true
-            window.__haoPjaxCacheReady = true
-            window.__haoPjaxCacheHit = false
-            window.__haoPjaxCacheReason = 'init'
+            if (window.__haoBfCaptureRestoreInit) return
+            window.__haoBfCaptureRestoreInit = true
 
-            var CACHE_LIMIT = 10
-            var cache = window.__haoPjaxDomCache || (window.__haoPjaxDomCache = {})
-            var order = window.__haoPjaxDomCacheOrder || (window.__haoPjaxDomCacheOrder = [])
+            var CACHE_LIMIT = 8
+            var cache = window.__haoBfCaptureCache || (window.__haoBfCaptureCache = {})
+            var order = window.__haoBfCaptureCacheOrder || (window.__haoBfCaptureCacheOrder = [])
             var renderedKey = makeKey(location.href)
             var restoring = false
-            var restorePos = null
+            var lastRestorePos = null
+
+            window.__haoBfCaptureReady = true
+            window.__haoBfCaptureHit = false
+            window.__haoBfCaptureReason = 'init'
+            window.__haoBfCaptureSize = order.length
 
             function makeKey(url) {
                 try {
                     var u = new URL(url || location.href, location.href)
                     var path = u.pathname || '/'
-                    // 同一页面的 /abc 和 /abc/ 容易混用，统一成带 / 的形式
                     path = path.replace(/\/+$/, '') || '/'
                     if (path !== '/') path += '/'
                     return u.origin + path + u.search
@@ -435,14 +423,17 @@
                     return String(url || location.href).split('#')[0]
                 }
             }
-            function getX() { return window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0 }
-            function getY() { return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0 }
+
             function isReloadNavigation() {
                 try {
                     var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')
                     return !!(nav && nav[0] && nav[0].type === 'reload')
                 } catch (e) { return false }
             }
+
+            function getX() { return window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0 }
+            function getY() { return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0 }
+
             function touch(key) {
                 var i = order.indexOf(key)
                 if (i >= 0) order.splice(i, 1)
@@ -451,61 +442,76 @@
                     var old = order.shift()
                     try { delete cache[old] } catch (e) {}
                 }
-                window.__haoPjaxCacheSize = order.length
+                window.__haoBfCaptureSize = order.length
             }
-            function setScroll(key, x, y) {
-                try { sessionStorage.setItem('hao:bfv2:scroll:' + key, JSON.stringify([x || 0, y || 0])) } catch (e) {}
-            }
-            function getScroll(key) {
+
+            function getSelectors() {
                 try {
-                    var raw = sessionStorage.getItem('hao:bfv2:scroll:' + key)
+                    if (Array.isArray(pjaxSelectors)) return pjaxSelectors.slice()
+                } catch (e) {}
+                return ['title', '#config-diff', '#body-wrap', '#rightside-config-hide', '#rightside-config-show', '.js-pjax', '#site-config']
+            }
+
+            function setStoredScroll(key, pos) {
+                try { sessionStorage.setItem('hao:bfcap:scroll:' + key, JSON.stringify(pos || [0, 0])) } catch (e) {}
+            }
+
+            function getStoredScroll(key) {
+                if (cache[key] && cache[key].scroll) return cache[key].scroll
+                try {
+                    var raw = sessionStorage.getItem('hao:bfcap:scroll:' + key)
                     if (!raw) return null
                     var arr = JSON.parse(raw)
                     return [parseInt(arr[0], 10) || 0, parseInt(arr[1], 10) || 0]
                 } catch (e) { return null }
             }
+
             function clearReloadState() {
                 if (!isReloadNavigation()) return
                 try {
                     Object.keys(sessionStorage).forEach(function (k) {
-                        if (k.indexOf('hao:bfv2:scroll:') === 0 || k.indexOf('hao:bf-scroll:') === 0) {
-                            sessionStorage.removeItem(k)
-                        }
+                        if (k.indexOf('hao:bfcap:scroll:') === 0) sessionStorage.removeItem(k)
                     })
                 } catch (e) {}
                 try { window.scrollTo(0, 0) } catch (e) {}
                 requestAnimationFrame(function(){ try { window.scrollTo(0, 0) } catch(e){} })
-                setTimeout(function(){ try { window.scrollTo(0, 0) } catch(e){} }, 60)
+                setTimeout(function(){ try { window.scrollTo(0, 0) } catch(e){} }, 80)
             }
+
             function ensureStyle() {
-                if (document.getElementById('hao-bfcache-like-v2-style')) return
+                if (document.getElementById('hao-bfcap-style')) return
                 var style = document.createElement('style')
-                style.id = 'hao-bfcache-like-v2-style'
-                style.textContent = 'html.hao-bfcache-like-restoring #body-wrap{visibility:hidden!important;pointer-events:none!important;}html.hao-bfcache-like-restoring{scroll-behavior:auto!important;}'
+                style.id = 'hao-bfcap-style'
+                style.textContent = 'html.hao-bfcap-restoring{scroll-behavior:auto!important;}html.hao-bfcap-restoring #body-wrap{visibility:hidden!important;pointer-events:none!important;}'
                 document.head.appendChild(style)
             }
-            function saveSnapshot(key) {
+
+            function saveSnapshot(key, reason) {
                 if (restoring || isReloadNavigation()) return
                 try {
                     key = key || renderedKey || makeKey(location.href)
-                    if (!key) return
-                    setScroll(key, getX(), getY())
+                    var pos = [getX(), getY()]
+                    setStoredScroll(key, pos)
                     cache[key] = {
                         html: document.documentElement.outerHTML,
                         title: document.title,
-                        time: Date.now()
+                        scroll: pos,
+                        time: Date.now(),
+                        reason: reason || 'save'
                     }
                     touch(key)
-                    window.__haoPjaxLastSavedKey = key
+                    window.__haoBfCaptureLastSavedKey = key
+                    window.__haoBfCaptureLastSavedReason = reason || 'save'
                 } catch (e) {
-                    window.__haoPjaxCacheReason = 'save-error:' + (e && e.message ? e.message : e)
+                    window.__haoBfCaptureReason = 'save-error:' + (e && e.message ? e.message : e)
                 }
             }
+
             function restoreScroll(pos) {
                 if (!pos || pos.length < 2) return
                 var x = parseInt(pos[0], 10) || 0
                 var y = parseInt(pos[1], 10) || 0
-                restorePos = [x, y]
+                lastRestorePos = [x, y]
                 var old = document.documentElement.style.scrollBehavior
                 try { document.documentElement.style.scrollBehavior = 'auto' } catch (e) {}
                 function go() { try { window.scrollTo(x, y) } catch (e) {} }
@@ -514,96 +520,141 @@
                 ;[16, 33, 66, 120, 240, 480, 800, 1200].forEach(function (ms) { setTimeout(go, ms) })
                 setTimeout(function () { try { document.documentElement.style.scrollBehavior = old || '' } catch (e) {} }, 1300)
             }
-            function finishRestore() {
-                if (restorePos) restoreScroll(restorePos)
-                setTimeout(function () {
-                    document.documentElement.classList.remove('hao-bfcache-like-restoring')
+
+            function dispatchPjaxComplete(pos, source) {
+                try {
+                    var ev = document.createEvent('HTMLEvents')
+                    ev.initEvent('pjax:complete', true, true)
+                    ev.backward = true
+                    ev.history = false
+                    ev.scrollPos = pos || [0, 0]
+                    ev._haoBfCaptureRestore = true
+                    ev._haoBfCaptureSource = source || 'cache'
+                    document.dispatchEvent(ev)
+                } catch (e) {}
+            }
+
+            function replaceFromSnapshot(item) {
+                var tmp = document.implementation.createHTMLDocument('hao-bfcache')
+                tmp.documentElement.innerHTML = item.html
+                var selectors = getSelectors()
+                for (var s = 0; s < selectors.length; s++) {
+                    var selector = selectors[s]
+                    var newEls = tmp.querySelectorAll(selector)
+                    var oldEls = document.querySelectorAll(selector)
+                    if (!newEls.length || !oldEls.length) continue
+                    if (newEls.length !== oldEls.length) {
+                        window.__haoBfCaptureReason = 'selector-count-mismatch:' + selector + ':' + oldEls.length + '/' + newEls.length
+                        continue
+                    }
+                    for (var i = 0; i < oldEls.length; i++) {
+                        if (oldEls[i] && oldEls[i].parentNode) {
+                            oldEls[i].parentNode.replaceChild(newEls[i].cloneNode(true), oldEls[i])
+                        }
+                    }
+                }
+                try { document.title = item.title || document.title } catch (e) {}
+            }
+
+            function restoreFromCache(targetKey, source) {
+                var item = cache[targetKey]
+                if (!item || !item.html) {
+                    window.__haoBfCaptureHit = false
+                    window.__haoBfCaptureReason = 'miss:' + targetKey
+                    return false
+                }
+                restoring = true
+                window.__haoBfCaptureHit = true
+                window.__haoBfCaptureReason = 'hit:' + source + ':' + targetKey
+                document.documentElement.classList.add('hao-bfcap-restoring')
+
+                var pos = getStoredScroll(targetKey) || item.scroll || [0, 0]
+                restoreScroll(pos)
+
+                try {
+                    replaceFromSnapshot(item)
+                    renderedKey = targetKey
+                    restoreScroll(pos)
+                    // 让主题已有的 pjax:complete 初始化逻辑继续执行：refreshFn、lazyload、data-pjax 脚本等。
+                    dispatchPjaxComplete(pos, source)
+                    restoreScroll(pos)
+                    setTimeout(function () {
+                        restoreScroll(pos)
+                        document.documentElement.classList.remove('hao-bfcap-restoring')
+                        restoring = false
+                    }, 120)
+                    setTimeout(function () {
+                        document.documentElement.classList.remove('hao-bfcap-restoring')
+                        restoring = false
+                    }, 900)
+                    return true
+                } catch (e) {
+                    document.documentElement.classList.remove('hao-bfcap-restoring')
                     restoring = false
-                    restorePos = null
-                }, 80)
-                setTimeout(function () {
-                    document.documentElement.classList.remove('hao-bfcache-like-restoring')
-                    restoring = false
-                    restorePos = null
-                }, 700)
+                    window.__haoBfCaptureHit = false
+                    window.__haoBfCaptureReason = 'restore-error:' + (e && e.message ? e.message : e)
+                    return false
+                }
             }
 
             ensureStyle()
             clearReloadState()
 
-            // 初始页缓存。进入首页后稍等图片/卡片加载，再保存一次更完整的 DOM。
-            setTimeout(function(){ saveSnapshot(renderedKey) }, 120)
-            setTimeout(function(){ saveSnapshot(renderedKey) }, 1200)
-            setTimeout(function(){ saveSnapshot(renderedKey) }, 2500)
+            // 初始页面缓存；延迟再存两次，尽量等懒加载和卡片高度稳定。
+            setTimeout(function(){ saveSnapshot(renderedKey, 'initial-120') }, 120)
+            setTimeout(function(){ saveSnapshot(renderedKey, 'initial-1200') }, 1200)
+            setTimeout(function(){ saveSnapshot(renderedKey, 'initial-2500') }, 2500)
 
-            if (window.pjax && typeof window.pjax.loadUrl === 'function' && !window.pjax._haoBfLikeV2Patched) {
+            // 关键修复：用 capture 阶段抢在 PJAX 自己的 popstate 前面。
+            // 命中快照时，直接恢复 DOM，并阻止 PJAX 再 loadUrl/XHR。
+            window.addEventListener('popstate', function (ev) {
+                var targetKey = makeKey((ev && ev.state && ev.state.url) || location.href)
+                if (cache[targetKey] && restoreFromCache(targetKey, 'popstate-capture')) {
+                    try { ev.preventDefault() } catch (e) {}
+                    try { ev.stopImmediatePropagation() } catch (e) {}
+                    return false
+                }
+                window.__haoBfCaptureHit = false
+                window.__haoBfCaptureReason = 'popstate-miss:' + targetKey
+            }, true)
+
+            // 兜底：如果 popstate 没拦住，PJAX loadUrl 入口继续拦一次。
+            if (window.pjax && typeof window.pjax.loadUrl === 'function' && !window.pjax._haoBfCapturePatched) {
                 var rawLoadUrl = window.pjax.loadUrl
                 window.pjax.loadUrl = function (href, options) {
                     options = typeof options === 'object' ? Object.assign({}, options) : {}
                     var isBackForward = !!(options.backward || options.forward || options.history === false)
                     var targetKey = makeKey(href || options.url || location.href)
-                    var item = cache[targetKey]
-
-                    // 普通点击离开前，保存当前真实 DOM 所属页面，而不是此时的 location。
-                    if (!restoring && !isReloadNavigation()) saveSnapshot(renderedKey)
-
-                    if (isBackForward && item && item.html && typeof window.pjax.loadContent === 'function') {
-                        window.__haoPjaxCacheHit = true
-                        window.__haoPjaxCacheReason = 'loadUrl-cache-hit:' + targetKey
-                        restoring = true
-                        document.documentElement.classList.add('hao-bfcache-like-restoring')
-
-                        var pos = getScroll(targetKey) || options.scrollPos || [0, 0]
-                        restoreScroll(pos)
-
-                        var finalOptions = Object.assign({}, window.pjax.options || {}, options, {
-                            url: href,
-                            title: options.title || item.title || document.title,
-                            history: false,
-                            scrollRestoration: false,
-                            scrollTo: false,
-                            scrollPos: pos,
-                            _haoCacheRestore: true
-                        })
-
-                        try { window.pjax.abortRequest && window.pjax.abortRequest(window.pjax.request) } catch (e) {}
-                        try {
-                            window.pjax.state.href = href
-                            window.pjax.state.options = finalOptions
-                            // 这里会触发 pjax:complete，所以主题原有 refreshFn / lazyload 仍会执行。
-                            window.pjax.loadContent(item.html, finalOptions)
-                            renderedKey = targetKey
-                            restoreScroll(pos)
-                            return
-                        } catch (e) {
-                            document.documentElement.classList.remove('hao-bfcache-like-restoring')
-                            restoring = false
-                            window.__haoPjaxCacheHit = false
-                            window.__haoPjaxCacheReason = 'loadContent-error:' + (e && e.message ? e.message : e)
-                        }
-                    }
-
-                    window.__haoPjaxCacheHit = false
-                    window.__haoPjaxCacheReason = isBackForward ? ('miss:' + targetKey) : 'normal-navigation'
+                    if (!isBackForward) saveSnapshot(renderedKey, 'before-normal-loadUrl')
+                    if (isBackForward && cache[targetKey] && restoreFromCache(targetKey, 'loadUrl-patch')) return
+                    window.__haoBfCaptureHit = false
+                    window.__haoBfCaptureReason = isBackForward ? ('loadUrl-miss:' + targetKey) : 'normal-navigation'
                     return rawLoadUrl.call(this, href, options)
                 }
-                window.pjax._haoBfLikeV2Patched = true
+                window.pjax._haoBfCapturePatched = true
             }
 
+            document.addEventListener('pjax:send', function (e) {
+                if (!(e && (e.backward || e.forward))) saveSnapshot(renderedKey, 'pjax-send')
+            }, true)
+
             document.addEventListener('pjax:complete', function (e) {
+                if (lastRestorePos) restoreScroll(lastRestorePos)
                 renderedKey = makeKey(location.href)
-                if (e && e._haoCacheRestore) {
-                    restoreScroll(e.scrollPos || getScroll(renderedKey) || restorePos || [0, 0])
-                    finishRestore()
+                if (e && e._haoBfCaptureRestore) {
+                    if (e.scrollPos) restoreScroll(e.scrollPos)
+                    setTimeout(function(){ if (e.scrollPos) restoreScroll(e.scrollPos) }, 120)
+                    return
                 }
-                setTimeout(function(){ saveSnapshot(renderedKey) }, 150)
-                setTimeout(function(){ saveSnapshot(renderedKey) }, 1200)
+                setTimeout(function(){ saveSnapshot(renderedKey, 'complete-150') }, 150)
+                setTimeout(function(){ saveSnapshot(renderedKey, 'complete-1200') }, 1200)
             })
 
-            window.addEventListener('pageshow', function () {
+            window.addEventListener('pageshow', function (ev) {
                 clearReloadState()
                 renderedKey = makeKey(location.href)
-                setTimeout(function(){ saveSnapshot(renderedKey) }, 200)
+                if (ev && ev.persisted) saveSnapshot(renderedKey, 'pageshow-persisted')
+                else setTimeout(function(){ saveSnapshot(renderedKey, 'pageshow-200') }, 200)
             })
         })()
 
