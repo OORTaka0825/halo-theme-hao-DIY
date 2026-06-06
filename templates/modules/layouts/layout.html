@@ -421,10 +421,82 @@
         }
 
         ;(function () {
+            var html = document.documentElement
+            var savedHtmlBehavior = ''
+            var savedHtmlMinHeight = ''
+            var savedBodyMinHeight = ''
+            var pendingRestorePos = null
+            var locked = false
+
+            function scrollEl() {
+                return document.scrollingElement || document.documentElement || document.body
+            }
             function getY() {
-                return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
+                var el = scrollEl()
+                return window.pageYOffset || (el && el.scrollTop) || document.documentElement.scrollTop || document.body.scrollTop || 0
+            }
+            function normalizePos(pos) {
+                if (!pos || pos.length < 2) return null
+                return [parseInt(pos[0], 10) || 0, parseInt(pos[1], 10) || 0]
+            }
+            function setScroll(pos) {
+                pos = normalizePos(pos)
+                if (!pos) return
+                var x = pos[0]
+                var y = pos[1]
+                try { window.scrollTo(x, y) } catch (e) {}
+                try {
+                    var el = scrollEl()
+                    if (el) {
+                        el.scrollLeft = x
+                        el.scrollTop = y
+                    }
+                } catch (e) {}
+                try { document.documentElement.scrollTop = y } catch (e) {}
+                try { document.body.scrollTop = y } catch (e) {}
+            }
+            function prepareHeight(pos) {
+                pos = normalizePos(pos)
+                if (!pos) return
+                var y = pos[1]
+                var body = document.body
+                try {
+                    var needHeight = Math.max(
+                        html.scrollHeight || 0,
+                        body ? body.scrollHeight || 0 : 0,
+                        y + window.innerHeight + 260
+                    )
+                    html.style.minHeight = needHeight + 'px'
+                    if (body && body.style) body.style.minHeight = needHeight + 'px'
+                } catch (e) {}
+            }
+            function lockForRestore(pos) {
+                pos = normalizePos(pos)
+                if (!pos) return
+                pendingRestorePos = pos
+                if (!locked) {
+                    savedHtmlBehavior = html.style.scrollBehavior || ''
+                    savedHtmlMinHeight = html.style.minHeight || ''
+                    savedBodyMinHeight = document.body && document.body.style ? document.body.style.minHeight || '' : ''
+                    locked = true
+                }
+                try { html.classList.add('hao-pjax-restore-lock') } catch (e) {}
+                try { html.style.scrollBehavior = 'auto' } catch (e) {}
+                prepareHeight(pos)
+                // 关键：回退开始时先把滚动条放到目标位置。
+                // 后续 PJAX 替换 DOM 时，页面会在这个位置附近完成刷新，而不是先显示顶部。
+                setScroll(pos)
+            }
+            function unlockRestore() {
+                try { html.classList.remove('hao-pjax-restore-lock') } catch (e) {}
+                try { html.style.scrollBehavior = savedHtmlBehavior || '' } catch (e) {}
+                try { html.style.minHeight = savedHtmlMinHeight || '' } catch (e) {}
+                try { if (document.body && document.body.style) document.body.style.minHeight = savedBodyMinHeight || '' } catch (e) {}
+                locked = false
             }
             function saveCurrentScrollState() {
+                // 回退/前进时 location 已经变成目标地址，但 DOM 可能还是旧文章页；这时不能保存。
+                if (window.__haoPjaxBackForwardNav) return
                 try {
                     var s = history.state || {}
                     s.url = s.url || window.location.href
@@ -433,54 +505,6 @@
                     s.scrollPos = [document.documentElement.scrollLeft || document.body.scrollLeft || 0, getY()]
                     history.replaceState(s, document.title, window.location.href)
                 } catch (e) {}
-            }
-            function delayedRestore(pos) {
-                if (!pos || pos.length < 2) return
-                var x = parseInt(pos[0], 10) || 0
-                var y = parseInt(pos[1], 10) || 0
-                var html = document.documentElement
-                var body = document.body
-                var oldBehavior = html.style.scrollBehavior
-                var oldHtmlMinHeight = html.style.minHeight
-                var oldBodyMinHeight = body && body.style ? body.style.minHeight : ''
-
-                // 回退时新页面刚替换进 DOM，懒加载图片/卡片还没撑开高度，
-                // scrollTo(y) 会被浏览器夹到顶部附近，于是视觉上会先闪顶部再跳回目标位置。
-                // 这里先临时撑高页面，并短暂隐藏新页面内容，等滚动位置校正后再显示。
-                try { html.classList.add('hao-pjax-restore-lock') } catch (e) {}
-                try { html.style.scrollBehavior = 'auto' } catch (e) {}
-                try {
-                    var needHeight = Math.max(
-                        html.scrollHeight || 0,
-                        body ? body.scrollHeight || 0 : 0,
-                        y + window.innerHeight + 160
-                    )
-                    html.style.minHeight = needHeight + 'px'
-                    if (body && body.style) body.style.minHeight = needHeight + 'px'
-                } catch (e) {}
-
-                function go() { try { window.scrollTo(x, y) } catch (e) {} }
-                function unlock() {
-                    go()
-                    try { html.classList.remove('hao-pjax-restore-lock') } catch (e) {}
-                }
-
-                go()
-                requestAnimationFrame(function () {
-                    go()
-                    requestAnimationFrame(function () {
-                        go()
-                        requestAnimationFrame(unlock)
-                    })
-                })
-                ;[30, 80, 150, 300, 600, 1000, 1400].forEach(function (ms) { setTimeout(go, ms) })
-                setTimeout(function () {
-                    go()
-                    try { html.style.scrollBehavior = oldBehavior || '' } catch (e) {}
-                    try { html.style.minHeight = oldHtmlMinHeight || '' } catch (e) {}
-                    try { if (body && body.style) body.style.minHeight = oldBodyMinHeight || '' } catch (e) {}
-                    try { html.classList.remove('hao-pjax-restore-lock') } catch (e) {}
-                }, 1500)
             }
             function getNavigationType() {
                 try {
@@ -508,48 +532,93 @@
                 requestAnimationFrame(top)
                 ;[50, 150, 350, 700].forEach(function (ms) { setTimeout(top, ms) })
             }
-
-            function beginBackForwardVisualLock(pos) {
-                // 关键：回退/前进一开始就隐藏 #body-wrap，而不是等 pjax:complete 后再隐藏。
-                // 否则新首页 DOM 已经替换并先绘制到顶部，用户会看到“顶部闪一下再跳回位置”。
-                if (!pos || pos.length < 2) return
-                try { window.__haoPjaxBackForwardNav = true } catch (e) {}
-                try {
-                    document.documentElement.classList.add('hao-pjax-restore-lock')
-                    document.documentElement.style.scrollBehavior = 'auto'
-                } catch (e) {}
+            function isBackForwardEvent(e) {
+                return !!(e && (e.backward || e.forward))
+            }
+            function finishRestore(pos) {
+                pos = normalizePos(pos)
+                if (!pos) return
+                lockForRestore(pos)
+                var start = Date.now()
+                var tries = 0
+                function tick() {
+                    prepareHeight(pos)
+                    setScroll(pos)
+                    tries++
+                    var close = Math.abs(getY() - pos[1]) <= 4
+                    var expired = Date.now() - start > 1200
+                    // 至少等几帧，让 refreshFn/lazyload 初始化有机会完成；但只要位置已经正确，就尽快显示。
+                    if ((close && tries >= 4) || expired) {
+                        setScroll(pos)
+                        unlockRestore()
+                        // 解锁后图片/瀑布流可能继续改变高度，短时间内再校正几次。
+                        ;[60, 160, 360, 700, 1100].forEach(function (ms) {
+                            setTimeout(function () { setScroll(pos) }, ms)
+                        })
+                        pendingRestorePos = null
+                        return
+                    }
+                    requestAnimationFrame(tick)
+                }
+                requestAnimationFrame(tick)
             }
 
-            // 捕获浏览器后退/前进，尽量早于 PJAX 的普通 popstate 处理进入隐藏状态。
-            // 注意这里只做视觉锁，不保存位置，避免 popstate 后 location 已变成目标页时误把文章页位置写到首页 state。
+            // 在 PJAX 真正替换 #body-wrap 的瞬间就先撑高并跳到目标位置。
+            // 这样新首页不是先在顶部渲染完再跳，而是在目标滚动位置附近完成渲染。
+            try {
+                pjax.options.switches = pjax.options.switches || {}
+                var oldBodyWrapSwitch = pjax.options.switches['#body-wrap']
+                pjax.options.switches['#body-wrap'] = function (oldEl, newEl, options) {
+                    if (options && (options.backward || options.forward) && options.scrollPos) {
+                        lockForRestore(options.scrollPos)
+                        oldEl.outerHTML = newEl.outerHTML
+                        prepareHeight(options.scrollPos)
+                        setScroll(options.scrollPos)
+                        requestAnimationFrame(function () { setScroll(options.scrollPos) })
+                        this.onSwitch()
+                        return
+                    }
+                    if (typeof oldBodyWrapSwitch === 'function') {
+                        return oldBodyWrapSwitch.call(this, oldEl, newEl, options)
+                    }
+                    oldEl.outerHTML = newEl.outerHTML
+                    this.onSwitch()
+                }
+            } catch (e) {}
+
+            // 捕获浏览器后退/前进，早于 PJAX 处理：先锁定并预跳到目标滚动位置。
             window.addEventListener('popstate', function (ev) {
                 try {
                     var st = ev && ev.state
-                    if (st && st.scrollPos) beginBackForwardVisualLock(st.scrollPos)
+                    if (st && st.scrollPos) {
+                        window.__haoPjaxBackForwardNav = true
+                        lockForRestore(st.scrollPos)
+                    }
                 } catch (e) {}
             }, true)
 
             document.addEventListener('pjax:send', function (e) {
-                if (e && (e.backward || e.forward)) {
-                    beginBackForwardVisualLock(e.scrollPos || (history.state && history.state.scrollPos))
+                if (isBackForwardEvent(e)) {
+                    window.__haoPjaxBackForwardNav = true
+                    lockForRestore(e.scrollPos || (history.state && history.state.scrollPos) || pendingRestorePos)
                     return
                 }
                 saveCurrentScrollState()
             })
+
             // 只在 PJAX 普通点击导航时记录滚动位置；普通浏览器刷新 / F5 / Ctrl+F5 不写入自定义位置。
-            // pagehide 在刷新时也会触发，若这里无条件保存，会让刷新被自定义回退逻辑影响。
             window.addEventListener('pagehide', function (ev) {
-                // 进入 BFCache 时可安全保存；普通 reload / hard reload 的 ev.persisted 为 false，不处理。
                 if (ev && ev.persisted) saveCurrentScrollState()
             }, { passive: true })
 
             document.addEventListener('pjax:error', function () {
-                try { document.documentElement.classList.remove('hao-pjax-restore-lock') } catch (e) {}
+                unlockRestore()
+                pendingRestorePos = null
             })
 
             document.addEventListener('pjax:complete', function (e) {
-                if ((e.backward || e.forward) && e.scrollPos) {
-                    delayedRestore(e.scrollPos)
+                if (isBackForwardEvent(e) && (e.scrollPos || pendingRestorePos)) {
+                    finishRestore(e.scrollPos || pendingRestorePos)
                 }
             })
 
@@ -559,7 +628,7 @@
                     return
                 }
                 if (isBackForwardDocumentNavigation() && history.state && history.state.scrollPos) {
-                    delayedRestore(history.state.scrollPos)
+                    finishRestore(history.state.scrollPos)
                 }
             })
 
