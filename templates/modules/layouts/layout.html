@@ -376,51 +376,27 @@
 
 
     <th:block th:if="${theme.config.other.pjax_enable}"><script>
+        // S9 原版 PJAX 逻辑：只保留 PJAX 自身切页与刷新流程，不额外接管回退位置。
+        // 这样浏览器能进 BFCache 时，会表现得更接近无痕模式的“原页面现场恢复”。
         let pjaxSelectors = ['title', '#config-diff', '#body-wrap', '#rightside-config-hide', '#rightside-config-show', '.js-pjax', '#site-config']
 
         pjaxSelectors.unshift('meta[property="og:type"]', 'meta[property="og:image"]', 'meta[property="og:title"]', 'meta[property="og:url"]', 'meta[property="og:description"]'
                 , 'meta[name="twitter:title"]', 'meta[name="twitter:url"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]')
 
         var pjax = new Pjax({
-            elements: 'a[href]:not([target="_blank"]):not([data-no-pjax]):not([href^="/console"])',
+            elements: 'a:not([target="_blank"])',
             selectors: pjaxSelectors,
             cacheBust: false,
             analytics: false,
-            scrollRestoration: true
+            scrollRestoration: false
         })
 
-        // PJAX 原生回退恢复：由 Pjax 内置 scrollRestoration 接管，不再叠加自定义回退脚本。
-        // 说明：普通点击由 PJAX 切页；浏览器后退/前进时由 PJAX 的 history.state.scrollPos 恢复位置。
-        // 刷新/F5/Ctrl+F5 不使用自定义保存位置，尽量按正常刷新从顶部开始。
-        ;(function () {
-            try {
-                var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')
-                var isReload = !!(nav && nav[0] && nav[0].type === 'reload')
-                if (isReload) {
-                    var s = history.state || {}
-                    if (s && s.scrollPos) {
-                        s.scrollPos = [0, 0]
-                        history.replaceState(s, document.title, window.location.href)
-                    }
-                    window.addEventListener('pageshow', function () {
-                        try { window.scrollTo(0, 0) } catch (e) {}
-                    }, { once: true })
-                }
-            } catch (e) {}
-        })()
-
-        document.addEventListener('pjax:send', function (e) {
-
-            // 浏览器后退/前进时不显示 loading-box。
-            // 否则回退成功前会先闪一下顶部加载层，视觉上像“回到顶部再跳回去”。
-            window.__haoPjaxBackForwardNav = !!(e && (e.backward || e.forward))
+        document.addEventListener('pjax:send', function () {
 
             // removeEventListener toc scroll
             window.removeEventListener('scroll', window.tocScrollFn)
 
-            if (!window.__haoPjaxBackForwardNav) {
-                typeof preloader === 'object' && preloader.initLoading()
-            }
+            typeof preloader === 'object' && preloader.initLoading()
 
             if (window.aplayers) {
                 for (let i = 0; i < window.aplayers.length; i++) {
@@ -473,7 +449,6 @@
             typeof Prism === 'object' && Prism.highlightAll()
 
             typeof preloader === 'object' && preloader.endLoading()
-            window.__haoPjaxBackForwardNav = false
         })
 
         document.addEventListener('pjax:error', (e) => {
