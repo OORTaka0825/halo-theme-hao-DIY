@@ -9,6 +9,22 @@
 <!-- head 中自定义的  -->
 
 <head>
+
+    <!-- 刷新不恢复滚动：尽早接管浏览器原生滚动恢复，避免 F5/刷新记住位置 -->
+    <script>
+        (function () {
+            try {
+                if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+            } catch (e) {}
+            try {
+                var nav = performance.getEntriesByType && performance.getEntriesByType('navigation');
+                if (nav && nav[0] && nav[0].type === 'reload') {
+                    window.__haoForceReloadTop = true;
+                    window.scrollTo(0, 0);
+                }
+            } catch (e) {}
+        })();
+    </script>
     <th:block th:replace="~{modules/head :: head(htmlType = ${htmlType})}"/>
     <link th:if="${#strings.equals(theme.config.comments.use, 'Waline')
     && not #strings.isEmpty(theme.config.comments.walines.serverURL)}"
@@ -377,10 +393,10 @@
 
     <th:block th:if="${theme.config.other.pjax_enable}"><script>
         let pjaxSelectors = ['title', '#config-diff', '#body-wrap', '#rightside-config-hide', '#rightside-config-show', '.js-pjax', '#site-config']
-        
+
         pjaxSelectors.unshift('meta[property="og:type"]', 'meta[property="og:image"]', 'meta[property="og:title"]', 'meta[property="og:url"]', 'meta[property="og:description"]'
                 , 'meta[name="twitter:title"]', 'meta[name="twitter:url"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]')
-        
+
         var pjax = new Pjax({
             elements: 'a:not([target="_blank"])',
             selectors: pjaxSelectors,
@@ -388,14 +404,305 @@
             analytics: false,
             scrollRestoration: false
         })
-        
-        document.addEventListener('pjax:send', function () {
-            
+
+        // 旧版 sessionStorage 回退逻辑增强版：
+        // 1) PJAX 自己不恢复滚动（scrollRestoration: false）
+        // 2) 普通 PJAX 跳转前保存当前列表页位置
+        // 3) 浏览器后退/前进时用 sessionStorage 里的位置恢复
+        // 4) F5 / Ctrl+F5 刷新不使用这套位置恢复
+        ;(function () {
+            if (window.__haoLegacyBackRestoreV9) return
+            window.__haoLegacyBackRestoreV9 = true
+
+            var POS_PREFIX = 'hao:scroll:'
+            var STATE_KEY = 'hao:restore_state'
+            var currentKey = pageKey()
+            var pendingRestore = false
+            var pendingRestoreKey = ''
+            var pendingRestoreY = null
+            var restoring = false
+            var saveTicking = false
+            var rafId = 0
+            var timers = []
+
+            function pageKey(url) {
+                try {
+                    var u = url ? new URL(url, location.href) : location
+                    return u.pathname + u.search
+                } catch (e) {
+                    return location.pathname + location.search
+                }
+            }
+            function getY() {
+                return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
+            }
+            function isListPage() {
+                var bw = document.getElementById('body-wrap')
+                return !!(bw && bw.classList && bw.classList.contains('page'))
+            }
+            function isPostPage() {
+                var bw = document.getElementById('body-wrap')
+                return !!(bw && bw.classList && bw.classList.contains('post'))
+            }
+            function setPos(key, y) {
+                try { sessionStorage.setItem(POS_PREFIX + key, String(Math.max(0, parseInt(y, 10) || 0))) } catch (e) {}
+            }
+            function getPos(key) {
+                try { return sessionStorage.getItem(POS_PREFIX + key) } catch (e) { return null }
+            }
+            function setState(v) {
+                try { sessionStorage.setItem(STATE_KEY, v ? '1' : '0') } catch (e) {}
+            }
+            function getState() {
+                try { return sessionStorage.getItem(STATE_KEY) === '1' } catch (e) { return false }
+            }
+            function getNavigationType() {
+                try {
+                    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')
+                    return nav && nav[0] && nav[0].type
+                } catch (e) {}
+                return ''
+            }
+            function isReloadNavigation() {
+                return getNavigationType() === 'reload' || window.__haoForceReloadTop
+            }
+
+            function saveCurrentListPosition(force) {
+                if (!force && !isListPage()) return
+                if (restoring) return
+                setPos(currentKey || pageKey(), getY())
+            }
+
+            function throttledSave() {
+                if (!isListPage()) return
+                if (restoring) return
+                if (saveTicking) return
+                saveTicking = true
+                requestAnimationFrame(function () {
+                    saveTicking = false
+                    saveCurrentListPosition(false)
+                })
+            }
+
+            function revealBodyWrap() {
+                var bw = document.getElementById('body-wrap')
+                if (bw) {
+                    bw.style.visibility = ''
+                    bw.style.pointerEvents = ''
+                }
+            }
+
+            function cancelRestore() {
+                restoring = false
+                pendingRestore = false
+                pendingRestoreKey = ''
+                pendingRestoreY = null
+                if (rafId) { try { cancelAnimationFrame(rafId) } catch (e) {} rafId = 0 }
+                while (timers.length) { try { clearTimeout(timers.pop()) } catch (e) {} }
+                setState(false)
+                revealBodyWrap()
+                try { document.documentElement.style.scrollBehavior = '' } catch (e) {}
+            }
+
+            function prepareBackForwardRestore(e) {
+                pendingRestore = true
+                pendingRestoreKey = pageKey((e && e.url) || location.href)
+                var stored = getPos(pendingRestoreKey)
+                pendingRestoreY = stored !== null ? (parseInt(stored, 10) || 0) : null
+                window.__haoPjaxBackForwardNav = true
+
+                var bw = document.getElementById('body-wrap')
+                if (bw) {
+                    bw.style.visibility = 'hidden'
+                    bw.style.pointerEvents = 'none'
+                }
+            }
+
+            // 拦截 pjax.loadUrl：普通跳转前保存列表页位置；回退/前进不保存，避免把文章页位置写到首页 key。
+            function patchPjaxLoadUrl() {
+                try {
+                    if (!window.pjax || window.pjax.__haoLegacyBackRestorePatched) return
+                    var orig = window.pjax.loadUrl
+                    window.pjax.loadUrl = function (url, options) {
+                        options = options || {}
+                        if (!(options.backward || options.forward)) {
+                            if (isListPage()) saveCurrentListPosition(true)
+                            cancelRestore()
+                        } else {
+                            prepareBackForwardRestore({ url: (options && options.url) || url, backward: options.backward, forward: options.forward })
+                        }
+                        return orig.apply(this, arguments)
+                    }
+                    window.pjax.__haoLegacyBackRestorePatched = true
+                } catch (e) {}
+            }
+
+            function wrapThemeScrollHelpers() {
+                try {
+                    if (typeof window.scrollToPost === 'function' && !window.__haoScrollToPostWrappedV9) {
+                        var orig = window.scrollToPost
+                        window.scrollToPost = function () {
+                            if (getState()) return
+                            return orig.apply(this, arguments)
+                        }
+                        window.__haoScrollToPostWrappedV9 = true
+                    }
+                } catch (e) {}
+                try {
+                    if (window.btf && typeof window.btf.scrollToDest === 'function' && !window.btf.__haoScrollToDestWrappedV9) {
+                        var orig2 = window.btf.scrollToDest
+                        window.btf.scrollToDest = function () {
+                            if (getState()) return
+                            return orig2.apply(this, arguments)
+                        }
+                        window.btf.__haoScrollToDestWrappedV9 = true
+                    }
+                } catch (e) {}
+            }
+
+            function startRestore(y) {
+                if (y === null || typeof y === 'undefined') {
+                    revealBodyWrap()
+                    return
+                }
+                y = Math.max(0, parseInt(y, 10) || 0)
+                restoring = true
+                setState(true)
+
+                var prevBehavior = document.documentElement.style.scrollBehavior
+                try { document.documentElement.style.scrollBehavior = 'auto' } catch (e) {}
+
+                var start = Date.now()
+                var lastHeight = document.body.scrollHeight
+                var stableFrames = 0
+                var maxFrames = 42
+
+                function go() {
+                    try { window.scrollTo(0, y) } catch (e) {}
+                }
+                function done() {
+                    go()
+                    revealBodyWrap()
+                    restoring = false
+                    pendingRestore = false
+                    pendingRestoreKey = ''
+                    pendingRestoreY = null
+                    setState(false)
+                    try { document.documentElement.style.scrollBehavior = prevBehavior || '' } catch (e) {}
+                    if (rafId) { try { cancelAnimationFrame(rafId) } catch (e) {} rafId = 0 }
+                    while (timers.length) { try { clearTimeout(timers.pop()) } catch (e) {} }
+                }
+                function tick() {
+                    var h = document.body.scrollHeight
+                    var cur = getY()
+                    if (h !== lastHeight) {
+                        lastHeight = h
+                        stableFrames = 0
+                    } else if (Math.abs(cur - y) <= 3) {
+                        stableFrames++
+                    } else {
+                        stableFrames = 0
+                    }
+
+                    go()
+
+                    if (stableFrames >= 3 || Date.now() - start > 1200 || --maxFrames <= 0) return done()
+                    rafId = requestAnimationFrame(tick)
+                }
+
+                go()
+                rafId = requestAnimationFrame(tick)
+                ;[60, 160, 360, 700, 1050].forEach(function (ms) {
+                    timers.push(setTimeout(function () { if (restoring) go() }, ms))
+                })
+            }
+
+            patchPjaxLoadUrl()
+            wrapThemeScrollHelpers()
+            currentKey = pageKey()
+            setState(false)
+
+            window.addEventListener('scroll', throttledSave, { passive: true })
+
+            ;['wheel', 'touchstart', 'touchmove', 'keydown', 'mousedown'].forEach(function (evt) {
+                window.addEventListener(evt, function () {
+                    if (restoring) cancelRestore()
+                }, { passive: true })
+            })
+
+            document.addEventListener('pjax:send', function (e) {
+                if (e && (e.backward || e.forward)) {
+                    prepareBackForwardRestore(e)
+                    return
+                }
+                if (isListPage()) saveCurrentListPosition(true)
+                pendingRestore = false
+                pendingRestoreKey = ''
+                pendingRestoreY = null
+            })
+
+            document.addEventListener('pjax:complete', function (e) {
+                currentKey = pageKey()
+                patchPjaxLoadUrl()
+                wrapThemeScrollHelpers()
+
+                if (isPostPage()) {
+                    if (!location.hash && !(e && (e.backward || e.forward))) {
+                        window.scrollTo(0, 0)
+                        timers.push(setTimeout(function () { if (!window.__haoTocClicking) window.scrollTo(0, 0) }, 60))
+                    }
+                    revealBodyWrap()
+                    return
+                }
+
+                if (pendingRestore || (e && (e.backward || e.forward))) {
+                    var key = pendingRestoreKey || currentKey
+                    var stored = pendingRestoreY !== null ? pendingRestoreY : getPos(key)
+                    setTimeout(function () {
+                        startRestore(stored !== null ? parseInt(stored, 10) || 0 : 0)
+                    }, 0)
+                } else {
+                    revealBodyWrap()
+                }
+            })
+
+            window.addEventListener('pageshow', function (ev) {
+                currentKey = pageKey()
+                patchPjaxLoadUrl()
+                wrapThemeScrollHelpers()
+                if (isReloadNavigation()) {
+                    try { window.scrollTo(0, 0) } catch (e) {}
+                    return
+                }
+                if (ev && ev.persisted && isListPage()) {
+                    var stored = getPos(currentKey)
+                    if (stored !== null) startRestore(parseInt(stored, 10) || 0)
+                }
+            })
+
+            // 刷新不保存；这里只在进入 BFCache 时补一次。
+            window.addEventListener('pagehide', function (ev) {
+                if (ev && ev.persisted && isListPage()) saveCurrentListPosition(true)
+            }, { passive: true })
+
+            if ('scrollRestoration' in history) {
+                try { history.scrollRestoration = 'manual' } catch (e) {}
+            }
+        })()
+
+        document.addEventListener('pjax:send', function (e) {
+
+            // 浏览器后退/前进时不显示 loading-box。
+            // 否则回退成功前会先闪一下顶部加载层，视觉上像“回到顶部再跳回去”。
+            window.__haoPjaxBackForwardNav = !!(e && (e.backward || e.forward))
+
             // removeEventListener toc scroll
             window.removeEventListener('scroll', window.tocScrollFn)
-            
-            typeof preloader === 'object' && preloader.initLoading()
-            
+
+            if (!window.__haoPjaxBackForwardNav) {
+                typeof preloader === 'object' && preloader.initLoading()
+            }
+
             if (window.aplayers) {
                 for (let i = 0; i < window.aplayers.length; i++) {
                     if (!window.aplayers[i].options.fixed) {
@@ -403,17 +710,17 @@
                     }
                 }
             }
-            
+
             typeof typed === 'object' && typed.destroy()
-            
+
             //reset readmode
             const $bodyClassList = document.body.classList
             $bodyClassList.contains('read-mode') && $bodyClassList.remove('read-mode')
         })
-        
+
         document.addEventListener('pjax:complete', function () {
             window.refreshFn()
-            
+
             document.querySelectorAll('script[data-pjax]').forEach(item => {
                         const newScript = document.createElement('script')
                         const content = item.text || item.textContent || item.innerHTML || ""
@@ -422,33 +729,34 @@
                         item.parentNode.replaceChild(newScript, item)
                     }
             )
-            
+
             GLOBAL_CONFIG.lazyload.enable && window.lazyLoadInstance.update()
-            
+
             typeof chatBtnFn === 'function' && chatBtnFn()
             typeof panguInit === 'function' && panguInit()
-            
+
             // google analytics
             typeof gtag === 'function' && gtag('config', '', {
                 'page_path': window.location.pathname
             });
-            
+
             // baidu analytics
             typeof _hmt === 'object' && _hmt.push(['_trackPageview', window.location.pathname]);
-            
+
             typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
-            
+
             // Analytics
             if (false) {
                 MtaH5.pgv()
             }
-            
+
             // prismjs
             typeof Prism === 'object' && Prism.highlightAll()
-            
+
             typeof preloader === 'object' && preloader.endLoading()
+            window.__haoPjaxBackForwardNav = false
         })
-        
+
         document.addEventListener('pjax:error', (e) => {
                     if (e.request.status === 404 || e.request.status === 500) {
                         window.location.href = e.request.responseURL;
@@ -503,232 +811,7 @@
     }
 </script>
 
-<script>
-(function(){
-  if (window._haoScrollNoFlashInit) return;
-  window._haoScrollNoFlashInit = true;
-
-  var POS_PREFIX = 'hao:scroll:';          // 每个 path 的位置
-  var STATE_KEY  = 'hao:restore_state';    // 是否处于“正在恢复”状态：'1'|'0'
-  var CURRENT_KEY = null;
-  var isPop = false;
-  var restoring = false;
-  var saveTicking = false;
-  var rafId = 0;
-  var timeoutIds = [];
-
-  function pageKey(){ return location.pathname + location.search; }
-  function getY(){ return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0; }
-  function setPos(k,v){ try{ sessionStorage.setItem(POS_PREFIX + k, String(v)); }catch(e){} }
-  function getPos(k){ try{ return sessionStorage.getItem(POS_PREFIX + k); }catch(e){ return null; } }
-  function rmPos(k){ try{ sessionStorage.removeItem(POS_PREFIX + k); }catch(e){} }
-  function setState(v){ try{ sessionStorage.setItem(STATE_KEY, v ? '1':'0'); }catch(e){} }
-  function getState(){ try{ return sessionStorage.getItem(STATE_KEY) === '1'; }catch(e){ return false; } }
-
-  function isListPage(){
-    var bw = document.getElementById('body-wrap');
-    return !!(bw && bw.classList && bw.classList.contains('page'));
-  }
-  function isPostPage(){
-    var bw = document.getElementById('body-wrap');
-    return !!(bw && bw.classList && bw.classList.contains('post'));
-  }
-
-  function throttledSave(){
-    if (!isListPage()) return;     // 只在列表页保存
-    if (restoring) return;
-    if (saveTicking) return;
-    saveTicking = true;
-    requestAnimationFrame(function(){
-      var k = CURRENT_KEY || pageKey();
-      setPos(k, getY());
-      saveTicking = false;
-    });
-  }
-
-  function hardWrapScrollHelpers(){
-    try{
-      if (typeof window.scrollToPost === 'function' && !window._scrollToPostWrappedNoFlash){
-        var orig = window.scrollToPost;
-        window.scrollToPost = function(){
-          if (getState()) return;  // 仅在“正在恢复”时拦截；平时不拦
-          return orig.apply(this, arguments);
-        };
-        window._scrollToPostWrappedNoFlash = true;
-      }
-    }catch(e){}
-    try{
-      if (window.btf && typeof window.btf.scrollToDest === 'function' && !window.btf._scrollToDestWrappedNoFlash){
-        var orig2 = window.btf.scrollToDest;
-        window.btf.scrollToDest = function(){
-          if (getState()) return;
-          return orig2.apply(this, arguments);
-        };
-        window.btf._scrollToDestWrappedNoFlash = true;
-      }
-    }catch(e){}
-  }
-
-  function patchPjaxLoadUrl(){
-    try{
-      if (window.pjax && !window.pjax._haoSavePatchedNoFlash){
-        var orig = window.pjax.loadUrl;
-        window.pjax.loadUrl = function(url){
-          try{ if (isListPage()) setPos(pageKey(), getY()); }catch(e){}
-          cancelRestore(true);     // 新导航前取消任何恢复
-          setState(false);         // 普通前进导航，确保不拦截 scrollToPost
-          return orig.apply(this, arguments);
-        };
-        window.pjax._haoSavePatchedNoFlash = true;
-      }
-    }catch(e){}
-  }
-
-  function cancelRestore(fromNav){
-    restoring = false;
-    if (rafId) { try{ cancelAnimationFrame(rafId); }catch(e){} rafId = 0; }
-    while (timeoutIds.length) { try{ clearTimeout(timeoutIds.pop()); }catch(e){} }
-    // 只在“非用户主动操作”时还原 scroll-behavior；用户操作取消恢复会立即允许平滑滚动
-    if (!fromNav) { try { document.documentElement.style.scrollBehavior = ''; } catch(e){} }
-    setState(false);
-  }
-
-  // 用户主动滚动/键盘时，立即取消恢复，避免“抢拉动”感
-  ['wheel','touchstart','touchmove','keydown','mousedown'].forEach(function(evt){
-    window.addEventListener(evt, function(){
-      if (restoring) cancelRestore(false);
-    }, {passive:true});
-  });
-
-  // 检测浏览器后退/前进
-  window.addEventListener('popstate', function(){ isPop = true; }, true);
-
-  // 滚动保存（仅列表页）
-  window.addEventListener('scroll', throttledSave, {passive:true});
-
-  // 离开前再保存一次（仅列表页）
-  window.addEventListener('beforeunload', function(){ if (isListPage()) setPos(pageKey(), getY()); });
-
-  document.addEventListener('pjax:send', function(){
-    cancelRestore(true);   // 导航前取消遗留恢复，避免文章页打开在中间
-  });
-
-  document.addEventListener('pjax:complete', function(){
-    CURRENT_KEY = pageKey();
-    patchPjaxLoadUrl();
-    hardWrapScrollHelpers();
-
-    if (isPostPage()){
-      if (!location.hash){
-        window.scrollTo(0,0);
-        timeoutIds.push(setTimeout(function(){ window.scrollTo(0,0); }, 60));
-      }
-      return;
-    }
-
-    if (!isListPage()) return;
-
-    if (isPop){
-      var v = getPos(CURRENT_KEY);
-      if (v != null){
-        startRestore(parseInt(v,10) || 0);
-        rmPos(CURRENT_KEY);
-      }
-      isPop = false;
-    }
-  });
-
-  // 支持 BFCache
-  window.addEventListener('pageshow', function(ev){
-    CURRENT_KEY = pageKey();
-    patchPjaxLoadUrl();
-    hardWrapScrollHelpers();
-
-    if (isPostPage()){
-      if (!location.hash){
-        window.scrollTo(0,0);
-        timeoutIds.push(setTimeout(function(){ window.scrollTo(0,0); }, 60));
-      }
-      return;
-    }
-
-    if (!isListPage()) return;
-    if (ev && ev.persisted){
-      var v = getPos(CURRENT_KEY);
-      if (v != null){
-        startRestore(parseInt(v,10) || 0);
-        rmPos(CURRENT_KEY);
-      }
-    }
-  });
-
-  function startRestore(y){
-    restoring = true;
-    setState(true);  // 在恢复阶段屏蔽主题滚动动画
-
-    var prevBehavior = document.documentElement.style.scrollBehavior;
-    document.documentElement.style.scrollBehavior = 'auto';
-
-    var start = performance.now();
-    var lastHeight = document.body.scrollHeight;
-    var stableFrames = 0;
-    var EPS = 2;          // 误差阈值（像素）
-    var MAX_MS = 1200;    // 最长恢复时间
-    var MAX_RAF = 40;     // 最多帧数
-
-    function done(){
-      document.documentElement.style.scrollBehavior = prevBehavior || '';
-      restoring = false;
-      setState(false);
-      if (rafId) { try{ cancelAnimationFrame(rafId); }catch(e){} rafId = 0; }
-      while (timeoutIds.length) { try{ clearTimeout(timeoutIds.pop()); }catch(e){} }
-    }
-
-    function rafTick(){
-      var now = performance.now();
-      var cur = getY();
-      var h = document.body.scrollHeight;
-
-      // 若内容高度稳定且位置已接近目标，提前结束（避免继续“抢动”）
-      if (Math.abs(cur - y) <= EPS){
-        stableFrames++;
-        if (stableFrames >= 3){ return done(); }
-      } else {
-        stableFrames = 0;
-      }
-
-      // 若页面高度变化，说明懒加载/布局在动，继续校正
-      if (h !== lastHeight){
-        lastHeight = h;
-        stableFrames = 0;
-      }
-
-      window.scrollTo(0, y);
-
-      if ((now - start) >= MAX_MS) return done();
-      if (--MAX_RAF <= 0) return done();
-
-      rafId = requestAnimationFrame(rafTick);
-    }
-
-    rafId = requestAnimationFrame(rafTick);
-
-    // 少量兜底（不影响提前结束）：
-    [200, 500, 900].forEach(function(ms){
-      var tid = setTimeout(function(){
-        if (restoring) window.scrollTo(0, y);
-      }, ms);
-      timeoutIds.push(tid);
-    });
-  }
-
-  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  CURRENT_KEY = pageKey();
-  patchPjaxLoadUrl();
-  hardWrapScrollHelpers();
-  setState(false);
-})();
-</script>
+<!-- PJAX 回退/滚动恢复：使用旧版 sessionStorage 逻辑增强版。 -->
     <!-- DIY × PLUS 一体化 Loader · v12-merge + DreamConfig + SnowRebuildByIdRange -->
 <script th:inline="javascript">
 (function(){
