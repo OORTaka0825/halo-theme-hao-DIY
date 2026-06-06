@@ -178,114 +178,135 @@ let halo = {
 
             }
 
-const prismToolsFn = function (e) {
-    const $t = e.target.classList;
-    if ($t.contains('code-expander')) prismShrinkFn(this);
-};
+// 代码块展开/收回统一控制：底部横条和右上角按钮走同一套状态，避免首次右上角展开后底部收回高度失效
+            let expander = null;
 
-// 折叠图标（右上角）：默认“向左”
+            const findCodeToolbar = () => {
+                try {
+                    return r && (r.closest ? r.closest('.code-toolbar') : r.offsetParent);
+                } catch (e) {
+                    return r ? r.offsetParent : null;
+                }
+            };
+
+            const findBottomExpandBtn = () => {
+                try {
+                    const root = findCodeToolbar();
+                    if (!root) return null;
+                    return root.querySelector(':scope > .code-expand-btn') || root.querySelector('.code-expand-btn');
+                } catch (e) {
+                    try {
+                        return r && r.offsetParent ? r.offsetParent.querySelector('.code-expand-btn') : null;
+                    } catch (_) {
+                        return null;
+                    }
+                }
+            };
+
+            const getScrollY = () => window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            const _saveExpandScrollY = (el) => {
+                try {
+                    el.dataset._expandScrollY = String(getScrollY());
+                } catch (e) {}
+            };
+            const _restoreExpandScrollY = (el) => {
+                try {
+                    var y = parseInt(el.dataset._expandScrollY || '');
+                    if (!isNaN(y)) {
+                        requestAnimationFrame(function () {
+                            window.scrollTo({top: y, behavior: 'auto'});
+                        });
+                    }
+                } catch (e) {}
+            };
+
+            const updateExpanderIcon = (expanded) => {
+                try {
+                    if (!expander) return;
+                    expander.classList.toggle('hao-icon-angle-down', !!expanded);
+                    expander.classList.toggle('hao-icon-angle-left', !expanded);
+                } catch (e) {}
+            };
+
+            const updateBottomBtn = (expanded) => {
+                const btn = findBottomExpandBtn();
+                if (!btn) return null;
+                try {
+                    btn.style.display = 'flex';
+                    btn.classList.toggle('expand-done', !!expanded);
+                    r.style.paddingBottom = (btn.offsetHeight + 5) + 'px';
+                } catch (e) {}
+                return btn;
+            };
+
+            const setCodeExpanded = (expanded, shouldSaveScroll) => {
+                if (expanded) {
+                    if (shouldSaveScroll) _saveExpandScrollY(r);
+                    r.classList.add('expand-done');
+                    updateBottomBtn(true);
+                    updateExpanderIcon(true);
+                } else {
+                    r.classList.remove('expand-done');
+                    // 清掉可能残留的内联高度，让 pre.close 的后台高度限制重新接管
+                    try {
+                        r.style.height = '';
+                        r.style.maxHeight = '';
+                    } catch (e) {}
+                    updateBottomBtn(false);
+                    updateExpanderIcon(false);
+                    _restoreExpandScrollY(r);
+                }
+            };
+
+            const prismToolsFn = function (e) {
+                if (e) {
+                    e.preventDefault && e.preventDefault();
+                    e.stopPropagation && e.stopPropagation();
+                }
+                setCodeExpanded(!r.classList.contains('expand-done'), true);
+            };
+
+            // 折叠图标（右上角）：默认“向左”
             if (isEnableExpander) {
                 // 先清理右上角已有的箭头，确保只留一个
                 try {
                     customItem.querySelectorAll('.code-expander, i.hao-icon-angle-left, i.hao-icon-angle-down').forEach(function(n){ n.remove(); });
                 } catch(e) {}
                 // 创建唯一的箭头（默认向左）
-                var expander = document.createElement('i');
-                try {
-                    var _wrap = r ? r.querySelector('.code-expand-btn') : null;
-                    var _isExpanded = !!(_wrap && _wrap.classList && _wrap.classList.contains('expand-done'));
-                    expander.className = 'fa-sharp fa-solid haofont code-expander cursor-pointer ' + (_isExpanded ? 'hao-icon-angle-down' : 'hao-icon-angle-left');
-                } catch(e) {
-                    expander.className = 'fa-sharp fa-solid haofont hao-icon-angle-left code-expander cursor-pointer';
-                }
-                customItem.appendChild(expander)
-                expander.addEventListener('click', prismToolsFn)
+                expander = document.createElement('i');
+                expander.className = 'fa-sharp fa-solid haofont code-expander cursor-pointer hao-icon-angle-left';
+                customItem.appendChild(expander);
+                expander.addEventListener('click', prismToolsFn);
             }
-            // 底部“展开”按钮：点击后进入全量，并把右上角图标切为“向下”
-            const _saveExpandScrollY = (el)=>{try{el.dataset._expandScrollY = String(window.pageYOffset||document.documentElement.scrollTop||document.body.scrollTop||0);}catch(e){}};
-const _restoreExpandScrollY = (el)=>{try{var y=parseInt(el.dataset._expandScrollY||'');if(!isNaN(y)){setTimeout(function(){window.scrollTo({top:y,behavior:'auto'});},0);}}catch(e){}};
 
-
-const expandCode = function () {
-                // 切换“限制高度 ↔ 全量展开”
-                const isExpanded = r.classList.contains('expand-done');
-                if (isExpanded) {
-                    // 已展开 -> 收起到限制高度
-                    r.classList.remove('expand-done');
-                    this.classList.remove('expand-done'); // 底部箭头恢复“向下”
-                    this.style.display = 'flex'; // 始终显示在底部
-                    try { r.style.paddingBottom = (this.offsetHeight + 5) + 'px'; } catch (e) {}
-                    _restoreExpandScrollY(r);
-                    try {
-                        if (expander) {
-                            expander.classList.remove('hao-icon-angle-down');
-                            expander.classList.add('hao-icon-angle-left'); // 右上角恢复“向左”
-}
-                    } catch (e) {}
-                } else {
-                    // 限制高度 -> 全量展开
-                    _saveExpandScrollY(r);
-                    r.classList.add('expand-done');
-                    this.classList.add('expand-done'); // 底部箭头翻转“向上”
-                    this.style.display = 'flex';        // 不要隐藏
-                    try { r.style.paddingBottom = (this.offsetHeight + 5) + 'px'; } catch (e) {}
-                    try {
-                        if (expander) {
-                            expander.classList.remove('hao-icon-angle-left');
-                            expander.classList.add('hao-icon-angle-down'); // 右上角切为“向下”
-}
-                    } catch (e) {}
+            // 底部“展开/收回”按钮：与右上角按钮共用 setCodeExpanded，避免两套逻辑状态不一致
+            const expandCode = function (e) {
+                if (e) {
+                    e.preventDefault && e.preventDefault();
+                    e.stopPropagation && e.stopPropagation();
                 }
+                setCodeExpanded(!r.classList.contains('expand-done'), true);
             };
 
             if (isEnableHeightLimit && r.offsetHeight > prismLimit) {
-                r.classList.add("close")
-                const ele = document.createElement("div");
-                ele.className = "code-expand-btn";
-                ele.innerHTML = '<i class="haofont hao-icon-angle-double-down"></i>';
-                ele.addEventListener("click", expandCode);
-                r.offsetParent.appendChild(ele);
-                try { r.style.paddingBottom = (ele.offsetHeight + 5) + "px"; } catch (e) {}
-            }
+                r.classList.add("close");
 
-            // 右上角箭头：仅在「限制高度 ↔ 全量」之间切换；不再进入“仅标题”折叠
-            const prismShrinkFn = () => {
-                const $btnWrap = r.offsetParent.lastElementChild;
-                const hasBottomBtn = $btnWrap && $btnWrap.classList && $btnWrap.classList.contains('code-expand-btn');
-
-                // A：当前是“全量展开”→ 点击右上角 = 回到“限制高度”
-                if (r.classList.contains('expand-done')) {
-                    r.classList.remove('expand-done');
-                    if (hasBottomBtn) {
-                        $btnWrap.style.display = 'flex';
-                        $btnWrap.classList.remove('expand-done'); // 底部箭头恢复“向下”
-                        try { r.style.paddingBottom = ($btnWrap.offsetHeight + 5) + 'px'; } catch (e) {}
-                    }
-                    
-                    try {
-                        if (expander) {
-                            expander.classList.remove('hao-icon-angle-down');
-                            expander.classList.add('hao-icon-angle-left'); // 右上角恢复“向左”
-}
-                    } catch (e) {}
-                    _restoreExpandScrollY(r);
-                    return;
+                let ele = findBottomExpandBtn();
+                if (!ele) {
+                    ele = document.createElement("div");
+                    ele.className = "code-expand-btn";
+                    ele.innerHTML = '<i class="haofont hao-icon-angle-double-down"></i>';
+                    r.offsetParent.appendChild(ele);
                 }
 
-                // B：当前是“限制高度”→ 点击右上角 = 全量展开
-                r.classList.add('expand-done');
-                if (hasBottomBtn) {
-                    $btnWrap.classList.add('expand-done'); // 与底部逻辑保持一致（随后隐藏）
-                    $btnWrap.style.display = 'flex';
-                    try { r.style.paddingBottom = ($btnWrap.offsetHeight + 5) + 'px'; } catch (e) {}
-                }
                 try {
-                    if (expander) {
-                        expander.classList.remove('hao-icon-angle-left');
-                        expander.classList.add('hao-icon-angle-down'); // 右上角切为“向下”
-}
+                    ele.removeEventListener("click", expandCode);
                 } catch (e) {}
-            };
+                ele.addEventListener("click", expandCode);
+
+                // 初始化时强制同步一次：限制高度状态、底部箭头向下、右上角箭头向左
+                setCodeExpanded(false, false);
+            }
 
             if (!__reuse) toolbar.appendChild(customItem)
             
