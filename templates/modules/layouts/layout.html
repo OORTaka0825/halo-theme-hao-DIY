@@ -25,6 +25,15 @@
             } catch (e) {}
         })();
     </script>
+    <style>
+        /* PJAX 浏览器回退/前进恢复期间短暂隐藏新页面内容，避免先看到首页顶部再跳到目标位置 */
+        html.hao-pjax-restore-lock #body-wrap {
+            visibility: hidden !important;
+        }
+        html.hao-pjax-restore-lock {
+            scroll-behavior: auto !important;
+        }
+    </style>
     <th:block th:replace="~{modules/head :: head(htmlType = ${htmlType})}"/>
     <link th:if="${#strings.equals(theme.config.comments.use, 'Waline')
     && not #strings.isEmpty(theme.config.comments.walines.serverURL)}"
@@ -429,17 +438,46 @@
                 if (!pos || pos.length < 2) return
                 var x = parseInt(pos[0], 10) || 0
                 var y = parseInt(pos[1], 10) || 0
-                var oldBehavior = document.documentElement.style.scrollBehavior
-                try { document.documentElement.style.scrollBehavior = 'auto' } catch (e) {}
+                var html = document.documentElement
+                var body = document.body
+                var oldBehavior = html.style.scrollBehavior
+                var oldHtmlMinHeight = html.style.minHeight
+                var oldBodyMinHeight = body && body.style ? body.style.minHeight : ''
+
+                // 回退时新页面刚替换进 DOM，懒加载图片/卡片还没撑开高度，
+                // scrollTo(y) 会被浏览器夹到顶部附近，于是视觉上会先闪顶部再跳回目标位置。
+                // 这里先临时撑高页面，并短暂隐藏新页面内容，等滚动位置校正后再显示。
+                try { html.classList.add('hao-pjax-restore-lock') } catch (e) {}
+                try { html.style.scrollBehavior = 'auto' } catch (e) {}
+                try {
+                    var needHeight = Math.max(
+                        html.scrollHeight || 0,
+                        body ? body.scrollHeight || 0 : 0,
+                        y + window.innerHeight + 160
+                    )
+                    html.style.minHeight = needHeight + 'px'
+                    if (body && body.style) body.style.minHeight = needHeight + 'px'
+                } catch (e) {}
+
                 function go() { try { window.scrollTo(x, y) } catch (e) {} }
-                // 关键优化：立即恢复一次。原来只放在 requestAnimationFrame 里，
-                // 浏览器有机会先绘制页面顶部，再下一帧跳回保存位置，导致“闪一下顶部”。
+                function unlock() {
+                    go()
+                    try { html.classList.remove('hao-pjax-restore-lock') } catch (e) {}
+                }
+
                 go()
-                requestAnimationFrame(go)
-                ;[30, 80, 150, 300, 600, 1000].forEach(function (ms) { setTimeout(go, ms) })
+                requestAnimationFrame(function () {
+                    go()
+                    requestAnimationFrame(unlock)
+                })
+                ;[30, 80, 150, 300, 600, 1000, 1400].forEach(function (ms) { setTimeout(go, ms) })
                 setTimeout(function () {
-                    try { document.documentElement.style.scrollBehavior = oldBehavior || '' } catch (e) {}
-                }, 1100)
+                    go()
+                    try { html.style.scrollBehavior = oldBehavior || '' } catch (e) {}
+                    try { html.style.minHeight = oldHtmlMinHeight || '' } catch (e) {}
+                    try { if (body && body.style) body.style.minHeight = oldBodyMinHeight || '' } catch (e) {}
+                    try { html.classList.remove('hao-pjax-restore-lock') } catch (e) {}
+                }, 1500)
             }
             function getNavigationType() {
                 try {
