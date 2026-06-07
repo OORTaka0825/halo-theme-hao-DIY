@@ -82,17 +82,23 @@
         var box = root.closest('.steam-heatmap-panel-body') || root.parentNode || root;
         var width = box && box.clientWidth ? box.clientWidth : 1200;
         var mobile = window.innerWidth <= 768;
-        var label = mobile ? 34 : 40;
+        var label = mobile ? 34 : 44;
         var gap = mobile ? 3 : 4;
-        var available = Math.max(280, width - label - 8);
-        var cell = Math.floor((available - (weeks - 1) * gap) / weeks);
-        if (mobile) {
-            cell = Math.min(cell, 14);
+        var available = Math.max(260, width - label - 10);
+        var fitCell = Math.floor((available - (weeks - 1) * gap) / weeks);
+        var cell;
+
+        if (weeks <= 20) {
+            cell = Math.min(mobile ? 18 : 22, Math.max(fitCell, mobile ? 14 : 16));
+        } else if (weeks <= 30) {
+            cell = Math.min(mobile ? 15 : 18, Math.max(fitCell, mobile ? 12 : 14));
         } else {
-            cell = Math.min(cell, 22);
+            cell = Math.min(mobile ? 12 : 15, Math.max(fitCell, mobile ? 10 : 12));
         }
-        cell = Math.max(cell, 10);
-        return { cell: cell, gap: gap, label: label };
+
+        cell = Math.max(cell, mobile ? 10 : 12);
+        var visibleWeeks = Math.max(1, Math.floor((available + gap) / (cell + gap)));
+        return { cell: cell, gap: gap, label: label, visibleWeeks: visibleWeeks };
     }
 
     function monthLabel(date) {
@@ -149,7 +155,7 @@
 
         root.insertAdjacentHTML('beforeend', '<div class="steam-heatmap-rendered" data-theme="' + theme + '">' +
             '<div class="steam-heatmap-scroll">' +
-            '<div class="steam-heatmap-board" style="--steam-heatmap-weeks:' + weeks + ';--steam-heatmap-cell:' + metrics.cell + 'px;--steam-heatmap-gap:' + metrics.gap + 'px;--steam-heatmap-label:' + metrics.label + 'px">' +
+            '<div class="steam-heatmap-board" style="--steam-heatmap-weeks:' + weeks + ';--steam-heatmap-cell:' + metrics.cell + 'px;--steam-heatmap-gap:' + metrics.gap + 'px;--steam-heatmap-label:' + metrics.label + 'px;--steam-heatmap-visible-weeks:' + metrics.visibleWeeks + '">' +
             '<div class="steam-heatmap-months">' + monthMarks.join('') + '</div>' +
             '<div class="steam-heatmap-weekdays"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>' +
             '<div class="steam-heatmap-grid">' + cells.join('') + '</div>' +
