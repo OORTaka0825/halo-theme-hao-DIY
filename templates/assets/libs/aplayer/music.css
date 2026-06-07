@@ -383,9 +383,9 @@ body[data-type=music] #nav-music {
 }
 
 #anMusic-page meting-js .aplayer ol>li.aplayer-list-light {
-    background: rgba(255, 255, 255, .2);
-    border-radius: 6px;
-    padding: 20px 15px
+    background: rgb(84 255 127 / 27%);
+    border-radius: 20px;
+    padding: 7px 15px
 }
 
 #anMusic-page meting-js .aplayer ol>li.aplayer-list-light span.aplayer-list-title {
