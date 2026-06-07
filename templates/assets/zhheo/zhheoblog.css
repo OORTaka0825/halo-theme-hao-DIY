@@ -19278,13 +19278,19 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 }
 
 #footer-info-panel .footer-online-count {
-    display: inline-flex;
-    align-items: center;
-    gap: .28rem;
-    padding: 7px 10px;
-    margin: 0 2px;
-    min-width: max-content;
-    color: var(--heo-fontcolor);
+  display: inline-flex;
+  align-items: center;
+  gap: .28rem;
+  padding: 7px 10px;
+  margin: 0 50px;
+  min-width: max-content;
+  color: var(--heo-fontcolor);
+}
+
+@media screen and (max-width: 768px) {
+  #footer-info-panel .footer-online-count {
+    margin: 4px 0;
+  }
 }
 
 #footer-info-panel .footer-online-count b {
