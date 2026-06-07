@@ -19246,51 +19246,10 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 }
 
 /* Footer online count integration */
-#footer-info-panel .footer-banner-links {
-    display: grid;
-    grid-template-columns: auto minmax(120px, 1fr) auto;
-    column-gap: .7rem;
-    row-gap: .35rem;
-    max-width: 1600px;
-    padding: 0 1rem;
-    box-sizing: border-box;
-}
-
-#footer-info-panel .footer-banner-left,
-#footer-info-panel .footer-banner-center,
-#footer-info-panel .footer-banner-right {
-    min-width: 0;
-    display: flex;
-    align-items: center;
-}
-
-#footer-info-panel .footer-banner-left {
-    justify-content: flex-start;
-}
-
-#footer-info-panel .footer-banner-center {
-    justify-content: flex-start;
-}
-
-#footer-info-panel .footer-banner-right {
-    justify-content: flex-end;
-    flex-wrap: wrap;
-}
-
 #footer-info-panel .footer-online-count {
-  display: inline-flex;
-  align-items: center;
-  gap: .28rem;
-  padding: 7px 10px;
-  margin: 0 50px;
-  min-width: max-content;
-  color: var(--heo-fontcolor);
-}
-
-@media screen and (max-width: 768px) {
-  #footer-info-panel .footer-online-count {
-    margin: 4px 0;
-  }
+    display: inline-flex;
+    align-items: center;
+    gap: .28rem;
 }
 
 #footer-info-panel .footer-online-count b {
@@ -19313,15 +19272,12 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 
 @media screen and (max-width: 900px) {
     #footer-info-panel .footer-banner-links {
-        grid-template-columns: 1fr;
-        justify-items: center;
+        justify-content: center;
         text-align: center;
         padding: .35rem .75rem;
     }
     #footer-info-panel .footer-banner-left,
-    #footer-info-panel .footer-banner-center,
     #footer-info-panel .footer-banner-right {
         justify-content: center;
     }
 }
-
