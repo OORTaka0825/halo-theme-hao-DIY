@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{modules/layouts/layout :: layout(content = ~{::content}, htmlType = 'steam', title = ${(!#strings.isEmpty(title) ? title : 'Steam 游戏库') + ' | ' + site.title}, head = ~{::head}, _title = ${!#strings.isEmpty(title) ? title : 'Steam 游戏库'})}">
+      th:replace="~{modules/layouts/layout :: layout(content = ~{::content}, htmlType = 'steam', title = ${'Steam 游戏库 | ' + site.title}, head = ~{::head})}">
 <th:block th:fragment="head">
-    <th:block th:replace="~{modules/common/open-graph :: open-graph(_title = ${_title},
+    <th:block th:replace="~{modules/common/open-graph :: open-graph(_title = 'Steam 游戏库',
                 _permalink = '/steam',
                 _cover = ${theme.config.other.opengraph.image},
                 _excerpt = 'Steam 游戏库、最近游玩和游戏时长统计',
@@ -11,86 +11,63 @@
 </th:block>
 
 <th:block th:fragment="content">
-    <div class="page steam-body-wrap" id="body-wrap"
-         th:with="profile=${steamFinder.getProfile()},
-                  stats=${steamFinder.getStats()},
-                  badges=${steamFinder.getBadges()},
-                  recentLimit=${recentGamesLimit != null ? recentGamesLimit : 5},
-                  recentGames=${steamFinder.getRecentGames(recentLimit)},
-                  gameList=${games != null ? games : steamFinder.getOwnedGames(1, 12)},
-                  linkEnable=${enableGameLink != null ? enableGameLink : true}">
-
+    <div class="page steam-body-wrap" id="body-wrap">
         <header class="not-top-img" id="page-header">
-            <nav th:replace="~{modules/nav :: nav(title = ${_title})}"></nav>
+            <nav th:replace="~{modules/nav :: nav(title = 'Steam 游戏库')}"></nav>
         </header>
 
         <main class="layout hide-aside" id="content-inner">
             <div id="page">
-                <div class="steam-page">
+                <div class="steam-page" id="steam-page" data-steam-page>
 
-                    <div class="steam-alert" th:if="${profile == null || stats == null}">
-                        ⚠ 部分 Steam 数据加载失败，可能是 Steam API 超时、隐私设置未公开，或插件配置需要刷新缓存。
+                    <div class="steam-alert" id="steam-alert" hidden>
+                        ⚠ Steam 数据加载失败。请检查插件配置、Steam 隐私设置，或稍后刷新重试。
                     </div>
 
                     <section class="steam-card steam-hero">
-                        <div class="steam-hero-inner" th:if="${profile != null}">
+                        <div class="steam-hero-inner">
                             <div class="steam-profile">
                                 <div class="steam-avatar-wrap">
-                                    <img class="steam-avatar"
-                                         th:src="${profile.summary.avatarFull}"
-                                         th:alt="${profile.summary.personaName}">
-                                    <span class="steam-status-dot"
-                                          th:classappend="${profile.playing} ? ' is-online' : ''"></span>
+                                    <img class="steam-avatar" id="steam-avatar" alt="Steam Avatar" src="/themes/theme-hao/assets/images/hao-logo.jpg">
+                                    <span class="steam-status-dot" id="steam-status-dot"></span>
                                 </div>
                                 <div class="steam-profile-info">
                                     <div class="steam-kicker">🎮 Steam 游戏库</div>
-                                    <h1 class="steam-title" th:text="${profile.summary.personaName}">Steam User</h1>
+                                    <h1 class="steam-title" id="steam-persona-name">Steam User</h1>
                                     <div class="steam-meta">
-                                        <span th:text="${profile.statusText}">离线</span>
-                                        <span class="steam-pill level" th:text="'Lv. ' + ${profile.steamLevel}">Lv. 0</span>
-                                        <span class="steam-pill" th:if="${badges != null}" th:text="${badges.totalBadges} + ' 徽章'">0 徽章</span>
-                                        <span class="steam-pill" th:if="${badges != null}" th:text="${badges.playerXp} + ' XP'">0 XP</span>
+                                        <span id="steam-status-text">加载中...</span>
+                                        <span class="steam-pill level" id="steam-level">Lv. 0</span>
+                                        <span class="steam-pill" id="steam-badges">0 徽章</span>
+                                        <span class="steam-pill" id="steam-xp">0 XP</span>
                                     </div>
                                 </div>
                             </div>
-                            <a class="steam-action" th:href="${profile.summary.profileUrl}" target="_blank" rel="noopener external nofollow noreferrer">访问 Steam</a>
-                        </div>
-
-                        <div class="steam-hero-inner" th:if="${profile == null}">
-                            <div class="steam-profile-info">
-                                <div class="steam-kicker">🎮 Steam 游戏库</div>
-                                <h1 class="steam-title">Steam 数据加载失败</h1>
-                                <div class="steam-meta">请检查插件设置、Steam 隐私设置或稍后刷新重试。</div>
-                            </div>
+                            <a class="steam-action" id="steam-profile-link" href="javascript:void(0)" target="_blank" rel="noopener external nofollow noreferrer">访问 Steam</a>
                         </div>
                     </section>
 
                     <section class="steam-stat-grid">
                         <div class="steam-stat-card">
-                            <span class="steam-stat-value" th:text="${stats != null ? stats.totalGames : 0}">0</span>
+                            <span class="steam-stat-value" id="steam-total-games">--</span>
                             <span class="steam-stat-label">游戏总数</span>
                         </div>
                         <div class="steam-stat-card">
-                            <span class="steam-stat-value" th:text="${stats != null ? stats.totalPlaytimeFormatted : '0 小时'}">0 小时</span>
+                            <span class="steam-stat-value" id="steam-total-playtime">--</span>
                             <span class="steam-stat-label">总游玩时长</span>
                         </div>
                         <div class="steam-stat-card">
-                            <span class="steam-stat-value" th:text="${stats != null ? stats.recentPlaytimeFormatted : '0 小时'}">0 小时</span>
+                            <span class="steam-stat-value" id="steam-recent-playtime">--</span>
                             <span class="steam-stat-label">最近两周</span>
                         </div>
                     </section>
 
-                    <section class="steam-section" th:if="${showHeatmap == null || showHeatmap}">
+                    <section class="steam-section">
                         <div class="steam-section-header">
                             <h2 class="steam-section-title">▦ 游戏时长热力图</h2>
-                            <span class="steam-section-desc" th:text="'最近 ' + ${heatmapDays != null ? heatmapDays : 365} + ' 天游戏时长统计'">最近 365 天游戏时长统计</span>
+                            <span class="steam-section-desc">最近 365 天游戏时长统计</span>
                         </div>
                         <div class="steam-card steam-heatmap-card">
-                            <div id="steam-heatmap"
-                                 class="steam-heatmap"
-                                 th:data-days="${heatmapDays != null ? heatmapDays : 365}"
-                                 th:data-theme="${!#strings.isEmpty(heatmapColorTheme) ? heatmapColorTheme : 'steam'}"
-                                 th:data-legend="${heatmapShowLegend != null ? heatmapShowLegend : true}">
+                            <div id="steam-heatmap" class="steam-heatmap" data-days="365" data-legend="true">
                                 <div class="steam-heatmap-loading">加载热力图数据中...</div>
                             </div>
                         </div>
@@ -99,150 +76,30 @@
                     <section class="steam-section">
                         <div class="steam-section-header">
                             <h2 class="steam-section-title">🎮 最近游玩</h2>
-                            <span class="steam-section-desc" th:text="'显示最近两周玩的 ' + ${recentLimit} + ' 款游戏'">显示最近两周玩的游戏</span>
+                            <span class="steam-section-desc">显示最近两周的游戏记录</span>
                         </div>
-
-                        <div class="steam-games-grid recent" th:if="${recentGames != null && !#lists.isEmpty(recentGames)}">
-                            <a class="steam-game-card"
-                               th:each="game : ${recentGames}"
-                               th:href="${linkEnable ? 'https://store.steampowered.com/app/' + game.appId : 'javascript:void(0)'}"
-                               th:target="${linkEnable ? '_blank' : '_self'}"
-                               th:rel="${linkEnable ? 'noopener external nofollow noreferrer' : ''}">
-                                <div class="steam-game-cover">
-                                    <img th:src="${game.headerImageUrl}" th:alt="${game.name}">
-                                    <span class="steam-game-badge" th:if="${game.inLibrary == false}">库外</span>
-                                </div>
-                                <div class="steam-game-content">
-                                    <h3 class="steam-game-name" th:text="${game.name}">Game</h3>
-                                    <span class="steam-game-time" th:text="${game.playtime2WeeksFormatted}">0h</span>
-                                </div>
-                            </a>
-                        </div>
-
-                        <div class="steam-empty" th:if="${recentGames == null || #lists.isEmpty(recentGames)}">
-                            最近两周没有游玩记录，或者 Steam 数据暂时无法获取。
+                        <div class="steam-games-grid recent" id="steam-recent-games">
+                            <div class="steam-empty">正在加载最近游玩...</div>
                         </div>
                     </section>
 
                     <section class="steam-section">
                         <div class="steam-section-header">
                             <h2 class="steam-section-title">▣ 游戏库</h2>
-                            <span class="steam-section-desc" th:if="${gameList != null}" th:text="'显示游玩时长最长的 ' + ${#lists.size(gameList.items)} + ' / ' + ${gameList.total} + ' 款游戏'">全部游戏 · 按游玩时长排序</span>
+                            <span class="steam-section-desc" id="steam-games-desc">全部游戏 · 按游玩时长排序</span>
                         </div>
-
-                        <div class="steam-games-grid" th:if="${gameList != null && !#lists.isEmpty(gameList.items)}">
-                            <a class="steam-game-card"
-                               th:each="game : ${gameList.items}"
-                               th:href="${linkEnable ? 'https://store.steampowered.com/app/' + game.appId : 'javascript:void(0)'}"
-                               th:target="${linkEnable ? '_blank' : '_self'}"
-                               th:rel="${linkEnable ? 'noopener external nofollow noreferrer' : ''}">
-                                <div class="steam-game-cover">
-                                    <img th:src="${game.headerImageUrl}" th:alt="${game.name}">
-                                </div>
-                                <div class="steam-game-content">
-                                    <h3 class="steam-game-name" th:text="${game.name}">Game</h3>
-                                    <span class="steam-game-time" th:text="${game.playtimeForeverFormatted}">0h</span>
-                                </div>
-                            </a>
+                        <div class="steam-games-grid" id="steam-owned-games">
+                            <div class="steam-empty">正在加载游戏库...</div>
                         </div>
-
-                        <div class="steam-empty" th:if="${gameList == null || #lists.isEmpty(gameList.items)}">
-                            暂无游戏库数据。请确认 Steam 个人资料和游戏详情已设为公开。
-                        </div>
-
-                        <nav class="steam-pagination" th:if="${gameList != null && gameList.totalPages > 1}">
-                            <a class="steam-page-btn"
-                               th:classappend="${!gameList.hasPrevious()} ? ' disabled' : ''"
-                               th:href="${gameList.hasPrevious() ? gameList.prevUrl : 'javascript:void(0)'}">上一页</a>
-                            <span class="steam-page-num current" th:text="${gameList.page}">1</span>
-                            <span class="steam-page-num" th:text="${gameList.totalPages}">1</span>
-                            <a class="steam-page-btn"
-                               th:classappend="${!gameList.hasNext()} ? ' disabled' : ''"
-                               th:href="${gameList.hasNext() ? gameList.nextUrl : 'javascript:void(0)'}">下一页</a>
-                        </nav>
+                        <nav class="steam-pagination" id="steam-pagination" hidden></nav>
                     </section>
                 </div>
             </div>
         </main>
 
-        <footer th:replace="~{modules/footer}"/>
+        <footer th:replace="~{modules/footer :: footer}"></footer>
         <script th:if="${theme.config.other.bubbleEnable}" async data-pjax th:src="${assets_link + '/libs/canvas/bubble.js'}"></script>
-
-        <script data-pjax>
-            (function () {
-                var root = document.getElementById('steam-heatmap');
-                if (!root || root.dataset.inited === 'true') return;
-                root.dataset.inited = 'true';
-
-                var days = parseInt(root.dataset.days || '365', 10);
-                if (!Number.isFinite(days) || days < 1) days = 365;
-
-                var pad = function (n) { return String(n).padStart(2, '0'); };
-                var fmt = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
-
-                var end = new Date();
-                var start = new Date();
-                start.setDate(end.getDate() - days + 1);
-
-                var url = '/apis/api.steam.timxs.com/v1alpha1/heatmap/records?startDate=' + fmt(start) + '&endDate=' + fmt(end) + '&page=1&size=1000';
-
-                fetch(url, { credentials: 'same-origin' })
-                    .then(function (res) {
-                        if (!res.ok) throw new Error('HTTP ' + res.status);
-                        return res.json();
-                    })
-                    .then(function (data) {
-                        var items = Array.isArray(data.items) ? data.items : [];
-                        var minutesByDate = {};
-                        items.forEach(function (item) {
-                            var spec = item && item.spec ? item.spec : item;
-                            if (!spec || !spec.date) return;
-                            var key = String(spec.date).slice(0, 10);
-                            minutesByDate[key] = (minutesByDate[key] || 0) + (parseInt(spec.playtimeMinutes || 0, 10) || 0);
-                        });
-
-                        var dates = [];
-                        for (var d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                            dates.push(new Date(d));
-                        }
-
-                        var cells = [];
-                        var leading = dates.length ? dates[0].getDay() : 0;
-                        for (var i = 0; i < leading; i++) {
-                            cells.push('<span class="steam-heatmap-cell blank" aria-hidden="true"></span>');
-                        }
-
-                        var hasData = false;
-                        dates.forEach(function (date) {
-                            var key = fmt(date);
-                            var minutes = minutesByDate[key] || 0;
-                            if (minutes > 0) hasData = true;
-                            var level = minutes === 0 ? 0 : minutes < 30 ? 1 : minutes < 120 ? 2 : minutes < 300 ? 3 : 4;
-                            var title = key + '：' + minutes + ' 分钟';
-                            cells.push('<span class="steam-heatmap-cell" data-level="' + level + '" title="' + title + '"></span>');
-                        });
-
-                        var legend = '';
-                        if (root.dataset.legend !== 'false') {
-                            legend = '<div class="steam-heatmap-footer"><span>少</span>' +
-                                '<span class="steam-heatmap-cell" data-level="0"></span>' +
-                                '<span class="steam-heatmap-cell" data-level="1"></span>' +
-                                '<span class="steam-heatmap-cell" data-level="2"></span>' +
-                                '<span class="steam-heatmap-cell" data-level="3"></span>' +
-                                '<span class="steam-heatmap-cell" data-level="4"></span>' +
-                                '<span>多</span></div>';
-                        }
-
-                        root.innerHTML = '<div class="steam-heatmap-scroll"><div class="steam-heatmap-grid">' + cells.join('') + '</div></div>' + legend;
-                        if (!hasData) {
-                            root.insertAdjacentHTML('afterbegin', '<div class="steam-heatmap-empty">暂无热力图数据。开启追踪后，插件需要至少记录一次才会显示。</div>');
-                        }
-                    })
-                    .catch(function () {
-                        root.innerHTML = '<div class="steam-heatmap-error">热力图加载失败，请稍后刷新重试。</div>';
-                    });
-            })();
-        </script>
+        <script defer data-pjax th:src="${assets_link + '/js/steam-diy.js' + theme_version}"></script>
     </div>
 </th:block>
 </html>
