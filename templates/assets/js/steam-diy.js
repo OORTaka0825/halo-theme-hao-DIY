@@ -2,35 +2,9 @@
     'use strict';
 
     var API_BASE = '/apis/api.steam.timxs.com/v1alpha1';
-    var DEFAULT_PAGE_SIZE = 12;
-    var RECENT_LIMIT = 5;
-    var HEATMAP_DAYS = 365;
 
     function qs(selector, root) {
         return (root || document).querySelector(selector);
-    }
-
-    function qsa(selector, root) {
-        return Array.prototype.slice.call((root || document).querySelectorAll(selector));
-    }
-
-    function text(selector, value) {
-        var el = qs(selector);
-        if (el) el.textContent = value == null || value === '' ? '--' : String(value);
-    }
-
-    function attr(selector, name, value) {
-        var el = qs(selector);
-        if (el && value) el.setAttribute(name, value);
-    }
-
-    function escapeHtml(value) {
-        return String(value == null ? '' : value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
     }
 
     function toInt(value, fallback) {
@@ -38,19 +12,20 @@
         return Number.isFinite(num) ? num : fallback;
     }
 
-    function getPage() {
-        try {
-            var params = new URLSearchParams(window.location.search);
-            return Math.max(1, toInt(params.get('page'), 1));
-        } catch (e) {
-            return 1;
-        }
+    function pad(n) {
+        return String(n).padStart(2, '0');
     }
 
-    function setPageUrl(page) {
-        var url = new URL(window.location.href);
-        url.searchParams.set('page', page);
-        return url.pathname + url.search + url.hash;
+    function fmt(d) {
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    }
+
+    function show(el) {
+        if (el) el.hidden = false;
+    }
+
+    function hide(el) {
+        if (el) el.hidden = true;
     }
 
     function fetchJson(url) {
@@ -63,121 +38,23 @@
         });
     }
 
-    function showAlert() {
-        var alert = qs('#steam-alert');
-        if (alert) alert.hidden = false;
-    }
-
-    function gameStoreUrl(appId) {
-        return appId ? 'https://store.steampowered.com/app/' + encodeURIComponent(appId) : 'javascript:void(0)';
-    }
-
-    function gameCard(game, recent) {
-        game = game || {};
-        var appId = game.appId || game.appid || '';
-        var name = game.name || 'Unknown Game';
-        var image = game.headerImageUrl || game.headerImage || '';
-        var playtime = recent
-            ? (game.playtime2WeeksFormatted || game.playtimeFormatted || '0 小时')
-            : (game.playtimeForeverFormatted || game.playtimeFormatted || '0 小时');
-        var badge = recent && game.inLibrary === false ? '<span class="steam-game-badge">库外</span>' : '';
-        var imageHtml = image
-            ? '<img loading="lazy" src="' + escapeHtml(image) + '" alt="' + escapeHtml(name) + '">'
-            : '<div class="steam-game-cover-placeholder">Steam</div>';
-
-        return '' +
-            '<a class="steam-game-card" href="' + escapeHtml(gameStoreUrl(appId)) + '" target="_blank" rel="noopener external nofollow noreferrer">' +
-            '  <div class="steam-game-cover">' + imageHtml + badge + '</div>' +
-            '  <div class="steam-game-content">' +
-            '    <h3 class="steam-game-name">' + escapeHtml(name) + '</h3>' +
-            '    <span class="steam-game-time">' + escapeHtml(playtime) + '</span>' +
-            '  </div>' +
-            '</a>';
-    }
-
-    function renderProfile(profile, badges) {
-        if (!profile || !profile.summary) return;
-        var summary = profile.summary;
-        text('#steam-persona-name', summary.personaName || 'Steam User');
-        text('#steam-status-text', profile.statusText || '离线');
-        text('#steam-level', 'Lv. ' + (profile.steamLevel || 0));
-        if (badges) {
-            text('#steam-badges', (badges.totalBadges || 0) + ' 徽章');
-            text('#steam-xp', (badges.playerXp || 0) + ' XP');
+    function getColorSet(theme) {
+        switch (theme) {
+            case 'github':
+                return ['rgba(76,175,80,.14)', 'rgba(76,175,80,.32)', 'rgba(76,175,80,.56)', 'rgba(76,175,80,.78)', 'rgba(76,175,80,1)'];
+            case 'fire':
+                return ['rgba(255,183,77,.16)', 'rgba(255,183,77,.36)', 'rgba(255,152,0,.58)', 'rgba(255,87,34,.78)', 'rgba(244,67,54,1)'];
+            case 'purple':
+                return ['rgba(149,117,205,.16)', 'rgba(149,117,205,.35)', 'rgba(126,87,194,.58)', 'rgba(103,58,183,.78)', 'rgba(94,53,177,1)'];
+            default:
+                return ['rgba(102,192,244,.14)', 'rgba(102,192,244,.32)', 'rgba(102,192,244,.52)', 'rgba(102,192,244,.76)', 'rgba(102,192,244,1)'];
         }
-        attr('#steam-avatar', 'src', summary.avatarFull || summary.avatarMedium || summary.avatar);
-        attr('#steam-profile-link', 'href', summary.profileUrl);
-        var dot = qs('#steam-status-dot');
-        if (dot && (profile.playing || summary.personaState > 0)) dot.classList.add('is-online');
     }
 
-    function renderStats(stats) {
-        if (!stats) return;
-        text('#steam-total-games', stats.totalGames || 0);
-        text('#steam-total-playtime', stats.totalPlaytimeFormatted || '0 小时');
-        text('#steam-recent-playtime', stats.recentPlaytimeFormatted || '0 小时');
-    }
-
-    function renderRecent(games) {
-        var box = qs('#steam-recent-games');
-        if (!box) return;
-        if (!Array.isArray(games) || games.length === 0) {
-            box.innerHTML = '<div class="steam-empty">最近两周没有游玩记录，或者 Steam 数据暂时无法获取。</div>';
-            return;
-        }
-        box.innerHTML = games.map(function (game) { return gameCard(game, true); }).join('');
-    }
-
-    function renderOwned(data, page, size) {
-        var box = qs('#steam-owned-games');
-        var desc = qs('#steam-games-desc');
-        var pager = qs('#steam-pagination');
-        if (!box) return;
-
-        data = data || {};
-        var items = Array.isArray(data.items) ? data.items : [];
-        var total = toInt(data.total, items.length);
-        var currentPage = toInt(data.page, page || 1);
-        var pageSize = toInt(data.size, size || DEFAULT_PAGE_SIZE);
-        var totalPages = toInt(data.totalPages, Math.max(1, Math.ceil(total / pageSize)));
-
-        if (desc) desc.textContent = '显示游玩时长最长的 ' + items.length + ' / ' + total + ' 款游戏';
-
-        if (items.length === 0) {
-            box.innerHTML = '<div class="steam-empty">暂无游戏库数据。请确认 Steam 个人资料和游戏详情已设为公开。</div>';
-        } else {
-            box.innerHTML = items.map(function (game) { return gameCard(game, false); }).join('');
-        }
-
-        if (!pager) return;
-        if (totalPages <= 1) {
-            pager.hidden = true;
-            pager.innerHTML = '';
-            return;
-        }
-        pager.hidden = false;
-        var prevDisabled = currentPage <= 1;
-        var nextDisabled = currentPage >= totalPages;
-        pager.innerHTML = '' +
-            '<a class="steam-page-btn' + (prevDisabled ? ' disabled' : '') + '" href="' + (prevDisabled ? 'javascript:void(0)' : escapeHtml(setPageUrl(currentPage - 1))) + '">上一页</a>' +
-            '<span class="steam-page-num current">' + currentPage + '</span>' +
-            '<span class="steam-page-num">' + totalPages + '</span>' +
-            '<a class="steam-page-btn' + (nextDisabled ? ' disabled' : '') + '" href="' + (nextDisabled ? 'javascript:void(0)' : escapeHtml(setPageUrl(currentPage + 1))) + '">下一页</a>';
-    }
-
-    function pad(n) {
-        return String(n).padStart(2, '0');
-    }
-
-    function fmt(d) {
-        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-    }
-
-    function renderHeatmap(data, start, end) {
-        var root = qs('#steam-heatmap');
-        if (!root) return;
+    function parseRecords(data) {
         var rawItems = Array.isArray(data && data.items) ? data.items : (Array.isArray(data) ? data : []);
         var minutesByDate = {};
+
         rawItems.forEach(function (item) {
             var spec = item && item.spec ? item.spec : item;
             if (!spec || !spec.date) return;
@@ -186,85 +63,186 @@
             minutesByDate[key] = (minutesByDate[key] || 0) + minutes;
         });
 
-        var dates = [];
-        for (var d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) dates.push(new Date(d));
+        return minutesByDate;
+    }
 
+    function buildDateRange(start, end) {
+        var dates = [];
+        for (var d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            dates.push(new Date(d));
+        }
+        return dates;
+    }
+
+    function renderGrid(root, dates, minutesByDate, theme, showLegend) {
+        var colorsClass = theme ? ' data-theme="' + theme + '"' : '';
         var cells = [];
         var leading = dates.length ? dates[0].getDay() : 0;
-        for (var i = 0; i < leading; i++) cells.push('<span class="steam-heatmap-cell blank" aria-hidden="true"></span>');
 
-        var hasData = false;
+        for (var i = 0; i < leading; i++) {
+            cells.push('<span class="steam-heatmap-cell blank" aria-hidden="true"></span>');
+        }
+
         dates.forEach(function (date) {
             var key = fmt(date);
             var minutes = minutesByDate[key] || 0;
-            if (minutes > 0) hasData = true;
             var level = minutes === 0 ? 0 : minutes < 30 ? 1 : minutes < 120 ? 2 : minutes < 300 ? 3 : 4;
             cells.push('<span class="steam-heatmap-cell" data-level="' + level + '" title="' + key + '：' + minutes + ' 分钟"></span>');
         });
 
-        var legend = '<div class="steam-heatmap-footer"><span>少</span>' +
-            '<span class="steam-heatmap-cell" data-level="0"></span>' +
-            '<span class="steam-heatmap-cell" data-level="1"></span>' +
-            '<span class="steam-heatmap-cell" data-level="2"></span>' +
-            '<span class="steam-heatmap-cell" data-level="3"></span>' +
-            '<span class="steam-heatmap-cell" data-level="4"></span>' +
-            '<span>多</span></div>';
+        var legend = '';
+        if (showLegend) {
+            legend = '<div class="steam-heatmap-footer"><span>少</span>' +
+                '<span class="steam-heatmap-cell" data-level="0"></span>' +
+                '<span class="steam-heatmap-cell" data-level="1"></span>' +
+                '<span class="steam-heatmap-cell" data-level="2"></span>' +
+                '<span class="steam-heatmap-cell" data-level="3"></span>' +
+                '<span class="steam-heatmap-cell" data-level="4"></span>' +
+                '<span>多</span></div>';
+        }
 
-        root.innerHTML = '<div class="steam-heatmap-scroll"><div class="steam-heatmap-grid">' + cells.join('') + '</div></div>' + legend;
-        if (!hasData) root.insertAdjacentHTML('afterbegin', '<div class="steam-heatmap-empty">暂无热力图数据。开启追踪后，插件需要至少记录一次才会显示。</div>');
+        root.innerHTML = '<div class="steam-heatmap-scroll"' + colorsClass + '><div class="steam-heatmap-grid">' + cells.join('') + '</div></div>' + legend;
     }
 
-    function loadHeatmap() {
-        var end = new Date();
-        var start = new Date();
-        start.setDate(end.getDate() - HEATMAP_DAYS + 1);
-        return fetchJson(API_BASE + '/heatmap/records?startDate=' + fmt(start) + '&endDate=' + fmt(end) + '&page=1&size=1000')
-            .then(function (data) { renderHeatmap(data, start, end); })
-            .catch(function () {
-                var root = qs('#steam-heatmap');
-                if (root) root.innerHTML = '<div class="steam-heatmap-error">热力图加载失败，请稍后刷新重试。</div>';
-            });
+    function renderEcharts(root, dates, minutesByDate, theme, showLegend, start, end) {
+        var chartBox = qs('#steam-heatmap-chart', root);
+        if (!chartBox || !window.echarts) return false;
+
+        var values = dates.map(function (date) {
+            var key = fmt(date);
+            return [key, minutesByDate[key] || 0];
+        });
+        var max = values.reduce(function (acc, item) {
+            return Math.max(acc, item[1]);
+        }, 1);
+        var colors = getColorSet(theme);
+        var fontColor = getComputedStyle(document.documentElement).getPropertyValue('--heo-secondtext') || '#8f98a0';
+        var cardBg = getComputedStyle(document.documentElement).getPropertyValue('--heo-card-bg') || 'transparent';
+
+        chartBox.hidden = false;
+        var chart = window.echarts.getInstanceByDom(chartBox) || window.echarts.init(chartBox, null, { renderer: 'canvas' });
+        chart.setOption({
+            backgroundColor: 'transparent',
+            tooltip: {
+                formatter: function (params) {
+                    var value = params.value || [];
+                    return value[0] + '<br/>' + (value[1] || 0) + ' 分钟';
+                }
+            },
+            visualMap: showLegend ? {
+                min: 0,
+                max: max,
+                type: 'piecewise',
+                orient: 'horizontal',
+                right: 8,
+                top: 0,
+                itemWidth: 12,
+                itemHeight: 12,
+                text: ['多', '少'],
+                textStyle: { color: fontColor.trim() || '#8f98a0', fontSize: 12 },
+                inRange: { color: colors },
+                pieces: [
+                    { min: 300, label: '300+ 分钟' },
+                    { min: 120, max: 299, label: '120-299 分钟' },
+                    { min: 30, max: 119, label: '30-119 分钟' },
+                    { min: 1, max: 29, label: '1-29 分钟' },
+                    { value: 0, label: '0 分钟' }
+                ]
+            } : undefined,
+            calendar: {
+                top: 42,
+                left: 42,
+                right: 18,
+                bottom: 18,
+                range: [fmt(start), fmt(end)],
+                cellSize: ['auto', 15],
+                splitLine: { show: false },
+                itemStyle: {
+                    color: 'rgba(142, 152, 160, .12)',
+                    borderWidth: 2,
+                    borderColor: String(cardBg).trim() || 'transparent',
+                    borderRadius: 3
+                },
+                yearLabel: { show: false },
+                monthLabel: {
+                    nameMap: 'cn',
+                    color: fontColor.trim() || '#8f98a0',
+                    fontSize: 12
+                },
+                dayLabel: {
+                    firstDay: 0,
+                    nameMap: ['日', '一', '二', '三', '四', '五', '六'],
+                    color: fontColor.trim() || '#8f98a0',
+                    fontSize: 12
+                }
+            },
+            series: [{
+                type: 'heatmap',
+                coordinateSystem: 'calendar',
+                data: values
+            }]
+        }, true);
+
+        window.addEventListener('resize', function () {
+            chart.resize();
+        }, { passive: true });
+        setTimeout(function () { chart.resize(); }, 80);
+        return true;
     }
 
-    function initSteamPage() {
-        var root = qs('[data-steam-page]');
+    function initHeatmap() {
+        var root = qs('#steam-heatmap');
         if (!root || root.dataset.loaded === 'true') return;
         root.dataset.loaded = 'true';
 
-        var page = getPage();
-        var size = DEFAULT_PAGE_SIZE;
+        var chartBox = qs('#steam-heatmap-chart', root);
+        var loading = qs('#steam-heatmap-loading', root);
+        var empty = qs('#steam-heatmap-empty', root);
+        var error = qs('#steam-heatmap-error', root);
+        var days = Math.max(1, toInt(root.dataset.days, 365));
+        var theme = root.dataset.theme || 'steam';
+        var showLegend = root.dataset.legend !== 'false';
+        var end = new Date();
+        var start = new Date();
+        start.setDate(end.getDate() - days + 1);
 
-        Promise.allSettled([
-            fetchJson(API_BASE + '/profile'),
-            fetchJson(API_BASE + '/stats'),
-            fetchJson(API_BASE + '/badges'),
-            fetchJson(API_BASE + '/recent?limit=' + RECENT_LIMIT),
-            fetchJson(API_BASE + '/games?page=' + page + '&size=' + size + '&sortBy=playtime_forever'),
-            loadHeatmap()
-        ]).then(function (results) {
-            var profile = results[0].status === 'fulfilled' ? results[0].value : null;
-            var stats = results[1].status === 'fulfilled' ? results[1].value : null;
-            var badges = results[2].status === 'fulfilled' ? results[2].value : null;
-            var recent = results[3].status === 'fulfilled' ? results[3].value : null;
-            var owned = results[4].status === 'fulfilled' ? results[4].value : null;
+        hide(empty);
+        hide(error);
+        show(loading);
 
-            if (!profile || !stats || !owned) showAlert();
-            renderProfile(profile, badges);
-            renderStats(stats);
-            renderRecent(recent);
-            renderOwned(owned, page, size);
+        fetchJson(API_BASE + '/heatmap/records?startDate=' + fmt(start) + '&endDate=' + fmt(end) + '&page=1&size=' + Math.max(days, 365))
+            .then(function (data) {
+                var minutesByDate = parseRecords(data);
+                var dates = buildDateRange(start, end);
+                var hasData = Object.keys(minutesByDate).some(function (key) {
+                    return minutesByDate[key] > 0;
+                });
 
-            if (window.lazyLoadInstance && typeof window.lazyLoadInstance.update === 'function') {
-                window.lazyLoadInstance.update();
-            }
-        }).catch(showAlert);
+                hide(loading);
+
+                if (!hasData) {
+                    if (chartBox) chartBox.hidden = true;
+                    show(empty);
+                    return;
+                }
+
+                var rendered = renderEcharts(root, dates, minutesByDate, theme, showLegend, start, end);
+                if (!rendered) {
+                    renderGrid(root, dates, minutesByDate, theme, showLegend);
+                }
+            })
+            .catch(function () {
+                hide(loading);
+                if (chartBox) chartBox.hidden = true;
+                show(error);
+            });
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initSteamPage, { once: true });
+        document.addEventListener('DOMContentLoaded', initHeatmap, { once: true });
     } else {
-        initSteamPage();
+        initHeatmap();
     }
-    document.addEventListener('pjax:complete', initSteamPage);
-    document.addEventListener('pjax:success', initSteamPage);
+    document.addEventListener('pjax:complete', initHeatmap);
+    document.addEventListener('pjax:success', initHeatmap);
 })();
