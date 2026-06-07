@@ -74,94 +74,6 @@
         return dates;
     }
 
-    function getLevel(minutes) {
-        return minutes === 0 ? 0 : minutes < 30 ? 1 : minutes < 60 ? 2 : minutes < 120 ? 3 : minutes < 300 ? 4 : 5;
-    }
-
-    function getHeatmapMetrics(root, weeks) {
-        var box = root.closest('.steam-heatmap-panel-body') || root.parentNode || root;
-        var width = box && box.clientWidth ? box.clientWidth : 1200;
-        var mobile = window.innerWidth <= 768;
-        var label = mobile ? 34 : 44;
-        var gap = mobile ? 3 : 4;
-        var available = Math.max(260, width - label - 10);
-        var fitCell = Math.floor((available - (weeks - 1) * gap) / weeks);
-        var cell;
-
-        if (weeks <= 20) {
-            cell = Math.min(mobile ? 18 : 22, Math.max(fitCell, mobile ? 14 : 16));
-        } else if (weeks <= 30) {
-            cell = Math.min(mobile ? 15 : 18, Math.max(fitCell, mobile ? 12 : 14));
-        } else {
-            cell = Math.min(mobile ? 12 : 15, Math.max(fitCell, mobile ? 10 : 12));
-        }
-
-        cell = Math.max(cell, mobile ? 10 : 12);
-        var visibleWeeks = Math.max(1, Math.floor((available + gap) / (cell + gap)));
-        return { cell: cell, gap: gap, label: label, visibleWeeks: visibleWeeks };
-    }
-
-    function monthLabel(date) {
-        return (date.getMonth() + 1) + '月';
-    }
-
-    function renderGrid(root, dates, minutesByDate, theme, showLegend) {
-        var chartBox = qs('#steam-heatmap-chart', root);
-        if (chartBox) chartBox.hidden = true;
-
-        var first = dates[0];
-        var last = dates[dates.length - 1];
-        if (!first || !last) return;
-
-        // 默认页面以周一到周日排列
-        var leading = (first.getDay() + 6) % 7;
-        var totalCells = leading + dates.length;
-        var weeks = Math.ceil(totalCells / 7);
-        var cells = [];
-        var monthMarks = [];
-        var dateIndex = 0;
-        var lastMonth = -1;
-
-        for (var col = 0; col < weeks; col++) {
-            for (var row = 0; row < 7; row++) {
-                var absolute = col * 7 + row;
-                if (absolute < leading || dateIndex >= dates.length) {
-                    cells.push('<span class="steam-heatmap-cell blank" aria-hidden="true"></span>');
-                    continue;
-                }
-                var date = dates[dateIndex++];
-                if (date.getMonth() !== lastMonth) {
-                    lastMonth = date.getMonth();
-                    monthMarks.push('<span class="steam-heatmap-month" style="grid-column:' + (col + 1) + '">' + monthLabel(date) + '</span>');
-                }
-                var key = fmt(date);
-                var minutes = minutesByDate[key] || 0;
-                cells.push('<span class="steam-heatmap-cell" data-level="' + getLevel(minutes) + '" title="' + key + '：' + minutes + ' 分钟"></span>');
-            }
-        }
-
-        var metrics = getHeatmapMetrics(root, weeks);
-        var legend = '';
-        if (showLegend) {
-            legend = '<div class="steam-heatmap-footer"><span class="legend-text">少</span>' +
-                '<span class="steam-heatmap-cell" data-level="0"></span>' +
-                '<span class="steam-heatmap-cell" data-level="1"></span>' +
-                '<span class="steam-heatmap-cell" data-level="2"></span>' +
-                '<span class="steam-heatmap-cell" data-level="3"></span>' +
-                '<span class="steam-heatmap-cell" data-level="4"></span>' +
-                '<span class="steam-heatmap-cell" data-level="5"></span>' +
-                '<span class="legend-text">多</span></div>';
-        }
-
-        root.insertAdjacentHTML('beforeend', '<div class="steam-heatmap-rendered" data-theme="' + theme + '">' +
-            '<div class="steam-heatmap-scroll">' +
-            '<div class="steam-heatmap-board" style="--steam-heatmap-weeks:' + weeks + ';--steam-heatmap-cell:' + metrics.cell + 'px;--steam-heatmap-gap:' + metrics.gap + 'px;--steam-heatmap-label:' + metrics.label + 'px;--steam-heatmap-visible-weeks:' + metrics.visibleWeeks + '">' +
-            '<div class="steam-heatmap-months">' + monthMarks.join('') + '</div>' +
-            '<div class="steam-heatmap-weekdays"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>' +
-            '<div class="steam-heatmap-grid">' + cells.join('') + '</div>' +
-            '</div></div>' + legend + '</div>');
-    }
-
     function ensureEcharts(root) {
         if (window.echarts) return Promise.resolve(window.echarts);
         if (window.__steamEchartsLoading) return window.__steamEchartsLoading;
@@ -202,11 +114,12 @@
             return Math.max(acc, item[1]);
         }, 1);
         var colors = getColorSet(theme);
-        var computed = getComputedStyle(document.documentElement);
-        var fontColor = (computed.getPropertyValue('--heo-fontcolor') || '#dfe6ee').trim();
-        var secondColor = (computed.getPropertyValue('--heo-secondtext') || '#8f98a0').trim();
-        var borderColor = 'rgba(255,255,255,0.035)';
-        var dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.documentElement.classList.contains('dark');
+        var dark = document.documentElement.getAttribute('data-theme') === 'dark' ||
+            document.documentElement.classList.contains('dark') ||
+            document.body.classList.contains('dark');
+        var fontColor = dark ? '#f5f7fa' : '#3f4652';
+        var secondColor = dark ? 'rgba(245,247,250,.88)' : 'rgba(72,79,90,.88)';
+        var borderColor = dark ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.92)';
         var zeroColor = dark ? 'rgba(40, 48, 64, .82)' : 'rgba(239, 242, 246, .92)';
         var cellHeight = window.innerWidth <= 768 ? 13 : 15;
 
@@ -321,13 +234,12 @@
                 .then(function () {
                     hide(loading);
                     if (!renderEcharts(root, dates, minutesByDate, theme, showLegend, start, end)) {
-                        renderGrid(root, dates, minutesByDate, theme, showLegend);
+                        show(error);
                     }
                 })
                 .catch(function () {
                     hide(loading);
-                    // ECharts 无法加载时，再退回本地格子骨架，保证页面不空白。
-                    renderGrid(root, dates, minutesByDate, theme, showLegend);
+                    show(error);
                 });
         }
 
@@ -336,7 +248,7 @@
                 draw(parseRecords(data));
             })
             .catch(function () {
-                // 接口失败时也渲染一个空日历骨架，和插件默认页保持降级显示。
+                // 接口失败时仍渲染一个空 ECharts 日历骨架，避免页面卡在加载状态。
                 draw({});
             });
     }

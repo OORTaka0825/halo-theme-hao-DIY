@@ -49,7 +49,7 @@
                                               th:text="${p?.statusText}">离线</span>
                                         <span class="steam-last-online"
                                               th:if="${!p?.playing and p?.summary?.personaState != 1 and p?.summary?.lastLogoff != null}"
-                                              th:text="'· 上次在线: ' + ${#dates.format(new java.util.Date(p.summary.lastLogoff * 1000), 'yyyy-MM-dd HH:mm')}">· 上次在线: 2026-06-03 08:46</span>
+                                              th:text="'上次在线: ' + ${#dates.format(new java.util.Date(p.summary.lastLogoff * 1000), 'yyyy-MM-dd HH:mm')}">上次在线: 2026-06-03 08:46</span>
                                     </div>
                                     <div class="steam-meta">
                                         <span class="steam-pill level" th:if="${p?.steamLevel != null}">Lv. <span th:text="${p?.steamLevel}">0</span></span>

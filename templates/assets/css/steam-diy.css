@@ -1348,3 +1348,19 @@
     font-size: .86rem;
   }
 }
+
+
+/* v10: ECharts-only heatmap and theme-aware label colors */
+.steam-heatmap-chart canvas {
+  display: block;
+}
+
+html:not([data-theme="dark"]) .steam-heatmap-echart-legend,
+body:not(.dark) .steam-heatmap-echart-legend {
+  color: #3f4652;
+}
+
+html[data-theme="dark"] .steam-heatmap-echart-legend,
+body.dark .steam-heatmap-echart-legend {
+  color: #f5f7fa;
+}
