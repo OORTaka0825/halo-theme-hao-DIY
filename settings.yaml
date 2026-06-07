@@ -1648,6 +1648,7 @@ spec:
               icp_icon: true
               gongwangan: true
               yingsi: true
+              online_count_enable: true
               yunzhichi: false
               footer_banner_padding: 1
             style_one:
@@ -1745,6 +1746,18 @@ spec:
                   id: yingsi
                   key: yingsi
                   label: 隐私
+                  options:
+                    - label: 显示
+                      value: true
+                    - label: 隐藏
+                      value: false
+                - $formkit: radio
+                  if: $get(default_enable).value
+                  name: online_count_enable
+                  id: online_count_enable
+                  key: online_count_enable
+                  label: 在线人数
+                  help: 需要安装并启用“在线显示”插件。关闭后页脚不显示当前在线人数。
                   options:
                     - label: 显示
                       value: true

@@ -731,3 +731,55 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
 });
+
+/* Footer online count integration */
+(function () {
+    const API = '/apis/online-user.zyx2012.cn/v1alpha1/stats/summary';
+    let timer = null;
+
+    function pickNumber(data) {
+        const source = (data && (data.data || data.status || data.spec)) || data || {};
+        const keys = [
+            'total', 'current', 'online', 'count', 'onlineCount', 'currentOnline',
+            'currentOnlineCount', 'totalOnline', 'totalOnlineCount', 'activeSessions',
+            'activeUsers', 'sessionCount', 'userCount'
+        ];
+        for (const key of keys) {
+            const value = source[key];
+            const n = Number(value);
+            if (Number.isFinite(n) && n >= 0) return Math.floor(n);
+        }
+        return 0;
+    }
+
+    function setCount(value, ok) {
+        const wrap = document.getElementById('footer-online-count-wrap');
+        const num = document.getElementById('footer-online-count');
+        if (!wrap || !num) return;
+        num.textContent = String(Math.max(0, Number(value) || 0));
+        wrap.classList.toggle('is-offline', !ok);
+        wrap.title = ok ? '当前在线人数' : '在线人数暂时获取失败';
+    }
+
+    function loadOnlineCount() {
+        const wrap = document.getElementById('footer-online-count-wrap');
+        if (!wrap) return;
+        fetch(API, { credentials: 'same-origin', cache: 'no-store' })
+            .then(res => res.ok ? res.json() : Promise.reject(res))
+            .then(data => setCount(pickNumber(data), true))
+            .catch(() => setCount(0, false));
+    }
+
+    function initFooterOnlineCount() {
+        if (!document.getElementById('footer-online-count-wrap')) return;
+        loadOnlineCount();
+        if (timer) clearInterval(timer);
+        timer = setInterval(loadOnlineCount, 10000);
+    }
+
+    document.addEventListener('DOMContentLoaded', initFooterOnlineCount);
+    document.addEventListener('pjax:complete', initFooterOnlineCount);
+    document.addEventListener('pjax:success', initFooterOnlineCount);
+    window.addEventListener('online-monitor:registered', loadOnlineCount);
+})();
+

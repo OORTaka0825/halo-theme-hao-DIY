@@ -14,6 +14,7 @@
         icpEnable=${theme.config.footer.footerContent.default_enable_group.icp_icon != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.icp_icon, 'false')},
         gonganEnable=${theme.config.footer.footerContent.default_enable_group.gongwangan != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.gongwangan, 'false')},
         privacyEnable=${theme.config.footer.footerContent.default_enable_group.yingsi != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.yingsi, 'false')},
+        onlineCountEnable=${theme.config.footer.footerContent.default_enable_group.online_count_enable != false && !#strings.equals(theme.config.footer.footerContent.default_enable_group.online_count_enable, 'false')},
         cloudEnable=${theme.config.footer.footerContent.default_enable_group.yunzhichi == true || #strings.equals(theme.config.footer.footerContent.default_enable_group.yunzhichi, 'true')},
         footerPadding=${#strings.isEmpty(theme.config.footer.footerContent.default_enable_group.footer_banner_padding) ? 1 : theme.config.footer.footerContent.default_enable_group.footer_banner_padding}">
 
@@ -191,6 +192,14 @@
                         By <a class="footer-banner-link" href="/" target="_blank">[[${site.title}]]</a>
                     </div>
                 </div>
+            </div>
+            <div class="footer-banner-center" th:if="${onlineCountEnable}">
+                <span class="footer-banner-link footer-online-count" id="footer-online-count-wrap" title="当前在线人数" data-online-footer>
+                    <span class="footer-online-dot" aria-hidden="true"></span>
+                    <span>当前</span>
+                    <b id="footer-online-count">0</b>
+                    <span>人在线</span>
+                </span>
             </div>
             <div class="footer-banner-right">
                 
