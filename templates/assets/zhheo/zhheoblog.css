@@ -19182,7 +19182,7 @@ body[data-type=neodb] .sort-button-group button,body[data-type=neodb] .type-butt
 #footer-info-panel {
     padding: 0rem;
     color: var(--heo-fontcolor);
-    margin-top: 1rem;
+    margin-top: .23rem;
     background: #27282b59;
     display: flex;
     overflow: hidden;
