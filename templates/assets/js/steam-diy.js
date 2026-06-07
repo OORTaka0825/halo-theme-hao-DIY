@@ -75,7 +75,24 @@
     }
 
     function getLevel(minutes) {
-        return minutes === 0 ? 0 : minutes < 30 ? 1 : minutes < 120 ? 2 : minutes < 300 ? 3 : 4;
+        return minutes === 0 ? 0 : minutes < 30 ? 1 : minutes < 60 ? 2 : minutes < 120 ? 3 : minutes < 300 ? 4 : 5;
+    }
+
+    function getHeatmapMetrics(root, weeks) {
+        var box = root.closest('.steam-heatmap-panel-body') || root.parentNode || root;
+        var width = box && box.clientWidth ? box.clientWidth : 1200;
+        var mobile = window.innerWidth <= 768;
+        var label = mobile ? 34 : 40;
+        var gap = mobile ? 3 : 4;
+        var available = Math.max(280, width - label - 8);
+        var cell = Math.floor((available - (weeks - 1) * gap) / weeks);
+        if (mobile) {
+            cell = Math.min(cell, 14);
+        } else {
+            cell = Math.min(cell, 22);
+        }
+        cell = Math.max(cell, 10);
+        return { cell: cell, gap: gap, label: label };
     }
 
     function monthLabel(date) {
@@ -117,20 +134,22 @@
             }
         }
 
+        var metrics = getHeatmapMetrics(root, weeks);
         var legend = '';
         if (showLegend) {
-            legend = '<div class="steam-heatmap-footer"><span>低</span>' +
+            legend = '<div class="steam-heatmap-footer"><span class="legend-text">少</span>' +
                 '<span class="steam-heatmap-cell" data-level="0"></span>' +
                 '<span class="steam-heatmap-cell" data-level="1"></span>' +
                 '<span class="steam-heatmap-cell" data-level="2"></span>' +
                 '<span class="steam-heatmap-cell" data-level="3"></span>' +
                 '<span class="steam-heatmap-cell" data-level="4"></span>' +
-                '<span>高</span></div>';
+                '<span class="steam-heatmap-cell" data-level="5"></span>' +
+                '<span class="legend-text">多</span></div>';
         }
 
         root.insertAdjacentHTML('beforeend', '<div class="steam-heatmap-rendered" data-theme="' + theme + '">' +
             '<div class="steam-heatmap-scroll">' +
-            '<div class="steam-heatmap-board" style="--steam-heatmap-weeks:' + weeks + '">' +
+            '<div class="steam-heatmap-board" style="--steam-heatmap-weeks:' + weeks + ';--steam-heatmap-cell:' + metrics.cell + 'px;--steam-heatmap-gap:' + metrics.gap + 'px;--steam-heatmap-label:' + metrics.label + 'px">' +
             '<div class="steam-heatmap-months">' + monthMarks.join('') + '</div>' +
             '<div class="steam-heatmap-weekdays"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>' +
             '<div class="steam-heatmap-grid">' + cells.join('') + '</div>' +

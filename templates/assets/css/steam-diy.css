@@ -1030,3 +1030,136 @@
 .steam-heatmap-rendered[data-theme="purple"] .steam-heatmap-cell[data-level="2"] { background: rgba(126, 87, 194, .50); }
 .steam-heatmap-rendered[data-theme="purple"] .steam-heatmap-cell[data-level="3"] { background: rgba(103, 58, 183, .75); }
 .steam-heatmap-rendered[data-theme="purple"] .steam-heatmap-cell[data-level="4"] { background: rgba(94, 53, 177, 1); }
+
+
+/* v7: heatmap layout closer to plugin default */
+.steam-heatmap-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.steam-heatmap-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.steam-heatmap-panel-body {
+  padding: 1rem 1.25rem 1.15rem;
+}
+
+.steam-heatmap-panel .steam-section-title,
+.steam-heatmap-panel .steam-section-desc {
+  margin: 0;
+}
+
+.steam-heatmap-panel .steam-section-desc {
+  color: var(--heo-secondtext);
+}
+
+.steam-heatmap-card {
+  min-height: auto;
+}
+
+.steam-heatmap {
+  min-height: 300px;
+}
+
+.steam-heatmap-loading,
+.steam-heatmap-error,
+.steam-heatmap-empty {
+  padding-top: 2.5rem;
+}
+
+.steam-heatmap-rendered {
+  width: 100%;
+}
+
+.steam-heatmap-scroll {
+  width: 100%;
+  overflow-x: auto;
+  padding: .15rem 0 .4rem;
+}
+
+.steam-heatmap-board {
+  width: 100%;
+  min-width: 100%;
+  margin: 0;
+  justify-content: stretch;
+  align-items: start;
+}
+
+.steam-heatmap-months,
+.steam-heatmap-grid {
+  width: max-content;
+}
+
+.steam-heatmap-months {
+  min-width: 100%;
+  font-size: 1.02rem;
+  color: var(--heo-fontcolor);
+}
+
+.steam-heatmap-weekdays {
+  font-size: 1rem;
+  color: var(--heo-fontcolor);
+}
+
+.steam-heatmap-grid {
+  min-width: 100%;
+}
+
+.steam-heatmap-cell {
+  border-radius: 4px;
+}
+
+.steam-heatmap-footer {
+  justify-content: flex-end;
+  gap: .4rem;
+  margin-top: .8rem;
+  padding-right: .15rem;
+  color: var(--heo-secondtext);
+  font-size: 1rem;
+}
+
+.steam-heatmap-footer .steam-heatmap-cell {
+  width: 14px;
+  height: 14px;
+}
+
+.steam-heatmap-footer .legend-text {
+  line-height: 1;
+}
+
+.steam-heatmap-rendered[data-theme="steam"] .steam-heatmap-cell[data-level="5"] { background: rgba(32, 95, 255, 1); }
+.steam-heatmap-rendered[data-theme="github"] .steam-heatmap-cell[data-level="5"] { background: rgba(56, 142, 60, 1); }
+.steam-heatmap-rendered[data-theme="fire"] .steam-heatmap-cell[data-level="5"] { background: rgba(198, 40, 40, 1); }
+.steam-heatmap-rendered[data-theme="purple"] .steam-heatmap-cell[data-level="5"] { background: rgba(74, 20, 140, 1); }
+
+.steam-heatmap-rendered[data-theme="steam"] .steam-heatmap-cell[data-level="1"] { background: rgba(102, 192, 244, .16); }
+.steam-heatmap-rendered[data-theme="steam"] .steam-heatmap-cell[data-level="2"] { background: rgba(102, 192, 244, .3); }
+.steam-heatmap-rendered[data-theme="steam"] .steam-heatmap-cell[data-level="3"] { background: rgba(102, 192, 244, .48); }
+.steam-heatmap-rendered[data-theme="steam"] .steam-heatmap-cell[data-level="4"] { background: rgba(102, 192, 244, .72); }
+
+@media screen and (max-width: 900px) {
+  .steam-heatmap-panel-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .steam-heatmap-panel-body {
+    padding: .95rem .85rem 1rem;
+  }
+  .steam-heatmap {
+    min-height: 250px;
+  }
+  .steam-heatmap-months {
+    font-size: .9rem;
+  }
+  .steam-heatmap-weekdays,
+  .steam-heatmap-footer {
+    font-size: .88rem;
+  }
+}

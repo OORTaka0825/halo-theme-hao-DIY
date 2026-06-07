@@ -112,26 +112,28 @@
                     </section>
 
                     <section class="steam-section" th:if="${showHeatmap == null || showHeatmap}">
-                        <div class="steam-section-header">
-                            <h2 class="steam-section-title"><span class="steam-section-title-icon" aria-hidden="true">▥</span> 游戏时长热力图</h2>
-                            <span class="steam-section-desc" th:text="'最近 ' + ${heatDays} + ' 天游戏时长统计'">最近 365 天游戏时长统计</span>
-                        </div>
-                        <div class="steam-card steam-heatmap-card">
-                            <div id="steam-heatmap"
-                                 class="steam-heatmap"
-                                 th:data-days="${heatDays}"
-                                 th:data-theme="${heatTheme}"
-                                 th:data-legend="${heatLegend}">
-                                <div id="steam-heatmap-chart" class="steam-heatmap-chart"></div>
-                                <div class="steam-heatmap-loading" id="steam-heatmap-loading">
-                                    <div class="steam-heatmap-loading-spinner"></div>
-                                    <div class="steam-heatmap-loading-text">加载热力图数据中...</div>
-                                </div>
-                                <div class="steam-heatmap-empty" id="steam-heatmap-empty" hidden>
-                                    暂无热力图数据
-                                </div>
-                                <div class="steam-heatmap-error" id="steam-heatmap-error" hidden>
-                                    热力图加载失败，请稍后刷新重试，或在插件后台执行“手动追踪时长”。
+                        <div class="steam-card steam-heatmap-card steam-heatmap-panel">
+                            <div class="steam-heatmap-panel-head">
+                                <h2 class="steam-section-title"><span class="steam-section-title-icon" aria-hidden="true">▥</span> 游戏时长热力图</h2>
+                                <span class="steam-section-desc" th:text="'最近 ' + ${heatDays} + ' 天游戏时长统计'">最近 365 天游戏时长统计</span>
+                            </div>
+                            <div class="steam-heatmap-panel-body">
+                                <div id="steam-heatmap"
+                                     class="steam-heatmap"
+                                     th:data-days="${heatDays}"
+                                     th:data-theme="${heatTheme}"
+                                     th:data-legend="${heatLegend}">
+                                    <div id="steam-heatmap-chart" class="steam-heatmap-chart"></div>
+                                    <div class="steam-heatmap-loading" id="steam-heatmap-loading">
+                                        <div class="steam-heatmap-loading-spinner"></div>
+                                        <div class="steam-heatmap-loading-text">加载热力图数据中...</div>
+                                    </div>
+                                    <div class="steam-heatmap-empty" id="steam-heatmap-empty" hidden>
+                                        暂无热力图数据
+                                    </div>
+                                    <div class="steam-heatmap-error" id="steam-heatmap-error" hidden>
+                                        热力图加载失败，请稍后刷新重试，或在插件后台执行“手动追踪时长”。
+                                    </div>
                                 </div>
                             </div>
                         </div>
