@@ -1275,3 +1275,76 @@
     min-height: 190px;
   }
 }
+
+
+/* v9: use ECharts calendar like plugin default; no manual scrollbar */
+.steam-heatmap-panel-head {
+  padding: 1rem 1.25rem .9rem;
+}
+
+.steam-heatmap-panel-body {
+  padding: .75rem 1.05rem .75rem;
+}
+
+.steam-heatmap {
+  min-height: 200px;
+}
+
+.steam-heatmap-chart {
+  width: 100%;
+  height: 200px;
+}
+
+.steam-heatmap-chart:not([hidden]) {
+  display: block !important;
+}
+
+.steam-heatmap-scroll {
+  overflow: hidden !important;
+}
+
+.steam-heatmap-echart-legend {
+  position: absolute;
+  right: 1.25rem;
+  bottom: .25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .42rem;
+  color: var(--heo-fontcolor);
+  font-size: .95rem;
+  line-height: 1;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.steam-heatmap-echart-legend i {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+}
+
+.steam-heatmap-rendered {
+  width: 100%;
+}
+
+.steam-heatmap-rendered .steam-heatmap-board {
+  justify-content: stretch;
+}
+
+@media screen and (max-width: 900px) {
+  .steam-heatmap-panel-body {
+    padding: .65rem .75rem .7rem;
+  }
+  .steam-heatmap,
+  .steam-heatmap-chart {
+    min-height: 190px;
+    height: 190px;
+  }
+  .steam-heatmap-echart-legend {
+    right: .85rem;
+    bottom: .2rem;
+    font-size: .86rem;
+  }
+}

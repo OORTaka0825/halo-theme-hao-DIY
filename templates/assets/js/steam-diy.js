@@ -162,9 +162,37 @@
             '</div></div>' + legend + '</div>');
     }
 
+    function ensureEcharts(root) {
+        if (window.echarts) return Promise.resolve(window.echarts);
+        if (window.__steamEchartsLoading) return window.__steamEchartsLoading;
+
+        var src = (root && root.dataset && root.dataset.echartsUrl) || 'https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js';
+        window.__steamEchartsLoading = new Promise(function (resolve, reject) {
+            var existing = document.querySelector('script[data-steam-echarts="true"]');
+            if (existing) {
+                existing.addEventListener('load', function () { window.echarts ? resolve(window.echarts) : reject(new Error('echarts unavailable')); }, { once: true });
+                existing.addEventListener('error', reject, { once: true });
+                return;
+            }
+            var script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            script.defer = true;
+            script.dataset.steamEcharts = 'true';
+            script.onload = function () { window.echarts ? resolve(window.echarts) : reject(new Error('echarts unavailable')); };
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+        return window.__steamEchartsLoading;
+    }
+
     function renderEcharts(root, dates, minutesByDate, theme, showLegend, start, end) {
         var chartBox = qs('#steam-heatmap-chart', root);
         if (!chartBox || !window.echarts) return false;
+
+        Array.prototype.slice.call(root.querySelectorAll('.steam-heatmap-rendered,.steam-heatmap-echart-legend')).forEach(function (node) {
+            node.parentNode.removeChild(node);
+        });
 
         var values = dates.map(function (date) {
             var key = fmt(date);
@@ -174,64 +202,60 @@
             return Math.max(acc, item[1]);
         }, 1);
         var colors = getColorSet(theme);
-        var fontColor = getComputedStyle(document.documentElement).getPropertyValue('--heo-secondtext') || '#8f98a0';
-        var cardBg = getComputedStyle(document.documentElement).getPropertyValue('--heo-card-bg') || 'transparent';
+        var computed = getComputedStyle(document.documentElement);
+        var fontColor = (computed.getPropertyValue('--heo-fontcolor') || '#dfe6ee').trim();
+        var secondColor = (computed.getPropertyValue('--heo-secondtext') || '#8f98a0').trim();
+        var borderColor = 'rgba(255,255,255,0.035)';
+        var dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.documentElement.classList.contains('dark');
+        var zeroColor = dark ? 'rgba(40, 48, 64, .82)' : 'rgba(239, 242, 246, .92)';
+        var cellHeight = window.innerWidth <= 768 ? 13 : 15;
 
         chartBox.hidden = false;
         var chart = window.echarts.getInstanceByDom(chartBox) || window.echarts.init(chartBox, null, { renderer: 'canvas' });
         chart.setOption({
             backgroundColor: 'transparent',
             tooltip: {
+                appendToBody: true,
+                confine: true,
                 formatter: function (params) {
                     var value = params.value || [];
                     return value[0] + '<br/>' + (value[1] || 0) + ' 分钟';
                 }
             },
-            visualMap: showLegend ? {
+            visualMap: {
+                show: false,
                 min: 0,
                 max: max,
-                type: 'piecewise',
-                orient: 'horizontal',
-                right: 8,
-                top: 0,
-                itemWidth: 12,
-                itemHeight: 12,
-                text: ['多', '少'],
-                textStyle: { color: fontColor.trim() || '#8f98a0', fontSize: 12 },
                 inRange: { color: colors },
-                pieces: [
-                    { min: 300, label: '300+ 分钟' },
-                    { min: 120, max: 299, label: '120-299 分钟' },
-                    { min: 30, max: 119, label: '30-119 分钟' },
-                    { min: 1, max: 29, label: '1-29 分钟' },
-                    { value: 0, label: '0 分钟' }
-                ]
-            } : undefined,
+                outOfRange: { color: colors[0] || zeroColor }
+            },
             calendar: {
-                top: 42,
-                left: 42,
-                right: 18,
-                bottom: 18,
+                top: 34,
+                left: 44,
+                right: 20,
+                bottom: showLegend ? 38 : 8,
                 range: [fmt(start), fmt(end)],
-                cellSize: ['auto', 15],
+                cellSize: ['auto', cellHeight],
                 splitLine: { show: false },
                 itemStyle: {
-                    color: 'rgba(142, 152, 160, .12)',
+                    color: zeroColor,
                     borderWidth: 2,
-                    borderColor: String(cardBg).trim() || 'transparent',
+                    borderColor: borderColor,
                     borderRadius: 3
                 },
                 yearLabel: { show: false },
                 monthLabel: {
                     nameMap: 'cn',
-                    color: fontColor.trim() || '#8f98a0',
-                    fontSize: 12
+                    color: fontColor,
+                    fontSize: 13,
+                    margin: 9
                 },
                 dayLabel: {
-                    firstDay: 0,
+                    firstDay: 1,
                     nameMap: ['日', '一', '二', '三', '四', '五', '六'],
-                    color: fontColor.trim() || '#8f98a0',
-                    fontSize: 12
+                    color: secondColor,
+                    fontSize: 13,
+                    margin: 8
                 }
             },
             series: [{
@@ -241,9 +265,24 @@
             }]
         }, true);
 
-        window.addEventListener('resize', function () {
-            chart.resize();
-        }, { passive: true });
+        if (showLegend) {
+            var legendHtml = '<div class="steam-heatmap-echart-legend" data-theme="' + theme + '"><span>少</span>' +
+                '<i style="background:' + colors[0] + '"></i>' +
+                '<i style="background:' + colors[1] + '"></i>' +
+                '<i style="background:' + colors[2] + '"></i>' +
+                '<i style="background:' + colors[3] + '"></i>' +
+                '<i style="background:' + colors[4] + '"></i>' +
+                '<span>多</span></div>';
+            root.insertAdjacentHTML('beforeend', legendHtml);
+        }
+
+        if (!root.dataset.resizeBound) {
+            root.dataset.resizeBound = 'true';
+            window.addEventListener('resize', function () {
+                var inst = window.echarts && chartBox ? window.echarts.getInstanceByDom(chartBox) : null;
+                if (inst) inst.resize();
+            }, { passive: true });
+        }
         setTimeout(function () { chart.resize(); }, 80);
         return true;
     }
@@ -271,14 +310,25 @@
         if (chartBox) chartBox.hidden = true;
 
         function draw(minutesByDate) {
-            hide(loading);
+            minutesByDate = minutesByDate || {};
             hide(empty);
             hide(error);
-            Array.prototype.slice.call(root.querySelectorAll('.steam-heatmap-rendered')).forEach(function (node) {
+            Array.prototype.slice.call(root.querySelectorAll('.steam-heatmap-rendered,.steam-heatmap-echart-legend')).forEach(function (node) {
                 node.parentNode.removeChild(node);
             });
-            // 使用本地渲染的日历格子，避免 ECharts CDN 或空数据导致一直显示加载中。
-            renderGrid(root, dates, minutesByDate || {}, theme, showLegend);
+
+            ensureEcharts(root)
+                .then(function () {
+                    hide(loading);
+                    if (!renderEcharts(root, dates, minutesByDate, theme, showLegend, start, end)) {
+                        renderGrid(root, dates, minutesByDate, theme, showLegend);
+                    }
+                })
+                .catch(function () {
+                    hide(loading);
+                    // ECharts 无法加载时，再退回本地格子骨架，保证页面不空白。
+                    renderGrid(root, dates, minutesByDate, theme, showLegend);
+                });
         }
 
         fetchJson(API_BASE + '/heatmap/records?startDate=' + fmt(start) + '&endDate=' + fmt(end) + '&page=1&size=' + Math.max(days, 365))
@@ -286,7 +336,7 @@
                 draw(parseRecords(data));
             })
             .catch(function () {
-                // 和插件默认页保持一致：接口失败时也保留一个空热力图骨架，避免一直停在加载状态。
+                // 接口失败时也渲染一个空日历骨架，和插件默认页保持降级显示。
                 draw({});
             });
     }
