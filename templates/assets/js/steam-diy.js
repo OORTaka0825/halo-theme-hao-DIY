@@ -114,11 +114,12 @@
             return Math.max(acc, item[1]);
         }, 1);
         var colors = getColorSet(theme);
-        var dark = document.documentElement.getAttribute('data-theme') === 'dark' ||
-            document.documentElement.classList.contains('dark') ||
-            document.body.classList.contains('dark');
-        var fontColor = dark ? '#f5f7fa' : '#3f4652';
-        var secondColor = dark ? 'rgba(245,247,250,.88)' : 'rgba(72,79,90,.88)';
+        // 只根据主题的 data-theme 判断明暗色，不再读取 body/html 上可能残留的 dark class。
+        // Hao 主题切换明暗模式时会更新 documentElement 的 data-theme；之前误读 class 会导致白天模式仍使用白色标签。
+        var themeMode = document.documentElement.getAttribute('data-theme');
+        var dark = themeMode === 'dark' ? true : (themeMode === 'light' ? false : window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var fontColor = dark ? 'rgba(245,247,250,.96)' : '#303742';
+        var secondColor = dark ? 'rgba(245,247,250,.88)' : '#4f5967';
         var borderColor = dark ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.92)';
         var zeroColor = dark ? 'rgba(40, 48, 64, .82)' : 'rgba(239, 242, 246, .92)';
         var cellHeight = window.innerWidth <= 768 ? 13 : 15;
@@ -161,6 +162,7 @@
                     nameMap: 'cn',
                     color: fontColor,
                     fontSize: 13,
+                    fontWeight: 500,
                     margin: 9
                 },
                 dayLabel: {
@@ -168,6 +170,7 @@
                     nameMap: ['日', '一', '二', '三', '四', '五', '六'],
                     color: secondColor,
                     fontSize: 13,
+                    fontWeight: 500,
                     margin: 8
                 }
             },
@@ -317,4 +320,14 @@
     }
     document.addEventListener('pjax:complete', initSteamDiyPage);
     document.addEventListener('pjax:success', initSteamDiyPage);
+
+    if (!window.__steamHeatmapThemeObserver) {
+        window.__steamHeatmapThemeObserver = true;
+        new MutationObserver(function () {
+            var root = qs('#steam-heatmap');
+            if (!root || !window.echarts) return;
+            root.dataset.loaded = 'false';
+            initHeatmap();
+        }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    }
 })();
