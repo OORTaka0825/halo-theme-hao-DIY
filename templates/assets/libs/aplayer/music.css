@@ -373,7 +373,7 @@ body[data-type=music] #nav-music {
 }
 
 #anMusic-page meting-js .aplayer ol>li {
-    border-top: 1px solid transparent;
+    border-top: 4px solid transparent;
     font-size: 14px
 }
 
