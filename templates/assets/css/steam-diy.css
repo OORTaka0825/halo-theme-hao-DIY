@@ -644,3 +644,142 @@
     padding-bottom: .25rem;
   }
 }
+
+/* v4: profile badge visual parity + achievement progress + metadata alignment */
+.steam-badge-list {
+  gap: .5rem;
+}
+
+.steam-badge-item {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  overflow: visible;
+  box-shadow: inset 0 -10px 18px rgba(0, 0, 0, .16), 0 8px 18px rgba(0, 0, 0, .14);
+}
+
+.steam-badge-item.has-img {
+  overflow: hidden;
+}
+
+.steam-badge-item.has-img .steam-badge-level {
+  right: 2px;
+  bottom: 2px;
+}
+
+.steam-badge-item.no-img {
+  background: linear-gradient(135deg, #26c686 0%, #37d28f 52%, #15966a 100%);
+}
+
+.steam-badge-item.badge-color-1.no-img {
+  background: linear-gradient(135deg, #d8a92e 0%, #f3ba36 52%, #9b681a 100%);
+}
+
+.steam-badge-item.badge-color-2.no-img {
+  background: linear-gradient(135deg, #d28a1d 0%, #f0ad2f 52%, #9d5b16 100%);
+}
+
+.steam-badge-item.badge-color-3.no-img {
+  background: linear-gradient(135deg, #b61f6a 0%, #d33584 52%, #7c184c 100%);
+}
+
+.steam-badge-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 1.08rem;
+  line-height: 1;
+  transform: translateY(-1px);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .28);
+}
+
+.steam-badge-level {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  color: #fff;
+  background: #26c9d8;
+  border: 1px solid rgba(255, 255, 255, .55);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .18);
+}
+
+.steam-badge-item.more {
+  overflow: hidden;
+}
+
+.steam-game-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  min-height: 28px;
+}
+
+.steam-game-meta-row .steam-game-time {
+  flex: 0 0 auto;
+}
+
+.steam-game-achievement {
+  display: inline-flex;
+  align-items: center;
+  gap: .22rem;
+  color: var(--heo-secondtext);
+  font-size: .76rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.steam-game-achievement[hidden] {
+  display: none !important;
+}
+
+.steam-game-achievement-icon {
+  font-size: .82rem;
+  transform: translateY(-1px);
+}
+
+.library-meta-row {
+  align-items: center;
+}
+
+.steam-game-last {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  margin-top: 0;
+  color: var(--heo-secondtext);
+  font-size: .72rem;
+  line-height: 1.35;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media screen and (max-width: 640px) {
+  .library-meta-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: .35rem;
+  }
+
+  .steam-game-last {
+    justify-content: flex-start;
+    text-align: left;
+    white-space: normal;
+  }
+}

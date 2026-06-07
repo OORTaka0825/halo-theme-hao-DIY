@@ -54,16 +54,18 @@
                                     <div class="steam-badge-list" th:if="${badges != null && badges.badges != null && !badges.badges.isEmpty()}">
                                         <th:block th:each="badge, iter : ${badges.badges}" th:if="${iter.index < 8}">
                                             <span class="steam-badge-item"
-                                                  th:classappend="${badge.imageUrl != null && !badge.imageUrl.isEmpty() ? ' has-img' : ''}"
-                                                  th:title="${(badge.badgeName != null && !badge.badgeName.isEmpty() ? badge.badgeName : badge.displayName) + ' Lv.' + badge.level + ' +' + badge.xp + 'XP'}">
+                                                  th:classappend="${(badge.imageUrl != null && !badge.imageUrl.isEmpty() ? ' has-img' : ' no-img') + ' badge-color-' + (iter.index % 4)}"
+                                                  th:title="${(badge.badgeName != null && !badge.badgeName.isEmpty() ? badge.badgeName : badge.displayName) + ' · Lv.' + badge.level + ' · +' + badge.xp + ' XP'}">
                                                 <img th:if="${badge.imageUrl != null && !badge.imageUrl.isEmpty()}" th:src="${badge.imageUrl}" th:alt="${badge.displayName}" loading="lazy">
-                                                <span th:unless="${badge.imageUrl != null && !badge.imageUrl.isEmpty()}" th:text="${badge.level}">1</span>
+                                                <span th:unless="${badge.imageUrl != null && !badge.imageUrl.isEmpty()}" class="steam-badge-medal" aria-hidden="true">🏅</span>
+                                                <span class="steam-badge-level" th:text="${badge.level}">1</span>
                                             </span>
                                         </th:block>
                                         <a class="steam-badge-item more"
                                            th:if="${badges.totalBadges > 8}"
                                            th:href="${p?.summary?.profileUrl + 'badges/'}"
-                                           target="_blank" rel="noopener external nofollow noreferrer">
+                                           target="_blank" rel="noopener external nofollow noreferrer"
+                                           th:title="${'查看全部 ' + badges.totalBadges + ' 个徽章'}">
                                             +<span th:text="${badges.totalBadges - 8}">0</span>
                                         </a>
                                     </div>
@@ -137,7 +139,13 @@
                                     </div>
                                     <div class="steam-game-content">
                                         <h3 class="steam-game-name" th:text="${game.name}">Game</h3>
-                                        <span class="steam-game-time" th:text="${game.playtime2WeeksFormatted}">0h</span>
+                                        <div class="steam-game-meta-row">
+                                            <span class="steam-game-time" th:text="${game.playtime2WeeksFormatted}">0h</span>
+                                            <span class="steam-game-achievement" th:data-app-id="${game.appId}" hidden>
+                                                <span class="steam-game-achievement-icon" aria-hidden="true">🏆</span>
+                                                <span class="steam-game-achievement-text"></span>
+                                            </span>
+                                        </div>
                                     </div>
                                 </a>
                                 <div th:unless="${linkEnable}" class="steam-game-link">
@@ -147,7 +155,13 @@
                                     </div>
                                     <div class="steam-game-content">
                                         <h3 class="steam-game-name" th:text="${game.name}">Game</h3>
-                                        <span class="steam-game-time" th:text="${game.playtime2WeeksFormatted}">0h</span>
+                                        <div class="steam-game-meta-row">
+                                            <span class="steam-game-time" th:text="${game.playtime2WeeksFormatted}">0h</span>
+                                            <span class="steam-game-achievement" th:data-app-id="${game.appId}" hidden>
+                                                <span class="steam-game-achievement-icon" aria-hidden="true">🏆</span>
+                                                <span class="steam-game-achievement-text"></span>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -178,8 +192,10 @@
                                         </div>
                                         <div class="steam-game-content">
                                             <h3 class="steam-game-name" th:text="${game.name}">Game</h3>
-                                            <span class="steam-game-time" th:text="${game.playtimeFormatted}">0h</span>
-                                            <span class="steam-game-last" th:if="${game.lastPlayedFormatted}" th:text="'最后游玩：' + ${game.lastPlayedFormatted}"></span>
+                                            <div class="steam-game-meta-row library-meta-row">
+                                                <span class="steam-game-time" th:text="${game.playtimeFormatted}">0h</span>
+                                                <span class="steam-game-last" th:if="${game.lastPlayedFormatted}" th:text="'最后游玩：' + ${game.lastPlayedFormatted}"></span>
+                                            </div>
                                         </div>
                                     </a>
                                     <div th:unless="${linkEnable}" class="steam-game-link">
@@ -188,8 +204,10 @@
                                         </div>
                                         <div class="steam-game-content">
                                             <h3 class="steam-game-name" th:text="${game.name}">Game</h3>
-                                            <span class="steam-game-time" th:text="${game.playtimeFormatted}">0h</span>
-                                            <span class="steam-game-last" th:if="${game.lastPlayedFormatted}" th:text="'最后游玩：' + ${game.lastPlayedFormatted}"></span>
+                                            <div class="steam-game-meta-row library-meta-row">
+                                                <span class="steam-game-time" th:text="${game.playtimeFormatted}">0h</span>
+                                                <span class="steam-game-last" th:if="${game.lastPlayedFormatted}" th:text="'最后游玩：' + ${game.lastPlayedFormatted}"></span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

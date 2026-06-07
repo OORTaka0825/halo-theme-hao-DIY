@@ -238,11 +238,69 @@
             });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initHeatmap, { once: true });
-    } else {
-        initHeatmap();
+
+    var achievementCache = {};
+
+    function normalizeAchievementText(data) {
+        var spec = data && data.spec ? data.spec : data;
+        if (!spec) return '';
+
+        var direct = spec.achievementProgress || spec.progress || spec.progressText;
+        if (direct) return String(direct);
+
+        var achieved = toInt(spec.achievedCount || spec.achieved || spec.completed || 0, NaN);
+        var total = toInt(spec.totalAchievements || spec.total || spec.count || 0, NaN);
+        if (Number.isFinite(achieved) && Number.isFinite(total) && total > 0) {
+            return achieved + '/' + total;
+        }
+        return '';
     }
-    document.addEventListener('pjax:complete', initHeatmap);
-    document.addEventListener('pjax:success', initHeatmap);
+
+    function initAchievements() {
+        var nodes = Array.prototype.slice.call(document.querySelectorAll('.steam-game-achievement[data-app-id]:not([data-loaded="true"])'));
+        if (!nodes.length) return;
+
+        nodes.forEach(function (node) {
+            var appId = node.dataset.appId;
+            var textNode = qs('.steam-game-achievement-text', node);
+            if (!appId || !textNode) return;
+
+            node.dataset.loaded = 'true';
+
+            function apply(text) {
+                if (!text) return;
+                textNode.textContent = text;
+                node.title = '成就进度：' + text;
+                node.hidden = false;
+            }
+
+            if (achievementCache[appId] !== undefined) {
+                apply(achievementCache[appId]);
+                return;
+            }
+
+            fetchJson(API_BASE + '/achievements/' + encodeURIComponent(appId))
+                .then(function (data) {
+                    var text = normalizeAchievementText(data);
+                    achievementCache[appId] = text;
+                    apply(text);
+                })
+                .catch(function () {
+                    achievementCache[appId] = '';
+                });
+        });
+    }
+
+    function initSteamDiyPage() {
+        initHeatmap();
+        initAchievements();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSteamDiyPage, { once: true });
+    } else {
+        initSteamDiyPage();
+    }
+    document.addEventListener('pjax:complete', initSteamDiyPage);
+    document.addEventListener('pjax:success', initSteamDiyPage);
 })();
