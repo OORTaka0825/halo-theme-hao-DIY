@@ -11251,7 +11251,7 @@ details[open]:not(.tk-admin-config-group):not(.card-friend-class-name) > summary
     color: var(--heo-fontcolor);
     font-weight: 700;
     padding: 0 4px;
-    border-radius: 10px 10px 10px 10px;
+    border-radius: 4px 4px 0 0
 }
 
 #article-container .site-card:hover a:not(.fancybox) {
