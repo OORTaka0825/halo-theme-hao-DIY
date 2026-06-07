@@ -74,34 +74,67 @@
         return dates;
     }
 
+    function getLevel(minutes) {
+        return minutes === 0 ? 0 : minutes < 30 ? 1 : minutes < 120 ? 2 : minutes < 300 ? 3 : 4;
+    }
+
+    function monthLabel(date) {
+        return (date.getMonth() + 1) + '月';
+    }
+
     function renderGrid(root, dates, minutesByDate, theme, showLegend) {
-        var colorsClass = theme ? ' data-theme="' + theme + '"' : '';
+        var chartBox = qs('#steam-heatmap-chart', root);
+        if (chartBox) chartBox.hidden = true;
+
+        var first = dates[0];
+        var last = dates[dates.length - 1];
+        if (!first || !last) return;
+
+        // 默认页面以周一到周日排列
+        var leading = (first.getDay() + 6) % 7;
+        var totalCells = leading + dates.length;
+        var weeks = Math.ceil(totalCells / 7);
         var cells = [];
-        var leading = dates.length ? dates[0].getDay() : 0;
+        var monthMarks = [];
+        var dateIndex = 0;
+        var lastMonth = -1;
 
-        for (var i = 0; i < leading; i++) {
-            cells.push('<span class="steam-heatmap-cell blank" aria-hidden="true"></span>');
+        for (var col = 0; col < weeks; col++) {
+            for (var row = 0; row < 7; row++) {
+                var absolute = col * 7 + row;
+                if (absolute < leading || dateIndex >= dates.length) {
+                    cells.push('<span class="steam-heatmap-cell blank" aria-hidden="true"></span>');
+                    continue;
+                }
+                var date = dates[dateIndex++];
+                if (date.getMonth() !== lastMonth) {
+                    lastMonth = date.getMonth();
+                    monthMarks.push('<span class="steam-heatmap-month" style="grid-column:' + (col + 1) + '">' + monthLabel(date) + '</span>');
+                }
+                var key = fmt(date);
+                var minutes = minutesByDate[key] || 0;
+                cells.push('<span class="steam-heatmap-cell" data-level="' + getLevel(minutes) + '" title="' + key + '：' + minutes + ' 分钟"></span>');
+            }
         }
-
-        dates.forEach(function (date) {
-            var key = fmt(date);
-            var minutes = minutesByDate[key] || 0;
-            var level = minutes === 0 ? 0 : minutes < 30 ? 1 : minutes < 120 ? 2 : minutes < 300 ? 3 : 4;
-            cells.push('<span class="steam-heatmap-cell" data-level="' + level + '" title="' + key + '：' + minutes + ' 分钟"></span>');
-        });
 
         var legend = '';
         if (showLegend) {
-            legend = '<div class="steam-heatmap-footer"><span>少</span>' +
+            legend = '<div class="steam-heatmap-footer"><span>低</span>' +
                 '<span class="steam-heatmap-cell" data-level="0"></span>' +
                 '<span class="steam-heatmap-cell" data-level="1"></span>' +
                 '<span class="steam-heatmap-cell" data-level="2"></span>' +
                 '<span class="steam-heatmap-cell" data-level="3"></span>' +
                 '<span class="steam-heatmap-cell" data-level="4"></span>' +
-                '<span>多</span></div>';
+                '<span>高</span></div>';
         }
 
-        root.innerHTML = '<div class="steam-heatmap-scroll"' + colorsClass + '><div class="steam-heatmap-grid">' + cells.join('') + '</div></div>' + legend;
+        root.insertAdjacentHTML('beforeend', '<div class="steam-heatmap-rendered" data-theme="' + theme + '">' +
+            '<div class="steam-heatmap-scroll">' +
+            '<div class="steam-heatmap-board" style="--steam-heatmap-weeks:' + weeks + '">' +
+            '<div class="steam-heatmap-months">' + monthMarks.join('') + '</div>' +
+            '<div class="steam-heatmap-weekdays"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>' +
+            '<div class="steam-heatmap-grid">' + cells.join('') + '</div>' +
+            '</div></div>' + legend + '</div>');
     }
 
     function renderEcharts(root, dates, minutesByDate, theme, showLegend, start, end) {
@@ -205,39 +238,33 @@
         var end = new Date();
         var start = new Date();
         start.setDate(end.getDate() - days + 1);
+        var dates = buildDateRange(start, end);
 
         hide(empty);
         hide(error);
         show(loading);
+        if (chartBox) chartBox.hidden = true;
+
+        function draw(minutesByDate) {
+            hide(loading);
+            hide(empty);
+            hide(error);
+            Array.prototype.slice.call(root.querySelectorAll('.steam-heatmap-rendered')).forEach(function (node) {
+                node.parentNode.removeChild(node);
+            });
+            // 使用本地渲染的日历格子，避免 ECharts CDN 或空数据导致一直显示加载中。
+            renderGrid(root, dates, minutesByDate || {}, theme, showLegend);
+        }
 
         fetchJson(API_BASE + '/heatmap/records?startDate=' + fmt(start) + '&endDate=' + fmt(end) + '&page=1&size=' + Math.max(days, 365))
             .then(function (data) {
-                var minutesByDate = parseRecords(data);
-                var dates = buildDateRange(start, end);
-                var hasData = Object.keys(minutesByDate).some(function (key) {
-                    return minutesByDate[key] > 0;
-                });
-
-                hide(loading);
-
-                if (!hasData) {
-                    if (chartBox) chartBox.hidden = true;
-                    show(empty);
-                    return;
-                }
-
-                var rendered = renderEcharts(root, dates, minutesByDate, theme, showLegend, start, end);
-                if (!rendered) {
-                    renderGrid(root, dates, minutesByDate, theme, showLegend);
-                }
+                draw(parseRecords(data));
             })
             .catch(function () {
-                hide(loading);
-                if (chartBox) chartBox.hidden = true;
-                show(error);
+                // 和插件默认页保持一致：接口失败时也保留一个空热力图骨架，避免一直停在加载状态。
+                draw({});
             });
     }
-
 
     var achievementCache = {};
 
