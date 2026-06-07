@@ -308,9 +308,33 @@
         });
     }
 
+
+    function localizePlaytimeText(text) {
+        if (!text) return text;
+        return String(text)
+            .replace(/(\d+(?:[.,]\d+)?)\s*h\b/gi, '$1小时')
+            .replace(/(\d+(?:[.,]\d+)?)\s*m\b/gi, '$1分钟');
+    }
+
+    function initPlaytimeLocalization() {
+        var nodes = Array.prototype.slice.call(document.querySelectorAll('.steam-game-time, .steam-stat-value'));
+        nodes.forEach(function (node) {
+            var original = node.textContent || '';
+            var localized = localizePlaytimeText(original);
+            if (localized !== original) {
+                node.textContent = localized;
+            }
+            var title = node.getAttribute('title');
+            if (title) {
+                node.setAttribute('title', localizePlaytimeText(title));
+            }
+        });
+    }
+
     function initSteamDiyPage() {
         initHeatmap();
         initAchievements();
+        initPlaytimeLocalization();
     }
 
     if (document.readyState === 'loading') {

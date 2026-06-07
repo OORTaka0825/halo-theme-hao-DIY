@@ -156,7 +156,7 @@
                                     <div class="steam-game-content">
                                         <h3 class="steam-game-name" th:text="${game.name}">Game</h3>
                                         <div class="steam-game-meta-row">
-                                            <span class="steam-game-time" th:text="${game.playtime2WeeksFormatted}">0h</span>
+                                            <span class="steam-game-time" th:text="${game.playtime2WeeksFormatted}">0小时</span>
                                             <span class="steam-game-achievement" th:attr="data-app-id=${game.appId}" hidden>
                                                 <span class="steam-game-achievement-icon" aria-hidden="true">🏆</span>
                                                 <span class="steam-game-achievement-text"></span>
@@ -172,7 +172,7 @@
                                     <div class="steam-game-content">
                                         <h3 class="steam-game-name" th:text="${game.name}">Game</h3>
                                         <div class="steam-game-meta-row">
-                                            <span class="steam-game-time" th:text="${game.playtime2WeeksFormatted}">0h</span>
+                                            <span class="steam-game-time" th:text="${game.playtime2WeeksFormatted}">0小时</span>
                                             <span class="steam-game-achievement" th:attr="data-app-id=${game.appId}" hidden>
                                                 <span class="steam-game-achievement-icon" aria-hidden="true">🏆</span>
                                                 <span class="steam-game-achievement-text"></span>
@@ -209,7 +209,7 @@
                                         <div class="steam-game-content">
                                             <h3 class="steam-game-name" th:text="${game.name}">Game</h3>
                                             <div class="steam-game-meta-row library-meta-row">
-                                                <span class="steam-game-time" th:text="${game.playtimeFormatted}">0h</span>
+                                                <span class="steam-game-time" th:text="${game.playtimeFormatted}">0小时</span>
                                                 <span class="steam-game-last" th:if="${game.lastPlayedFormatted}" th:text="'最后游玩：' + ${game.lastPlayedFormatted}"></span>
                                             </div>
                                         </div>
@@ -221,7 +221,7 @@
                                         <div class="steam-game-content">
                                             <h3 class="steam-game-name" th:text="${game.name}">Game</h3>
                                             <div class="steam-game-meta-row library-meta-row">
-                                                <span class="steam-game-time" th:text="${game.playtimeFormatted}">0h</span>
+                                                <span class="steam-game-time" th:text="${game.playtimeFormatted}">0小时</span>
                                                 <span class="steam-game-last" th:if="${game.lastPlayedFormatted}" th:text="'最后游玩：' + ${game.lastPlayedFormatted}"></span>
                                             </div>
                                         </div>
