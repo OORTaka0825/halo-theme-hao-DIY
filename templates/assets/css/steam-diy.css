@@ -35,7 +35,7 @@
   background: rgba(29, 30, 34, .78);
   border: 1px solid rgba(255, 255, 255, .10);
   box-shadow: 0 12px 40px rgba(0, 0, 0, .22);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(9px);
   -webkit-backdrop-filter: blur(18px);
 }
 
@@ -126,7 +126,7 @@
 
 .steam-title {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: 1.55rem;
   line-height: 1.2;
   color: var(--heo-fontcolor);
   overflow: hidden;
@@ -137,11 +137,11 @@
 .steam-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: .45rem;
+  gap: .8rem;
   align-items: center;
   margin-top: .55rem;
   color: var(--heo-secondtext);
-  font-size: .86rem;
+  font-size: .7rem;
 }
 
 .steam-pill {
@@ -182,18 +182,18 @@
 .steam-stat-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: .8rem;
+  gap: 3rem;
   margin-bottom: 1rem;
 }
 
 .steam-stat-card {
-  padding: 1rem;
+  padding: 0.8rem;
   text-align: center;
 }
 
 .steam-stat-value {
   display: block;
-  font-size: 1.8rem;
+  font-size: 1rem;
   font-weight: 800;
   line-height: 1.2;
   color: var(--heo-main);
@@ -203,7 +203,7 @@
   display: block;
   margin-top: .35rem;
   color: var(--heo-secondtext);
-  font-size: .82rem;
+  font-size: .75rem;
 }
 
 .steam-section {
@@ -223,7 +223,7 @@
   align-items: center;
   gap: .45rem;
   margin: 0;
-  font-size: 1.08rem;
+  font-size: .9rem;
   font-weight: 800;
   color: var(--heo-fontcolor);
 }
@@ -298,9 +298,8 @@
   min-height: 2.4em;
   margin: 0 0 .45rem;
   color: var(--heo-fontcolor);
-  font-size: .95rem;
+  font-size: .85rem;
   font-weight: 700;
-  line-height: 1.2;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -314,7 +313,7 @@
   border-radius: 999px;
   color: var(--heo-main);
   background: var(--heo-gray-op);
-  font-size: .78rem;
+  font-size: .6rem;
 }
 
 .steam-empty {
@@ -647,7 +646,7 @@
 
 /* v4: profile badge visual parity + achievement progress + metadata alignment */
 .steam-badge-list {
-  gap: .5rem;
+  gap: .7rem;
 }
 
 .steam-badge-item {
@@ -762,7 +761,7 @@
   min-width: 0;
   margin-top: 0;
   color: var(--heo-secondtext);
-  font-size: .72rem;
+  font-size: .6rem;
   line-height: 1.35;
   text-align: right;
   white-space: nowrap;
@@ -804,10 +803,10 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: .35rem;
+  gap: 2.5rem;
   margin-top: .3rem;
   color: var(--heo-secondtext);
-  font-size: .86rem;
+  font-size: .75rem;
   line-height: 1.35;
 }
 
