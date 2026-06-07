@@ -42,12 +42,21 @@
                                           th:classappend="${p?.playing ? ' is-online' : (p?.summary?.personaState == 1 ? ' is-online' : '')}"></span>
                                 </div>
                                 <div class="steam-profile-info">
-                                    <div class="steam-kicker">🎮 Steam 游戏库</div>
                                     <h1 class="steam-title" th:text="${p?.summary?.personaName}">Steam User</h1>
+                                    <div class="steam-status-row">
+                                        <span class="steam-status-text"
+                                              th:classappend="${p?.playing ? ' is-playing' : (p?.summary?.personaState == 1 ? ' is-online' : '')}"
+                                              th:text="${p?.statusText}">离线</span>
+                                        <span class="steam-last-online"
+                                              th:if="${!p?.playing and p?.summary?.personaState != 1 and p?.summary?.lastLogoff != null}"
+                                              th:text="'· 上次在线: ' + ${#dates.format(new java.util.Date(p.summary.lastLogoff * 1000), 'yyyy-MM-dd HH:mm')}">· 上次在线: 2026-06-03 08:46</span>
+                                    </div>
                                     <div class="steam-meta">
-                                        <span th:text="${p?.statusText}">离线</span>
                                         <span class="steam-pill level" th:if="${p?.steamLevel != null}">Lv. <span th:text="${p?.steamLevel}">0</span></span>
-                                        <span class="steam-pill" th:if="${badges != null}"><span th:text="${badges.totalBadges}">0</span> 徽章</span>
+                                        <span class="steam-pill steam-pill-badges" th:if="${badges != null}">
+                                            <span class="steam-pill-icon" aria-hidden="true">🏅</span>
+                                            <span th:text="${badges.totalBadges}">0</span> 徽章
+                                        </span>
                                         <span class="steam-pill" th:if="${badges != null}" th:text="${badges.playerXp} + ' XP'">0 XP</span>
                                     </div>
 
@@ -71,14 +80,16 @@
                                     </div>
                                 </div>
                             </div>
-                            <a class="steam-action" th:href="${p?.summary?.profileUrl}" target="_blank" rel="noopener external nofollow noreferrer">访问 Steam</a>
+                            <a class="steam-action" th:href="${p?.summary?.profileUrl}" target="_blank" rel="noopener external nofollow noreferrer">
+                                <svg class="steam-action-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+                                访问个人资料
+                            </a>
                         </div>
                     </section>
 
                     <section class="steam-card steam-hero" th:if="${profile == null}">
                         <div class="steam-hero-inner">
                             <div class="steam-profile-info">
-                                <div class="steam-kicker">🎮 Steam 游戏库</div>
                                 <h1 class="steam-title">Steam 数据加载失败</h1>
                                 <div class="steam-meta">请检查插件设置、Steam 隐私设置，或在插件后台刷新缓存。</div>
                             </div>
@@ -141,7 +152,7 @@
                                         <h3 class="steam-game-name" th:text="${game.name}">Game</h3>
                                         <div class="steam-game-meta-row">
                                             <span class="steam-game-time" th:text="${game.playtime2WeeksFormatted}">0h</span>
-                                            <span class="steam-game-achievement" th:data-app-id="${game.appId}" hidden>
+                                            <span class="steam-game-achievement" th:attr="data-app-id=${game.appId}" hidden>
                                                 <span class="steam-game-achievement-icon" aria-hidden="true">🏆</span>
                                                 <span class="steam-game-achievement-text"></span>
                                             </span>
@@ -157,7 +168,7 @@
                                         <h3 class="steam-game-name" th:text="${game.name}">Game</h3>
                                         <div class="steam-game-meta-row">
                                             <span class="steam-game-time" th:text="${game.playtime2WeeksFormatted}">0h</span>
-                                            <span class="steam-game-achievement" th:data-app-id="${game.appId}" hidden>
+                                            <span class="steam-game-achievement" th:attr="data-app-id=${game.appId}" hidden>
                                                 <span class="steam-game-achievement-icon" aria-hidden="true">🏆</span>
                                                 <span class="steam-game-achievement-text"></span>
                                             </span>

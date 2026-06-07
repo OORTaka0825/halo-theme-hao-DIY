@@ -783,3 +783,73 @@
     white-space: normal;
   }
 }
+
+
+/* v5: profile card matches plugin default wording/placement */
+.steam-profile {
+  align-items: center;
+}
+
+.steam-profile-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.steam-kicker {
+  display: none !important;
+}
+
+.steam-status-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .35rem;
+  margin-top: .3rem;
+  color: var(--heo-secondtext);
+  font-size: .86rem;
+  line-height: 1.35;
+}
+
+.steam-status-text.is-online,
+.steam-status-text.is-playing {
+  color: #66c0f4;
+}
+
+.steam-last-online {
+  color: var(--heo-secondtext);
+}
+
+.steam-profile-info .steam-meta {
+  margin-top: .45rem;
+}
+
+.steam-pill-badges {
+  gap: .25rem;
+}
+
+.steam-pill-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .86rem;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.steam-action {
+  gap: .4rem;
+  min-width: 140px;
+}
+
+.steam-action-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+@media screen and (max-width: 520px) {
+  .steam-status-row {
+    font-size: .78rem;
+  }
+}
