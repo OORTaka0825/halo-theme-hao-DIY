@@ -2580,3 +2580,10 @@ p.p.gray,span.p.gray {
         min-height: 100svh;
     }
 }
+
+/* 首页顶部文章卡片：缩短文字信息区高度，减少底部空白 */
+@media screen and (min-width: 1300px) {
+    #recent-posts > .recent-post-item.top > .recent-post-info {
+        height: 150px !important;
+    }
+}
