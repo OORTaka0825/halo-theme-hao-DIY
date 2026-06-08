@@ -2581,18 +2581,16 @@ p.p.gray,span.p.gray {
     }
 }
 
-/* 首页顶部文章卡片底部空白压缩修复 */
+/* ===== 首页顶部文章卡片底部空白与 meta 行位置修复 ===== */
 @media screen and (min-width: 1300px) {
     #recent-posts > .recent-post-item.top > .recent-post-info {
-        height: 165px !important;
+        height: 160px !important;
     }
 
-/* ===== 首页顶部文章卡片 meta 行微调修复 v8 ===== */
-@media screen and (min-width: 1300px) {
     #recent-posts > .recent-post-item.top > .recent-post-info > .article-meta-wrap,
     #recent-posts > .recent-post-item.top:hover > .recent-post-info > .article-meta-wrap,
     #recent-posts > .recent-post-item.top.post-card-large:hover > .recent-post-info > .article-meta-wrap {
         bottom: 0 !important;
-        transform: translateY(-8px) !important;
+        transform: translateY(-12px) !important;
     }
 }
