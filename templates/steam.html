@@ -122,9 +122,15 @@
                                      class="steam-heatmap"
                                      th:data-days="${heatDays}"
                                      th:data-theme="${heatTheme}"
-                                     th:data-legend="${heatLegend}">
+                                     th:data-legend="${heatLegend}"
+                                     data-load-strategy="after-page-idle"
+                                     data-load-delay="800"
+                                     data-echarts-url="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js">
                                     <div id="steam-heatmap-chart" class="steam-heatmap-chart"></div>
-                                    <div class="steam-heatmap-loading" id="steam-heatmap-loading">
+                                    <div class="steam-heatmap-defer" id="steam-heatmap-defer">
+                                        <div class="steam-heatmap-defer-text">页面内容优先加载，热力图稍后渲染...</div>
+                                    </div>
+                                    <div class="steam-heatmap-loading" id="steam-heatmap-loading" hidden>
                                         <div class="steam-heatmap-loading-spinner"></div>
                                         <div class="steam-heatmap-loading-text">加载热力图数据中...</div>
                                     </div>
@@ -279,7 +285,6 @@
 
         <footer th:replace="~{modules/footer :: footer}"></footer>
         <script th:if="${theme.config.other.bubbleEnable}" async data-pjax th:src="${assets_link + '/libs/canvas/bubble.js'}"></script>
-        <script defer data-pjax src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
         <script defer data-pjax th:src="${assets_link + '/js/steam-diy.js' + theme_version}"></script>
     </div>
 </th:block>

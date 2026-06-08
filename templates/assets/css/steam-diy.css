@@ -1363,3 +1363,40 @@ html[data-theme="dark"] .steam-heatmap-echart-legend,
 body.dark .steam-heatmap-echart-legend {
   color: #f5f7fa;
 }
+
+
+/* v11: defer Steam heatmap network request until the page has fully loaded */
+.steam-heatmap-defer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  color: var(--heo-secondtext);
+  text-align: center;
+  pointer-events: none;
+}
+
+.steam-heatmap-defer-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: .45rem .85rem;
+  border-radius: 999px;
+  background: rgba(142, 152, 160, .10);
+  border: 1px solid rgba(142, 152, 160, .14);
+  font-size: .9rem;
+  line-height: 1.35;
+}
+
+[data-theme="dark"] .steam-heatmap-defer-text {
+  background: rgba(255, 255, 255, .055);
+  border-color: rgba(255, 255, 255, .08);
+}
+
+#steam-heatmap-defer[hidden] {
+  display: none !important;
+}

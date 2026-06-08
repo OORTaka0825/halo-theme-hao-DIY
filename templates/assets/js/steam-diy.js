@@ -210,6 +210,7 @@
 
         var chartBox = qs('#steam-heatmap-chart', root);
         var loading = qs('#steam-heatmap-loading', root);
+        var defer = qs('#steam-heatmap-defer', root);
         var empty = qs('#steam-heatmap-empty', root);
         var error = qs('#steam-heatmap-error', root);
         var days = Math.max(1, toInt(root.dataset.days, 365));
@@ -220,6 +221,7 @@
         start.setDate(end.getDate() - days + 1);
         var dates = buildDateRange(start, end);
 
+        hide(defer);
         hide(empty);
         hide(error);
         show(loading);
@@ -331,10 +333,47 @@
         });
     }
 
+    function scheduleHeatmapInit() {
+        var root = qs('#steam-heatmap');
+        if (!root || root.dataset.loaded === 'true' || root.dataset.scheduled === 'true') return;
+        root.dataset.scheduled = 'true';
+
+        var delay = Math.max(0, toInt(root.dataset.loadDelay, 800));
+
+        function startWhenIdle() {
+            if (!root.isConnected) return;
+            var run = function () {
+                if (!root.isConnected) return;
+                initHeatmap();
+            };
+
+            // Give the browser one more paint opportunity after the whole page finishes loading.
+            window.requestAnimationFrame(function () {
+                window.requestAnimationFrame(function () {
+                    if ('requestIdleCallback' in window) {
+                        window.requestIdleCallback(run, { timeout: 3000 });
+                    } else {
+                        setTimeout(run, 0);
+                    }
+                });
+            });
+        }
+
+        function afterPageLoaded() {
+            setTimeout(startWhenIdle, delay);
+        }
+
+        if (document.readyState === 'complete') {
+            afterPageLoaded();
+        } else {
+            window.addEventListener('load', afterPageLoaded, { once: true });
+        }
+    }
+
     function initSteamDiyPage() {
-        initHeatmap();
-        initAchievements();
         initPlaytimeLocalization();
+        initAchievements();
+        scheduleHeatmapInit();
     }
 
     if (document.readyState === 'loading') {
@@ -351,6 +390,7 @@
             var root = qs('#steam-heatmap');
             if (!root || !window.echarts) return;
             root.dataset.loaded = 'false';
+            root.dataset.scheduled = 'false';
             initHeatmap();
         }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     }
