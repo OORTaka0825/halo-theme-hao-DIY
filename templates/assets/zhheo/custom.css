@@ -2555,3 +2555,28 @@ p.p.gray,span.p.gray {
     object-fit: cover !important;
     border-radius: 50% !important;
 }
+
+/* ===== 分类 / 标签页页脚下沉修复 =====
+   这几个页面内容较少时，footer 会紧跟内容块出现在页面中部。
+   让 body-wrap 成为纵向 flex 容器，并让 main 自动占满剩余高度，footer 就会回到底部。 */
+#body-wrap.taxonomy-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#body-wrap.taxonomy-page > main#content-inner {
+    flex: 1 0 auto;
+}
+
+#body-wrap.taxonomy-page > #footer,
+#body-wrap.taxonomy-page > footer {
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+@media screen and (max-width: 768px) {
+    #body-wrap.taxonomy-page {
+        min-height: 100svh;
+    }
+}
