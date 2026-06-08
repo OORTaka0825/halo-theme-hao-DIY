@@ -338,7 +338,19 @@
         if (!root || root.dataset.loaded === 'true' || root.dataset.scheduled === 'true') return;
         root.dataset.scheduled = 'true';
 
-        var delay = Math.max(0, toInt(root.dataset.loadDelay, 800));
+        // 先立即显示加载层，避免“空白停顿”；真正的数据请求仍然等页面 load/idle 之后再开始。
+        var chartBox = qs('#steam-heatmap-chart', root);
+        var loading = qs('#steam-heatmap-loading', root);
+        var defer = qs('#steam-heatmap-defer', root);
+        var empty = qs('#steam-heatmap-empty', root);
+        var error = qs('#steam-heatmap-error', root);
+        hide(defer);
+        hide(empty);
+        hide(error);
+        show(loading);
+        if (chartBox) chartBox.hidden = true;
+
+        var delay = Math.max(0, toInt(root.dataset.loadDelay, 0));
 
         function startWhenIdle() {
             if (!root.isConnected) return;
