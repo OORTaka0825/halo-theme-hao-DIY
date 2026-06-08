@@ -7,11 +7,12 @@
                 _cover = ${theme.config.other.opengraph.image},
                 _excerpt = 'Steam 游戏库、最近游玩和游戏时长统计',
                 _type = 'website')}"></th:block>
-    <link rel="stylesheet" th:href="${assets_link + '/css/steam-diy.css' + theme_version}">
+    <link id="steam-diy-head-css" rel="stylesheet" data-pjax th:href="${assets_link + '/css/steam-diy.css' + theme_version}">
 </th:block>
 
 <th:block th:fragment="content">
     <div class="page steam-body-wrap" id="body-wrap"
+         th:data-steam-css-url="${assets_link + '/css/steam-diy.css' + theme_version}"
          th:with="profile=${steamFinder.getProfile()},
                   recentGames=${steamFinder.getRecentGames(recentGamesLimit)},
                   stats=${steamFinder.getStats()},
@@ -20,6 +21,19 @@
                   heatDays=${heatmapDays != null ? heatmapDays : 365},
                   heatTheme=${!#strings.isEmpty(heatmapColorTheme) ? heatmapColorTheme : 'steam'},
                   heatLegend=${heatmapShowLegend != null ? heatmapShowLegend : true}">
+
+        <!-- PJAX 只替换 #body-wrap，不会自动合并 head 里的页面专用 CSS；这里放在 #body-wrap 内，保证从其他页面无刷新进入 Steam 页时样式能加载。 -->
+        <link id="steam-diy-pjax-css" rel="stylesheet" data-pjax th:href="${assets_link + '/css/steam-diy.css' + theme_version}">
+        <style id="steam-diy-pjax-critical" data-pjax>
+            .steam-page{width:100%;max-width:1180px;margin:0 auto;color:var(--heo-fontcolor)}
+            .steam-hero-inner,.steam-profile{display:flex;align-items:center;gap:1rem}
+            .steam-hero-inner{justify-content:space-between}
+            .steam-action-icon{width:16px;height:16px;flex:0 0 auto}
+            .steam-games-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.9rem}
+            .steam-games-grid.recent{grid-template-columns:repeat(3,minmax(0,1fr))}
+            @media screen and (max-width:980px){.steam-games-grid,.steam-games-grid.recent{grid-template-columns:repeat(2,minmax(0,1fr))}}
+            @media screen and (max-width:520px){.steam-games-grid,.steam-games-grid.recent{grid-template-columns:1fr}}
+        </style>
 
         <header class="not-top-img" id="page-header">
             <nav th:replace="~{modules/nav :: nav(title = 'Steam 游戏库')}"></nav>

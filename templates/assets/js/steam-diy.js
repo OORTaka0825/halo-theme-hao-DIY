@@ -28,6 +28,67 @@
         if (el) el.hidden = true;
     }
 
+    function getSteamCssUrl() {
+        var holder = qs('[data-steam-css-url]');
+        var href = holder && holder.getAttribute('data-steam-css-url');
+        if (href) return href;
+
+        var existing = document.querySelector('link[href*="/css/steam-diy.css"],link[href*="steam-diy.css"]');
+        return existing ? existing.getAttribute('href') : '';
+    }
+
+    function sameCssHref(link, href) {
+        if (!link || !href) return false;
+        var a = document.createElement('a');
+        a.href = href;
+        return link.href === a.href || link.href.indexOf('/css/steam-diy.css') !== -1 || link.href.indexOf('steam-diy.css') !== -1;
+    }
+
+    function ensureSteamStylesheet() {
+        var href = getSteamCssUrl();
+        if (!href) return Promise.resolve();
+
+        var links = Array.prototype.slice.call(document.querySelectorAll('link[rel~="stylesheet"]'));
+        var headLink = links.find(function (item) {
+            return item.parentNode === document.head && sameCssHref(item, href);
+        });
+        var bodyLink = links.find(function (item) { return sameCssHref(item, href); });
+        var link = headLink || bodyLink;
+
+        // 通过 PJAX 进入 Steam 页时，head 片段里的 steam-diy.css 不会被自动合并；
+        // 即使 #body-wrap 内已有 stylesheet，也主动补一份到 head，避免浏览器不加载 body 内 link。
+        if (!headLink) {
+            link = document.createElement('link');
+            link.id = 'steam-diy-js-css';
+            link.rel = 'stylesheet';
+            link.href = href;
+            link.setAttribute('data-pjax', '');
+            link.setAttribute('data-steam-diy-css', 'true');
+            document.head.appendChild(link);
+        }
+
+        if (link.dataset.loaded === 'true' || link.sheet) {
+            link.dataset.loaded = 'true';
+            return Promise.resolve();
+        }
+
+        if (window.__steamDiyCssLoading) return window.__steamDiyCssLoading;
+
+        window.__steamDiyCssLoading = new Promise(function (resolve) {
+            var done = function () {
+                link.dataset.loaded = 'true';
+                window.__steamDiyCssLoading = null;
+                resolve();
+            };
+            link.addEventListener('load', done, { once: true });
+            link.addEventListener('error', done, { once: true });
+            // 有些浏览器在 PJAX 插入 body 内 stylesheet 后不会再触发当前监听器；兜底放行，避免页面初始化被卡住。
+            setTimeout(done, 1600);
+        });
+
+        return window.__steamDiyCssLoading;
+    }
+
     function fetchJson(url) {
         return fetch(url, {
             credentials: 'same-origin',
@@ -383,9 +444,19 @@
     }
 
     function initSteamDiyPage() {
-        initPlaytimeLocalization();
-        initAchievements();
-        scheduleHeatmapInit();
+        var page = qs('#steam-page');
+        if (!page) return;
+
+        ensureSteamStylesheet().then(function () {
+            if (!page.isConnected) return;
+            initPlaytimeLocalization();
+            initAchievements();
+            scheduleHeatmapInit();
+            // PJAX 场景下样式表可能晚于 DOM 插入完成；主动触发一次 resize，修正热力图和主题布局计算。
+            setTimeout(function () {
+                window.dispatchEvent(new Event('resize'));
+            }, 0);
+        });
     }
 
     if (document.readyState === 'loading') {
