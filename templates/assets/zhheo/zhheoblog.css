@@ -9107,7 +9107,7 @@ ins.adsbygoogle {
 #recent-posts .recent-post-item {
     height: fit-content;
     background: var(--heo-card-bg);
-    border-radius: 35px;
+    border-radius: 30px;
     cursor: pointer;
     border: var(--style-border);
 }
