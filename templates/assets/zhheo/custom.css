@@ -2916,7 +2916,7 @@ html[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-
 }
 
 #hao-search-page .hao-search-result-card {
-    padding: 0.85rem 1rem;
+    padding: 0.65rem 0.78rem;
 }
 
 #hao-search-page .hao-search-result-title {
@@ -2926,15 +2926,15 @@ html[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-
 }
 
 #hao-search-page .hao-search-result-title h2 {
-    margin: 0 0 0.5rem;
-    font-size: 1.08rem;
-    line-height: 1.35;
+    margin: 0 0 0.36rem;
+    font-size: 0.96rem;
+    line-height: 1.32;
 }
 
 #hao-search-page .hao-search-result-desc {
     color: var(--heo-secondtext);
-    line-height: 1.55;
-    font-size: 0.84rem;
+    line-height: 1.45;
+    font-size: 0.78rem;
     word-break: break-word;
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -2945,12 +2945,12 @@ html[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-
 #hao-search-page mark {
     background: var(--heo-theme, #49b1f5);
     color: #fff;
-    padding: 0 3px;
+    padding: 0 2px;
     border-radius: 3px;
 }
 
 #hao-search-page .hao-search-result-card hr {
-    margin: 0.7rem 0 0.55rem;
+    margin: 0.52rem 0 0.42rem;
     border: none;
     border-top: var(--style-border);
 }
@@ -2960,11 +2960,17 @@ html[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-
     justify-content: space-between;
     align-items: center;
     color: var(--heo-secondtext);
-    font-size: 0.82rem;
+    font-size: 0.74rem;
 }
 
 #hao-search-page .hao-search-result-meta em {
     font-style: italic;
+}
+
+
+
+#hao-search-page .hao-search-result-card {
+    margin-bottom: 0.62rem;
 }
 
 #hao-search-page .hao-search-page-empty {

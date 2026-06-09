@@ -996,31 +996,116 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function allowMarkHtml(value) {
-        return escapeHtml(String(value || '')
-            .replace(/<mark>/gi, '[[HAO_MARK_START]]')
-            .replace(/<\/mark>/gi, '[[HAO_MARK_END]]'))
-            .replaceAll('[[HAO_MARK_START]]', '<mark>')
-            .replaceAll('[[HAO_MARK_END]]', '</mark>');
-    }
-
     function removeHtml(value) {
-        var temp = document.createElement('div');
-        temp.innerHTML = String(value || '');
-        return temp.textContent || temp.innerText || '';
-    }
-
-    function cleanMarkedText(value) {
         var raw = String(value || '')
-            .replace(/<mark>/gi, '[[HAO_MARK_START]]')
-            .replace(/<\/mark>/gi, '[[HAO_MARK_END]]')
-            .replace(/<[^>]*>/g, ' ');
+            .replace(/<mark>/gi, '')
+            .replace(/<\/mark>/gi, '');
         var temp = document.createElement('div');
         temp.innerHTML = raw;
-        var text = (temp.textContent || temp.innerText || '').replace(/\s+/g, ' ').trim();
-        return escapeHtml(text)
-            .replaceAll('[[HAO_MARK_START]]', '<mark>')
-            .replaceAll('[[HAO_MARK_END]]', '</mark>');
+        var text = temp.textContent || temp.innerText || '';
+        // 兼容搜索索引返回转义后的 HTML，例如 &lt;p&gt;摘要&lt;/p&gt;。
+        if (/<[^>]+>/.test(text)) {
+            temp.innerHTML = text;
+            text = temp.textContent || temp.innerText || text;
+        }
+        return text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+
+    function cleanPlainText(value) {
+        return removeHtml(value)
+            .replace(/\b[^\s<>]{1,80}\.(?:png|jpe?g|gif|webp|svg|bmp)\b/gi, ' ')
+            .replace(/%[0-9a-f]{2}(?:%[0-9a-f]{2})+/gi, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function highlightText(text, keyword) {
+        var safe = escapeHtml(text || '');
+        keyword = String(keyword || '').trim();
+        if (!keyword) return safe;
+        var words = keyword.split(/\s+/).filter(Boolean).slice(0, 6);
+        words.forEach(function (word) {
+            var escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            if (!escaped) return;
+            safe = safe.replace(new RegExp('(' + escaped + ')', 'gi'), '<mark>$1</mark>');
+        });
+        return safe;
+    }
+
+    function cleanMarkedText(value, keyword) {
+        return highlightText(cleanPlainText(value), keyword);
+    }
+
+    function removeDuplicateTitle(text, title) {
+        text = String(text || '').replace(/\s+/g, ' ').trim();
+        title = cleanPlainText(title || '');
+        if (!text || !title) return text;
+        if (text.indexOf(title) === 0) {
+            text = text.slice(title.length).replace(/^\s*[，。:：、｜|\-—–]+\s*/, '').trim();
+        }
+        return text;
+    }
+
+    function getSummaryText(hit, keyword, title) {
+        var fields = [];
+        function pushField(value) {
+            if (Array.isArray(value)) {
+                value.forEach(pushField);
+                return;
+            }
+            if (value) fields.push(value);
+        }
+        pushField(hit.excerpt);
+        pushField(hit.description);
+        pushField(hit.summary);
+        pushField(hit.highlightContent);
+        if (hit.highlight) {
+            pushField(hit.highlight.excerpt);
+            pushField(hit.highlight.description);
+            pushField(hit.highlight.content);
+        }
+        if (hit.highlights) {
+            pushField(hit.highlights.excerpt);
+            pushField(hit.highlights.description);
+            pushField(hit.highlights.content);
+        }
+        pushField(hit.content);
+        var keywordText = String(keyword || '').trim();
+        var best = '';
+
+        for (var i = 0; i < fields.length; i++) {
+            var text = removeDuplicateTitle(cleanPlainText(fields[i]), title);
+            if (!text) continue;
+            if (text.length > 20) {
+                best = text;
+                break;
+            }
+            if (!best) best = text;
+        }
+
+        if (!best) return '';
+
+        // 如果开头只是孤立关键词或标题残留，跳过它，优先展示正文摘要。
+        if (keywordText && best.indexOf(keywordText) === 0 && best.length > keywordText.length + 12) {
+            best = best.slice(keywordText.length).replace(/^\s*[，。:：、｜|\-—–]+\s*/, '').trim();
+        }
+
+        var maxLen = 118;
+        if (best.length <= maxLen) return best;
+
+        if (keywordText) {
+            var keywordIndex = best.indexOf(keywordText);
+            if (keywordIndex > -1) {
+                var start = Math.max(0, keywordIndex - 18);
+                // 避免因为正文前面的标题命中，只截出一个孤立关键词。
+                if (keywordIndex < 12 && best.length > maxLen) start = 0;
+                var snippet = best.slice(start, start + maxLen).trim();
+                if (start > 0) snippet = '…' + snippet;
+                if (start + maxLen < best.length) snippet += '…';
+                return snippet;
+            }
+        }
+        return best.slice(0, maxLen).trim() + '…';
     }
 
     function formatSearchDate(timestamp) {
@@ -1088,7 +1173,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function renderResults(result, empty, hits) {
+    function renderResults(result, empty, hits, keyword) {
         if (!result) return;
         if (!hits || !hits.length) {
             renderStatus(empty, result, '没有找到相关内容');
@@ -1097,10 +1182,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (empty) empty.style.display = 'none';
         result.innerHTML = hits.map(function (hit) {
             var rawTitle = hit.title || hit.metadataName || hit.name || '未命名内容';
-            var title = cleanMarkedText(rawTitle) || escapeHtml(removeHtml(rawTitle));
+            var title = cleanMarkedText(rawTitle, keyword) || escapeHtml(removeHtml(rawTitle));
             var titleNoTag = escapeHtml(removeHtml(rawTitle));
-            var rawDesc = hit.content || hit.description || hit.excerpt || '';
-            var desc = rawDesc ? cleanMarkedText(rawDesc) : '';
+            var summaryText = getSummaryText(hit, keyword, rawTitle);
+            var desc = summaryText ? highlightText(summaryText, keyword) : '';
             var permalink = escapeHtml(hit.permalink || hit.url || '#');
             var date = formatSearchDate(hit.updateTimestamp || hit.creationTimestamp || hit.publishTimestamp);
             return '<article class="hao-search-result-card">' +
@@ -1142,7 +1227,7 @@ document.addEventListener("DOMContentLoaded", () => {
             renderStatus(empty, result, '正在搜索...');
             requestSearch(keyword, 10).then(function (hits) {
                 if (currentIndex !== searchIndex) return;
-                renderResults(result, empty, hits);
+                renderResults(result, empty, hits, keyword);
             }).catch(function () {
                 if (currentIndex !== searchIndex) return;
                 renderStatus(empty, result, '搜索服务暂时不可用');
