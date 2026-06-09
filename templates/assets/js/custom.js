@@ -784,7 +784,7 @@ document.addEventListener("DOMContentLoaded", () => {
 })();
 
 
-/* PLUS 风格导航搜索框交互：输入时读取 Halo 搜索索引，空输入保留默认 5 条 */
+/* PLUS 风格导航搜索框交互：输入时读取 Halo 搜索索引，空输入显示无默认结果 */
 (function () {
     function openSearchPlugin() {
         if (window.SearchWidget && typeof window.SearchWidget.open === 'function') {
@@ -834,7 +834,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderSearchHits(result, hits) {
         if (!result) return;
         if (!hits || !hits.length) {
-            renderSearchStatus(result, '没有搜索结果···');
+            renderSearchStatus(result, '没有找到相关内容···');
             return;
         }
 
