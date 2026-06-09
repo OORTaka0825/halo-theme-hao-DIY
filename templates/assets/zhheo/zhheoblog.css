@@ -5189,7 +5189,7 @@ html {
 
 #page-header #nav #nav-right div .back-menu-list-groups {
     position: absolute;
-    right: 0;
+    right: -23px;
     left: auto;
     top: 42px;
 }
