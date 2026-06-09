@@ -28,9 +28,26 @@
         </a>
     </div>
 
-    <!-- 搜索使用搜索插件 -->
-    <div class="nav-button" id="search-button" th:if="${pluginFinder.available('PluginSearchWidget')}">
-        <a class="site-page social-icon search" href="javascript:SearchWidget.open();" rel="external nofollow"
+    <!-- 搜索使用搜索插件：PLUS 风格导航搜索框 -->
+    <div class="nav-button hao-plus-search" id="search-button" th:if="${pluginFinder.available('PluginSearchWidget')}">
+        <form class="hao-plus-search-form" action="javascript:void(0);" role="search" autocomplete="off">
+            <input id="hao-plus-search-input" class="hao-plus-search-input" type="text" name="keyword"
+                   placeholder="搜索内容..." autocomplete="off"/>
+            <button class="hao-plus-search-submit" type="submit" title="站内搜索" aria-label="站内搜索">
+                <i class="haofont hao-icon-search--line"></i>
+            </button>
+            <span class="hao-plus-search-decoration" aria-hidden="true"></span>
+            <nav class="hao-plus-search-result" th:with="searchPosts = ${postFinder.list(1,5)}">
+                <a th:each="postData,pIndex : ${searchPosts}"
+                   th:href="@{${postData.status.permalink}}"
+                   th:title="${postData.spec.title}"
+                   class="hao-plus-search-item">
+                    <span class="hao-plus-search-sort">[[${pIndex.count}]]</span>
+                    <span class="hao-plus-search-text">[[${postData.spec.title}]]</span>
+                </a>
+            </nav>
+        </form>
+        <a class="site-page social-icon search hao-plus-search-fallback" href="javascript:SearchWidget.open();" rel="external nofollow"
            title="站内搜索">
             <i class="haofont hao-icon-search--line"></i>
         </a>

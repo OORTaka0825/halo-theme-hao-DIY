@@ -783,3 +783,98 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener('online-monitor:registered', loadOnlineCount);
 })();
 
+
+/* PLUS 风格导航搜索框交互 */
+(function () {
+    function getSearchWidgetInput() {
+        var inputs = Array.prototype.slice.call(document.querySelectorAll('input[type="search"], input[type="text"], input:not([type])'));
+        return inputs.find(function (input) {
+            if (!input || input.id === 'hao-plus-search-input') return false;
+            var placeholder = input.getAttribute('placeholder') || '';
+            var inSearchModal = input.closest('[class*="search"], [id*="search"], halo-search-widget, search-widget');
+            return inSearchModal && (/搜索|关键词|keyword|search/i.test(placeholder) || /search/i.test(input.id + ' ' + input.className));
+        });
+    }
+
+    function openSearchWidget(keyword) {
+        if (window.SearchWidget && typeof window.SearchWidget.open === 'function') {
+            window.SearchWidget.open();
+            if (keyword) {
+                setTimeout(function () {
+                    var input = getSearchWidgetInput();
+                    if (!input) return;
+                    input.focus();
+                    input.value = keyword;
+                    ['input', 'change', 'keyup'].forEach(function (type) {
+                        input.dispatchEvent(new Event(type, { bubbles: true }));
+                    });
+                }, 120);
+            }
+            return;
+        }
+        window.location.href = '/search?keyword=' + encodeURIComponent(keyword || '');
+    }
+
+    function initHaoPlusSearchBox() {
+        var forms = document.querySelectorAll('.hao-plus-search-form');
+        forms.forEach(function (form) {
+            if (form.dataset.haoPlusSearchReady === 'true') return;
+            form.dataset.haoPlusSearchReady = 'true';
+
+            var input = form.querySelector('.hao-plus-search-input');
+            var result = form.querySelector('.hao-plus-search-result');
+            var submit = form.querySelector('.hao-plus-search-submit');
+
+            function showResult() {
+                if (result) result.classList.add('active');
+            }
+
+            function hideResult() {
+                if (result) result.classList.remove('active');
+            }
+
+            form.addEventListener('click', function (event) {
+                event.stopPropagation();
+                showResult();
+            });
+
+            if (input) {
+                input.addEventListener('focus', showResult);
+                input.addEventListener('click', showResult);
+                input.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        hideResult();
+                        input.blur();
+                    }
+                });
+            }
+
+            if (submit) {
+                submit.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                });
+            }
+
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                var keyword = input ? input.value.trim() : '';
+                hideResult();
+                openSearchWidget(keyword);
+            });
+        });
+    }
+
+    if (!window.__haoPlusSearchDocumentClickBound) {
+        window.__haoPlusSearchDocumentClickBound = true;
+        document.addEventListener('click', function () {
+            document.querySelectorAll('.hao-plus-search-result.active').forEach(function (item) {
+                item.classList.remove('active');
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', initHaoPlusSearchBox);
+    document.addEventListener('pjax:complete', initHaoPlusSearchBox);
+    document.addEventListener('pjax:success', initHaoPlusSearchBox);
+    window.addEventListener('load', initHaoPlusSearchBox);
+})();
