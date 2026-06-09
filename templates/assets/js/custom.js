@@ -786,7 +786,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* PLUS 风格导航搜索框交互：输入时读取 Halo 搜索索引，空输入保留默认 5 条 */
 (function () {
+    function openSearchPlugin() {
+        if (window.SearchWidget && typeof window.SearchWidget.open === 'function') {
+            window.SearchWidget.open();
+            return true;
+        }
+        return false;
+    }
+
     function openSearchPage(keyword) {
+        if (window.matchMedia && window.matchMedia('(max-width: 1050px)').matches && openSearchPlugin()) {
+            return;
+        }
         var targetUrl = '/search';
         if (keyword) {
             targetUrl += '?keyword=' + encodeURIComponent(keyword);
@@ -999,6 +1010,19 @@ document.addEventListener("DOMContentLoaded", () => {
         return temp.textContent || temp.innerText || '';
     }
 
+    function cleanMarkedText(value) {
+        var raw = String(value || '')
+            .replace(/<mark>/gi, '[[HAO_MARK_START]]')
+            .replace(/<\/mark>/gi, '[[HAO_MARK_END]]')
+            .replace(/<[^>]*>/g, ' ');
+        var temp = document.createElement('div');
+        temp.innerHTML = raw;
+        var text = (temp.textContent || temp.innerText || '').replace(/\s+/g, ' ').trim();
+        return escapeHtml(text)
+            .replaceAll('[[HAO_MARK_START]]', '<mark>')
+            .replaceAll('[[HAO_MARK_END]]', '</mark>');
+    }
+
     function formatSearchDate(timestamp) {
         if (!timestamp) return '';
         if (window.Utils && typeof window.Utils.formatDate === 'function') {
@@ -1073,9 +1097,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (empty) empty.style.display = 'none';
         result.innerHTML = hits.map(function (hit) {
             var rawTitle = hit.title || hit.metadataName || hit.name || '未命名内容';
-            var title = allowMarkHtml(rawTitle);
+            var title = cleanMarkedText(rawTitle) || escapeHtml(removeHtml(rawTitle));
             var titleNoTag = escapeHtml(removeHtml(rawTitle));
-            var desc = hit.content ? allowMarkHtml(hit.content) : '';
+            var rawDesc = hit.content || hit.description || hit.excerpt || '';
+            var desc = rawDesc ? cleanMarkedText(rawDesc) : '';
             var permalink = escapeHtml(hit.permalink || hit.url || '#');
             var date = formatSearchDate(hit.updateTimestamp || hit.creationTimestamp || hit.publishTimestamp);
             return '<article class="hao-search-result-card">' +
