@@ -1188,16 +1188,16 @@ document.addEventListener("DOMContentLoaded", () => {
             var desc = summaryText ? highlightText(summaryText, keyword) : '';
             var permalink = escapeHtml(hit.permalink || hit.url || '#');
             var date = formatSearchDate(hit.updateTimestamp || hit.creationTimestamp || hit.publishTimestamp);
-            return '<article class="hao-search-result-card">' +
+            return '<a class="hao-search-result-card" href="' + permalink + '" title="' + titleNoTag + '">' +
                 '<div class="hao-search-result-main">' +
-                '<a class="hao-search-result-title" href="' + permalink + '" title="' + titleNoTag + '"><h2>' + title + '</h2></a>' +
+                '<h2 class="hao-search-result-title">' + title + '</h2>' +
                 (desc ? '<div class="hao-search-result-desc">' + desc + '</div>' : '') +
                 '<hr>' +
                 '<div class="hao-search-result-meta"><span></span>' +
                 (date ? '<em>最后更新于 ' + escapeHtml(date) + '</em>' : '') +
                 '</div>' +
                 '</div>' +
-                '</article>';
+                '</a>';
         }).join('');
     }
 
