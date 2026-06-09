@@ -786,33 +786,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* PLUS 风格导航搜索框交互：输入时读取 Halo 搜索索引，空输入保留默认 5 条 */
 (function () {
-    function getSearchWidgetInput() {
-        var inputs = Array.prototype.slice.call(document.querySelectorAll('input[type="search"], input[type="text"], input:not([type])'));
-        return inputs.find(function (input) {
-            if (!input || input.id === 'hao-plus-search-input') return false;
-            var placeholder = input.getAttribute('placeholder') || '';
-            var inSearchModal = input.closest('[class*="search"], [id*="search"], halo-search-widget, search-widget');
-            return inSearchModal && (/搜索|关键词|keyword|search/i.test(placeholder) || /search/i.test(input.id + ' ' + input.className));
-        });
-    }
-
-    function openSearchWidget(keyword) {
-        if (window.SearchWidget && typeof window.SearchWidget.open === 'function') {
-            window.SearchWidget.open();
-            if (keyword) {
-                setTimeout(function () {
-                    var input = getSearchWidgetInput();
-                    if (!input) return;
-                    input.focus();
-                    input.value = keyword;
-                    ['input', 'change', 'keyup'].forEach(function (type) {
-                        input.dispatchEvent(new Event(type, { bubbles: true }));
-                    });
-                }, 120);
-            }
-            return;
+    function openSearchPage(keyword) {
+        var targetUrl = '/search';
+        if (keyword) {
+            targetUrl += '?keyword=' + encodeURIComponent(keyword);
         }
-        window.location.href = '/search?keyword=' + encodeURIComponent(keyword || '');
+        if (window.pjax && typeof window.pjax.loadUrl === 'function') {
+            window.pjax.loadUrl(targetUrl);
+        } else {
+            window.location.href = targetUrl;
+        }
     }
 
     function escapeHtml(value) {
@@ -967,7 +950,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 event.preventDefault();
                 var keyword = input ? input.value.trim() : '';
                 hideResult();
-                openSearchWidget(keyword);
+                openSearchPage(keyword);
             });
         });
     }
@@ -985,4 +968,181 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener('pjax:complete', initHaoPlusSearchBox);
     document.addEventListener('pjax:success', initHaoPlusSearchBox);
     window.addEventListener('load', initHaoPlusSearchBox);
+})();
+
+
+/* 独立搜索页：/search?keyword=xxx，与导航搜索框共用 Halo 搜索索引 */
+(function () {
+    function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, function (char) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[char];
+        });
+    }
+
+    function allowMarkHtml(value) {
+        return escapeHtml(String(value || '')
+            .replace(/<mark>/gi, '[[HAO_MARK_START]]')
+            .replace(/<\/mark>/gi, '[[HAO_MARK_END]]'))
+            .replaceAll('[[HAO_MARK_START]]', '<mark>')
+            .replaceAll('[[HAO_MARK_END]]', '</mark>');
+    }
+
+    function removeHtml(value) {
+        var temp = document.createElement('div');
+        temp.innerHTML = String(value || '');
+        return temp.textContent || temp.innerText || '';
+    }
+
+    function formatSearchDate(timestamp) {
+        if (!timestamp) return '';
+        if (window.Utils && typeof window.Utils.formatDate === 'function') {
+            try {
+                return window.Utils.formatDate(timestamp, 'yyyy-MM-dd');
+            } catch (e) {}
+        }
+        var date = new Date(timestamp);
+        if (Number.isNaN(date.getTime())) return '';
+        var y = date.getFullYear();
+        var m = String(date.getMonth() + 1).padStart(2, '0');
+        var d = String(date.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + d;
+    }
+
+    function getKeywordFromUrl() {
+        try {
+            return new URLSearchParams(window.location.search).get('keyword') || '';
+        } catch (e) {
+            return '';
+        }
+    }
+
+    function requestSearch(keyword, limit) {
+        var payload = {
+            keyword: keyword,
+            limit: limit || 10,
+            highlightPreTag: '<mark>',
+            highlightPostTag: '</mark>'
+        };
+
+        if (window.Utils && typeof window.Utils.request === 'function') {
+            return window.Utils.request({
+                url: '/apis/api.halo.run/v1alpha1/indices/-/search',
+                returnRaw: true,
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                data: JSON.stringify(payload),
+                noErrorTip: true
+            }).then(function (res) {
+                return res && res.hits ? res.hits : [];
+            });
+        }
+
+        return fetch('/apis/api.halo.run/v1alpha1/indices/-/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload)
+        }).then(function (res) {
+            if (!res.ok) throw new Error('search api error');
+            return res.json();
+        }).then(function (res) {
+            return res && res.hits ? res.hits : [];
+        });
+    }
+
+    function renderStatus(empty, result, text) {
+        if (result) result.innerHTML = '';
+        if (empty) {
+            empty.innerHTML = '<div class="hao-search-empty-text">' + escapeHtml(text) + '</div>';
+            empty.style.display = 'block';
+        }
+    }
+
+    function renderResults(result, empty, hits) {
+        if (!result) return;
+        if (!hits || !hits.length) {
+            renderStatus(empty, result, '没有找到相关内容');
+            return;
+        }
+        if (empty) empty.style.display = 'none';
+        result.innerHTML = hits.map(function (hit) {
+            var rawTitle = hit.title || hit.metadataName || hit.name || '未命名内容';
+            var title = allowMarkHtml(rawTitle);
+            var titleNoTag = escapeHtml(removeHtml(rawTitle));
+            var desc = hit.content ? allowMarkHtml(hit.content) : '';
+            var permalink = escapeHtml(hit.permalink || hit.url || '#');
+            var date = formatSearchDate(hit.updateTimestamp || hit.creationTimestamp || hit.publishTimestamp);
+            return '<article class="hao-search-result-card">' +
+                '<div class="hao-search-result-main">' +
+                '<a class="hao-search-result-title" href="' + permalink + '" title="' + titleNoTag + '"><h2>' + title + '</h2></a>' +
+                (desc ? '<div class="hao-search-result-desc">' + desc + '</div>' : '') +
+                '<hr>' +
+                '<div class="hao-search-result-meta"><span></span>' +
+                (date ? '<em>最后更新于 ' + escapeHtml(date) + '</em>' : '') +
+                '</div>' +
+                '</div>' +
+                '</article>';
+        }).join('');
+    }
+
+    function initHaoSearchPage() {
+        var form = document.getElementById('hao-search-page-form');
+        if (!form || form.dataset.haoSearchPageReady === 'true') return;
+        form.dataset.haoSearchPageReady = 'true';
+
+        var input = document.getElementById('hao-search-page-input');
+        var result = document.getElementById('hao-search-page-result');
+        var empty = document.getElementById('hao-search-page-empty');
+        var timer = null;
+        var searchIndex = 0;
+
+        function search(keyword, syncUrl) {
+            keyword = (keyword || '').trim();
+            if (input) input.value = keyword;
+            if (syncUrl) {
+                var url = keyword ? ('/search?keyword=' + encodeURIComponent(keyword)) : '/search';
+                history.replaceState(null, '', url);
+            }
+            var currentIndex = ++searchIndex;
+            if (!keyword) {
+                renderStatus(empty, result, '请输入关键词进行搜索');
+                return;
+            }
+            renderStatus(empty, result, '正在搜索...');
+            requestSearch(keyword, 10).then(function (hits) {
+                if (currentIndex !== searchIndex) return;
+                renderResults(result, empty, hits);
+            }).catch(function () {
+                if (currentIndex !== searchIndex) return;
+                renderStatus(empty, result, '搜索服务暂时不可用');
+            });
+        }
+
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            search(input ? input.value : '', true);
+        });
+
+        if (input) {
+            input.addEventListener('input', function () {
+                clearTimeout(timer);
+                timer = setTimeout(function () {
+                    search(input.value, true);
+                }, 180);
+            });
+        }
+
+        search(getKeywordFromUrl(), false);
+    }
+
+    document.addEventListener('DOMContentLoaded', initHaoSearchPage);
+    document.addEventListener('pjax:complete', initHaoSearchPage);
+    document.addEventListener('pjax:success', initHaoSearchPage);
+    window.addEventListener('load', initHaoSearchPage);
 })();

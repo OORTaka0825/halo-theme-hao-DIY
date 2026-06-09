@@ -30,7 +30,7 @@
 
     <!-- 搜索使用搜索插件：PLUS 风格导航搜索框 -->
     <div class="nav-button hao-plus-search" id="search-button" th:if="${pluginFinder.available('PluginSearchWidget')}">
-        <form class="hao-plus-search-form" action="javascript:void(0);" role="search" autocomplete="off">
+        <form class="hao-plus-search-form" method="get" action="/search" role="search" autocomplete="off" data-pjax>
             <input id="hao-plus-search-input" class="hao-plus-search-input" type="text" name="keyword"
                    placeholder="搜索内容..." autocomplete="off"/>
             <button class="hao-plus-search-submit" type="submit" title="站内搜索" aria-label="站内搜索">
@@ -47,7 +47,7 @@
                 </a>
             </nav>
         </form>
-        <a class="site-page social-icon search hao-plus-search-fallback" href="javascript:SearchWidget.open();" rel="external nofollow"
+        <a class="site-page social-icon search hao-plus-search-fallback" href="/search" rel="external nofollow"
            title="站内搜索">
             <i class="haofont hao-icon-search--line"></i>
         </a>

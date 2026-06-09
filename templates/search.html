@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{modules/layouts/layout :: layout(content = ~{::content}, htmlType = 'search',title = ${'搜索' + ' | ' + site.title}, head = ~{::head})}">
+<th:block th:fragment="head">
+    <th:block th:replace="~{modules/common/open-graph :: open-graph(_title = '搜索',
+                _permalink = '/search',
+                _cover = ${theme.config.other.opengraph.image},
+                _excerpt = ${site.seo.description},
+                _type = 'website')}"></th:block>
+</th:block>
+<th:block th:fragment="content">
+    <div class="page hao-search-page" id="body-wrap">
+        <header class="not-top-img" id="page-header">
+            <nav th:replace="~{modules/nav :: nav(title = '搜索')}"></nav>
+        </header>
+        <main class="layout" th:classappend="${not #lists.isEmpty(theme.config.sidebar.widgetss.pageWidget) ? '' : 'hide-aside'}" id="content-inner">
+            <div id="hao-search-page">
+                <section class="hao-search-page-card hao-search-page-form-card">
+                    <div class="hao-search-page-tab">搜索</div>
+                    <form id="hao-search-page-form" class="hao-search-page-form" method="get" action="/search" role="search" autocomplete="off">
+                        <input id="hao-search-page-input" class="hao-search-page-input" type="search" name="keyword" placeholder="搜索内容..." autocomplete="off"/>
+                        <button class="hao-search-page-submit" type="submit" title="搜索" aria-label="搜索">
+                            <i class="haofont hao-icon-search--line"></i>
+                        </button>
+                    </form>
+                </section>
+
+                <div id="hao-search-page-result"></div>
+                <section id="hao-search-page-empty" class="hao-search-page-card hao-search-page-empty">
+                    <div class="hao-search-empty-text">请输入关键词进行搜索</div>
+                </section>
+            </div>
+
+            <div th:replace="~{modules/aside :: aside(${theme.config.sidebar.widgetss.pageWidget})}"></div>
+        </main>
+        <footer th:replace="~{modules/footer}"/>
+    </div>
+</th:block>
+</html>
