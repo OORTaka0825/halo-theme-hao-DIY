@@ -2670,14 +2670,14 @@ p.p.gray,span.p.gray {
 
 #page-header #nav #nav-right .hao-plus-search .hao-plus-search-submit i {
     color: #fff !important;
-    font-size: 18px !important;
+    font-size: 20px !important;
     line-height: 1 !important;
 }
 
 #page-header #nav #nav-right .hao-plus-search .hao-plus-search-decoration {
     position: absolute;
     top: 50%;
-    right: 34px;
+    right: 38px;
     width: 28px;
     height: 38px;
     pointer-events: none;
@@ -2787,9 +2787,16 @@ html[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-
 }
 
 :root[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-search-input:focus,
-html[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-search-input:focus {
-    border-color: var(--heo-main, #f2b94b);
+html[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-search-input:focus,
+[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-search-input:focus {
+    border-color: var(--heo-theme, #ffc848) !important;
     border-right: none;
+}
+
+:root[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-search-submit,
+html[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-search-submit,
+[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-search-submit {
+    background: var(--heo-theme, #ffc848) !important;
 }
 
 :root[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-search-result,
