@@ -37,14 +37,8 @@
                 <i class="haofont hao-icon-search--line"></i>
             </button>
             <span class="hao-plus-search-decoration" aria-hidden="true"></span>
-            <nav class="hao-plus-search-result" th:with="searchPosts = ${postFinder.list(1,5)}">
-                <a th:each="postData,pIndex : ${searchPosts}"
-                   th:href="@{${postData.status.permalink}}"
-                   th:title="${postData.spec.title}"
-                   class="hao-plus-search-item">
-                    <span class="hao-plus-search-sort">[[${pIndex.count}]]</span>
-                    <span class="hao-plus-search-text">[[${postData.spec.title}]]</span>
-                </a>
+            <nav class="hao-plus-search-result">
+                <div class="hao-plus-search-status">没有搜索结果..</div>
             </nav>
         </form>
         <a class="site-page social-icon search hao-plus-search-fallback" href="javascript:SearchWidget.open();" rel="external nofollow"

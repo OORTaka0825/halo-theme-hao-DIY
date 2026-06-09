@@ -834,7 +834,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderSearchHits(result, hits) {
         if (!result) return;
         if (!hits || !hits.length) {
-            renderSearchStatus(result, '没有找到相关内容');
+            renderSearchStatus(result, '没有搜索结果..');
             return;
         }
 
@@ -912,7 +912,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!result) return;
                 var currentIndex = ++searchIndex;
                 if (!keyword) {
-                    restoreDefaultResult();
+                    renderSearchStatus(result, '没有搜索结果..');
                     return;
                 }
                 renderSearchStatus(result, '正在搜索...');
