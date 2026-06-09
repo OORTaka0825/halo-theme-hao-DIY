@@ -2613,26 +2613,26 @@ p.p.gray,span.p.gray {
     position: relative;
     display: flex;
     align-items: center;
-    width: 190px;
-    height: 30px;
+    width: 200px;
+    height: 32.5px;
     margin: 0;
 }
 
 #page-header #nav #nav-right .hao-plus-search .hao-plus-search-input {
     flex: 1;
-    width: 150px;
-    height: 30px;
+    width: 160px;
+    height: 32.5px;
     min-width: 0;
     box-sizing: border-box;
     border: 1px solid transparent;
     border-right: none;
     outline: none;
-    border-radius: 15px 0 0 15px;
+    border-radius: 16.25px 0 0 16.25px;
     padding: 0 16px;
     background: var(--heo-card-bg, rgba(255, 255, 255, 0.86));
     color: var(--heo-fontcolor, #4c4948);
     font-size: 14px;
-    line-height: 30px;
+    line-height: 32.5px;
     text-shadow: none;
     transition: border-color 0.35s, background 0.35s, padding-right 0.35s;
 }
@@ -2655,11 +2655,11 @@ p.p.gray,span.p.gray {
     position: relative;
     z-index: 1;
     width: 40px;
-    height: 30px;
+    height: 32.5px;
     min-width: 40px;
     padding: 0;
     border: none;
-    border-radius: 0 15px 15px 0;
+    border-radius: 0 16.25px 16.25px 0;
     background: var(--heo-main, #49b1f5);
     color: #fff;
     display: flex;
@@ -2690,7 +2690,7 @@ p.p.gray,span.p.gray {
 #page-header #nav #nav-right .hao-plus-search .hao-plus-search-result {
     position: absolute;
     z-index: 999;
-    top: 40px;
+    top: 42.5px;
     left: 0;
     right: 0;
     visibility: hidden;
