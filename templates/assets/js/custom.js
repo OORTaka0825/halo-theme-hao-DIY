@@ -834,7 +834,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderSearchHits(result, hits) {
         if (!result) return;
         if (!hits || !hits.length) {
-            renderSearchStatus(result, '没有搜索结果..');
+            renderSearchStatus(result, '没有搜索结果···');
             return;
         }
 
@@ -912,7 +912,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!result) return;
                 var currentIndex = ++searchIndex;
                 if (!keyword) {
-                    renderSearchStatus(result, '没有搜索结果..');
+                    renderSearchStatus(result, '没有搜索结果···');
                     return;
                 }
                 renderSearchStatus(result, '正在搜索...');
@@ -1176,7 +1176,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderResults(result, empty, hits, keyword) {
         if (!result) return;
         if (!hits || !hits.length) {
-            renderStatus(empty, result, '没有找到相关内容');
+            renderStatus(empty, result, '没有找到相关内容···');
             return;
         }
         if (empty) empty.style.display = 'none';
