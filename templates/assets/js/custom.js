@@ -784,7 +784,7 @@ document.addEventListener("DOMContentLoaded", () => {
 })();
 
 
-/* PLUS 风格导航搜索框交互 */
+/* PLUS 风格导航搜索框交互：输入时读取 Halo 搜索索引，空输入保留默认 5 条 */
 (function () {
     function getSearchWidgetInput() {
         var inputs = Array.prototype.slice.call(document.querySelectorAll('input[type="search"], input[type="text"], input:not([type])'));
@@ -815,6 +815,79 @@ document.addEventListener("DOMContentLoaded", () => {
         window.location.href = '/search?keyword=' + encodeURIComponent(keyword || '');
     }
 
+    function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"]/g, function (char) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;'
+            }[char];
+        });
+    }
+
+    function removeHtml(value) {
+        var temp = document.createElement('div');
+        temp.innerHTML = String(value || '');
+        return temp.textContent || temp.innerText || '';
+    }
+
+    function renderSearchStatus(result, text) {
+        if (!result) return;
+        result.innerHTML = '<div class="hao-plus-search-status">' + escapeHtml(text) + '</div>';
+    }
+
+    function renderSearchHits(result, hits) {
+        if (!result) return;
+        if (!hits || !hits.length) {
+            renderSearchStatus(result, '没有找到相关内容');
+            return;
+        }
+
+        result.innerHTML = hits.slice(0, 5).map(function (hit, index) {
+            var title = removeHtml(hit.title || hit.metadataName || hit.name || '未命名内容');
+            var permalink = hit.permalink || hit.url || '#';
+            return '<a href="' + escapeHtml(permalink) + '" title="' + escapeHtml(title) + '" class="hao-plus-search-item">' +
+                '<span class="hao-plus-search-sort">' + (index + 1) + '</span>' +
+                '<span class="hao-plus-search-text">' + escapeHtml(title) + '</span>' +
+                '</a>';
+        }).join('');
+    }
+
+    function queryHaloSearch(keyword, limit) {
+        var payload = {
+            keyword: keyword,
+            limit: limit || 5,
+            highlightPreTag: '',
+            highlightPostTag: ''
+        };
+
+        if (window.Utils && typeof window.Utils.request === 'function') {
+            return window.Utils.request({
+                url: '/apis/api.halo.run/v1alpha1/indices/-/search',
+                returnRaw: true,
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                data: JSON.stringify(payload),
+                noErrorTip: true
+            }).then(function (res) {
+                return res && res.hits ? res.hits : [];
+            });
+        }
+
+        return fetch('/apis/api.halo.run/v1alpha1/indices/-/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload)
+        }).then(function (res) {
+            if (!res.ok) throw new Error('search api error');
+            return res.json();
+        }).then(function (res) {
+            return res && res.hits ? res.hits : [];
+        });
+    }
+
     function initHaoPlusSearchBox() {
         var forms = document.querySelectorAll('.hao-plus-search-form');
         forms.forEach(function (form) {
@@ -824,6 +897,9 @@ document.addEventListener("DOMContentLoaded", () => {
             var input = form.querySelector('.hao-plus-search-input');
             var result = form.querySelector('.hao-plus-search-result');
             var submit = form.querySelector('.hao-plus-search-submit');
+            var defaultResultHtml = result ? result.innerHTML : '';
+            var searchTimer = null;
+            var searchIndex = 0;
 
             function showResult() {
                 if (result) result.classList.add('active');
@@ -833,14 +909,46 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (result) result.classList.remove('active');
             }
 
+            function restoreDefaultResult() {
+                if (!result) return;
+                result.innerHTML = defaultResultHtml;
+            }
+
+            function doLiveSearch(keyword) {
+                if (!result) return;
+                var currentIndex = ++searchIndex;
+                if (!keyword) {
+                    restoreDefaultResult();
+                    return;
+                }
+                renderSearchStatus(result, '正在搜索...');
+                queryHaloSearch(keyword, 5).then(function (hits) {
+                    if (currentIndex !== searchIndex) return;
+                    renderSearchHits(result, hits);
+                }).catch(function () {
+                    if (currentIndex !== searchIndex) return;
+                    renderSearchStatus(result, '搜索服务暂时不可用');
+                });
+            }
+
             form.addEventListener('click', function (event) {
                 event.stopPropagation();
                 showResult();
             });
 
             if (input) {
-                input.addEventListener('focus', showResult);
+                input.addEventListener('focus', function () {
+                    showResult();
+                    doLiveSearch(input.value.trim());
+                });
                 input.addEventListener('click', showResult);
+                input.addEventListener('input', function () {
+                    showResult();
+                    window.clearTimeout(searchTimer);
+                    searchTimer = window.setTimeout(function () {
+                        doLiveSearch(input.value.trim());
+                    }, 180);
+                });
                 input.addEventListener('keydown', function (event) {
                     if (event.key === 'Escape') {
                         hideResult();

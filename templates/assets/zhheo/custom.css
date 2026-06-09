@@ -2624,7 +2624,7 @@ p.p.gray,span.p.gray {
     height: 32.5px;
     min-width: 0;
     box-sizing: border-box;
-    border: 1px solid rgba(66, 90, 239, 0.45);
+    border: 1px solid transparent;
     border-right: none;
     outline: none;
     border-radius: 16.25px 0 0 16.25px;
@@ -2764,6 +2764,18 @@ p.p.gray,span.p.gray {
     text-overflow: ellipsis;
     color: var(--heo-fontcolor, #4c4948);
     font-size: 14px;
+}
+
+
+#page-header #nav #nav-right .hao-plus-search .hao-plus-search-status {
+    min-height: 40px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    color: var(--heo-secondtext, #858585);
+    font-size: 14px;
+    text-shadow: none;
 }
 
 #page-header #nav #nav-right .hao-plus-search .hao-plus-search-fallback {
