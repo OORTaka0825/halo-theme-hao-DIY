@@ -2144,10 +2144,15 @@ spec:
       name: detail
       label: 描述
       value: 要做的事还有很多，想做的事源源不断
-    - $formkit: repeater
+    - $formkit: array
       name: list
-      label: 待办清单
-      value: []
+      label: 待办清单列表
+      value: [ ]
+      itemLabels:
+      - type: text
+        label: $value.seat
+      - type: text
+        label: $value.class_name
       children:
       - $formkit: text
         name: class_name
@@ -2162,19 +2167,29 @@ spec:
           value: left
         - label: 右
           value: right
-      - $formkit: repeater
+      - $formkit: array
         name: todo_list
         label: 内容列表
-        value: []
+        value: [ ]
+        itemLabels:
+        - type: text
+          label: $value.completed
+        - type: text
+          label: $value.content
         children:
         - $formkit: textarea
           name: content
           label: 内容
           placeholder: 请输入内容
-        - $formkit: switch
+        - $formkit: radio
           name: completed
           label: 填写
           value: false
+          options:
+          - label: 完成
+            value: true
+          - label: 未完成
+            value: false
   - group: websites
     label: 在线网站
     formSchema:
@@ -2201,10 +2216,15 @@ spec:
       name: detail
       label: 描述
       value: 跟 Taka 一起高效的数字生活
-    - $formkit: repeater
+    - $formkit: array
       name: category_list
       label: 网站分类
-      value: []
+      value: [ ]
+      itemLabels:
+      - type: text
+        label: $value.category_name
+      - type: text
+        label: $value.description
       children:
       - $formkit: text
         name: category_name
@@ -2225,10 +2245,15 @@ spec:
           label: 默认
         - value: beautify
           label: 美化
-      - $formkit: repeater
+      - $formkit: array
         name: website_list
         label: 网站列表
-        value: []
+        value: [ ]
+        itemLabels:
+        - type: text
+          label: $value.name
+        - type: text
+          label: $value.url
         children:
         - $formkit: attachment
           name: icon
