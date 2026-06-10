@@ -46,6 +46,7 @@ spec:
         phone_leftMenu: true
         phone_menu: true
         enable_ali_iconfont_symbol_header: false
+        iconfont_js: ''
       children:
       - $formkit: switch
         name: pc_leftMenu
@@ -59,11 +60,13 @@ spec:
         label: 移动主菜单
       - $formkit: switch
         name: enable_ali_iconfont_symbol_header
+        id: enable_ali_iconfont_symbol_header
         label: 阿里巴巴IconFont Symbol
         help: '开启后，可以使用阿里IconFont的Symbol彩色图标。语法为 #icon-xxx，例如 #icon-shouye'
       - $formkit: text
         if: $get(enable_ali_iconfont_symbol_header).value
         name: iconfont_js
+        id: iconfont_js
         label: 阿里巴巴 IconFont Symbol 链接
         help: 填写 IconFont 的Symbol js 链接，例如 //at.alicdn.com/t/c/font_xxxxx.js
         value: ''
@@ -3132,7 +3135,7 @@ spec:
       children:
       - $formkit: radio
         name: defaultEncoding
-        label: 默认语言
+        label: 默认显示语言
         options:
         - label: 简体中文
           value: 2

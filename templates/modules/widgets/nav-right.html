@@ -88,7 +88,7 @@
         </a>
     </div>
 
-    <div id="toggle-menu">
+    <div id="toggle-menu" th:if="${theme.config.nav.menus.phone_leftMenu || theme.config.nav.menus.phone_menu}">
         <a class="site-page">
             <i class="haofont hao-icon-bars"></i>
         </a>

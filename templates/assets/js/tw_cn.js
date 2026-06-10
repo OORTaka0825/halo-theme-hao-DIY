@@ -2,8 +2,11 @@
 document.addEventListener('DOMContentLoaded', function() {
     const translate = GLOBAL_CONFIG.translate
     const snackbarData = GLOBAL_CONFIG.Snackbar
-    // 網站默認語言，1: 繁體中文, 2: 簡體中文
-    const defaultEncoding = translate.defaultEncoding
+    // 默认显示语言，1: 繁體中文, 2: 简体中文。
+    // 主题源码和后台内容通常是简体中文，所以这里把源码语言固定为 2，
+    // 后台 defaultEncoding 作为页面首次打开时的目标显示语言。
+    const sourceEncoding = 2
+    const defaultEncoding = Number(translate.defaultEncoding) || 2
     // 延遲時間,若不在前, 要設定延遲翻譯時間, 如100表示100ms,默認為0
     const translateDelay = translate.translateDelay
     const msgToTraditionalChinese = translate.msgToTraditionalChinese; // 此處可以更改為你想要顯示的文字
@@ -14,9 +17,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const rightMenuMsgToSimplifiedChinese = '<i class="haofont hao-icon-jianti" style="font-size: 19px;"></i><span>转为简体</span>'
     
     
-    let currentEncoding = defaultEncoding
+    let currentEncoding = sourceEncoding
     const targetEncodingCookie = 'translate-chn-cht'
-    let targetEncoding = saveToLocal.get(targetEncodingCookie) === undefined ? defaultEncoding : Number(saveToLocal.get('translate-chn-cht'))
+    const defaultEncodingCookie = 'translate-chn-default'
+    const savedDefaultEncoding = saveToLocal.get(defaultEncodingCookie)
+    const savedTargetEncoding = saveToLocal.get(targetEncodingCookie)
+    let targetEncoding
+    if (savedDefaultEncoding === undefined || Number(savedDefaultEncoding) !== defaultEncoding) {
+        targetEncoding = defaultEncoding
+        saveToLocal.set(defaultEncodingCookie, defaultEncoding, 365)
+        saveToLocal.set(targetEncodingCookie, defaultEncoding, 365)
+    } else {
+        targetEncoding = savedTargetEncoding === undefined ? defaultEncoding : Number(savedTargetEncoding)
+    }
     let translateButtonObject
     let translateRightMenuButtonObject
     const isSnackbar = GLOBAL_CONFIG.Snackbar !== undefined
@@ -78,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isSnackbar)
                 btf.snackbarShow(snackbarData.chs_to_cht)
         }
-        saveToLocal.set(targetEncodingCookie, targetEncoding, 2)
+        saveToLocal.set(targetEncodingCookie, targetEncoding, 365)
         setLang();
         translateBody()
         if(GLOBAL_CONFIG.rightMenuEnable){
@@ -122,15 +135,17 @@ document.addEventListener('DOMContentLoaded', function() {
             translateRightMenuButtonObject = document.getElementById("menu-translate");
         }
         if (translateButtonObject || translateRightMenuButtonObject) {
+            const nextButtonText = targetEncoding === 1 ? msgToSimplifiedChinese : msgToTraditionalChinese;
+            const nextRightMenuText = targetEncoding === 1 ? rightMenuMsgToSimplifiedChinese : rightMenuMsgToTraditionalChinese;
+            if (translateButtonObject) translateButtonObject.innerHTML = nextButtonText;
+            if (translateRightMenuButtonElement) translateRightMenuButtonElement.innerHTML = nextRightMenuText;
             if (currentEncoding !== targetEncoding) {
-                translateButtonObject.innerHTML = targetEncoding === 1 ? msgToSimplifiedChinese : msgToTraditionalChinese;
-                if (translateRightMenuButtonElement) {
-                    translateRightMenuButtonElement.innerHTML = targetEncoding === 1 ? rightMenuMsgToSimplifiedChinese : rightMenuMsgToTraditionalChinese;
-                }
                 setLang();
                 setTimeout(translateBody, translateDelay);
+            } else {
+                setLang();
             }
-            translateButtonObject.addEventListener("click", translatePage, false);
+            translateButtonObject && translateButtonObject.addEventListener("click", translatePage, false);
             translateRightMenuButtonElement && translateRightMenuButtonElement.addEventListener("click", translatePage, false);
         }
     }

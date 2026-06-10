@@ -4,7 +4,7 @@
 <!-- 导航栏左侧 -->
 <div id="blog_name" th:fragment="nav-left">
 
-    <th:block th:if="${not #strings.isEmpty(theme.config.nav.leftMenu)}"
+    <th:block th:if="${theme.config.nav.menus.pc_leftMenu && not #strings.isEmpty(theme.config.nav.leftMenu)}"
               th:with="leftMenu = ${menuFinder.getByName(theme.config.nav.leftMenu)}">
         <!-- 菜单栏左侧按钮，没有配置时，则不展示-->
         <div class="back-home-button" tabindex="-1"
