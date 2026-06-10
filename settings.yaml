@@ -1710,6 +1710,10 @@ spec:
       label: 动态主色
       value: true
       help: 文章主色匹配图片颜色
+    - $formkit: switch
+      name: opacity
+      label: 目录模糊效果
+      value: true
     - $formkit: group
       name: postHeroColor
       label: 文章标题背景（独立）
@@ -1804,6 +1808,33 @@ spec:
         label: 你的博客地址
         help: 注意保留最后的斜杠
         value: https://xx.xx/
+    - $formkit: group
+      name: passage_tips
+      label: 温馨提示
+      value:
+        enable: false
+        content: 文章内容可能已经过时。
+        day: 7
+      children:
+      - $formkit: switch
+        name: enable
+        id: enable
+      - $formkit: number
+        if: $get(enable).value
+        name: day
+        label: 更新时间大于天数显示
+        validation: required
+      - $formkit: code
+        if: $get(enable).value
+        name: content
+        height: 100px
+        label: 温馨提示文案
+        help: 自定义温馨提示的文案，支持html语法
+        language: html
+    - $formkit: switch
+      name: update_time
+      label: 最后更新时间
+      value: false
     - $formkit: select
       name: copyrightsStyle
       id: copyrightsStyle
@@ -1824,21 +1855,19 @@ spec:
       name: post_edit
       label: 运营模式与责任
       value:
-        enable_post_edit: null
-        post_edit_url: null
+        enable_post_edit: false
+        post_edit_url: /rss
       children:
       - $formkit: switch
         name: enable_post_edit
         id: enable_post_edit
         key: enable_post_edit
         help: 启用文章运营模式与责任，请正确填写链接
-        value: false
       - $formkit: url
         name: post_edit_url
         if: $get(enable_post_edit).value
         label: 运营模式与责任地址
         placeholder: 请输入运营模式与责任地址
-        value: /rss
     - $formkit: group
       name: share_right
       label: 分享按钮
@@ -1854,7 +1883,6 @@ spec:
       - $formkit: switch
         name: weibo_edit
         help: 启用分享到微博
-        value: true
       - $formkit: switch
         name: copyurl_edit
         help: 启用复制链接
@@ -1864,9 +1892,13 @@ spec:
       label: 版权声明
       help: 需要在发布文章时的元数据上选显示版权声明才可以生效
       value:
+        enable: true
         content: 本文是原创文章，采用 <a target="_blank" href="/cc">CC BY-NC-ND 4.0</a> 协议，完整转载请注明来自 <a href="/" target="_blank" >程序员小航</a>
         reprintContent: 本文是转载文章，版权归原作者所有。建议访问原文，转载本文请联系原作者。
       children:
+      - $formkit: switch
+        name: enable
+        help: 文章底部显示版权声明模块
       - $formkit: text
         name: originalUrl
         label: 原创链接
@@ -1875,16 +1907,19 @@ spec:
         name: reprintUrl
         label: 转载链接
         placeholder: 请输入链接
-      - $formkit: textarea
+      - $formkit: code
         name: content
         label: 原创声明内容
-        placeholder: 本文是原创文章，采用 <a target="_blank" href="/cc">CC BY-NC-ND 4.0</a> 协议，完整转载请注明来自 <a href="/" target="_blank"
-          >程序员小航</a>
+        placeholder: 本文是原创文章，采用 <a target="_blank" href="/cc">CC BY-NC-ND 4.0</a> 协议，完整转载请注明来自 <a href="/" target="_blank" >程序员小航</a>
+        height: 120px
+        language: html
         help: 支持 HTML 语法
-      - $formkit: textarea
+      - $formkit: code
         name: reprintContent
         label: 转载声明内容
         placeholder: 本文是转载文章，版权归原作者所有。建议访问原文，转载本文请联系原作者。
+        height: 120px
+        language: html
         help: 支持 HTML 语法
     - $formkit: select
       name: recommendQuantity
@@ -2147,7 +2182,7 @@ spec:
     - $formkit: array
       name: list
       label: 待办清单列表
-      value: [ ]
+      value: []
       itemLabels:
       - type: text
         label: $value.seat
@@ -2170,7 +2205,7 @@ spec:
       - $formkit: array
         name: todo_list
         label: 内容列表
-        value: [ ]
+        value: []
         itemLabels:
         - type: text
           label: $value.completed
@@ -2219,7 +2254,7 @@ spec:
     - $formkit: array
       name: category_list
       label: 网站分类
-      value: [ ]
+      value: []
       itemLabels:
       - type: text
         label: $value.category_name
@@ -2248,7 +2283,7 @@ spec:
       - $formkit: array
         name: website_list
         label: 网站列表
-        value: [ ]
+        value: []
         itemLabels:
         - type: text
           label: $value.name
@@ -2411,17 +2446,14 @@ spec:
     - $formkit: code
       name: content
       label: 我的介绍
-      value: <div class="title1">你好，很高兴认识你👋</div> <div class="title2">我叫 <span class="inline-word">程序员小航</span></div> <div
-        class="title1">是一名 前端开发工程师、后端开发工程师、全干工程师</div>
+      value: <div class="title1">你好，很高兴认识你👋</div> <div class="title2">我叫 <span class="inline-word">程序员小航</span></div> <div class="title1">是一名 前端开发工程师、后端开发工程师、全干工程师</div>
       height: 200px
       language: html
       help: 支持 HTML 语法
     - $formkit: code
       name: idea
       label: 我的想法
-      value: <div class="author-content-item-tips">一定</div> <h2>记得<br> 修改这块<span class="inline-word">代码</span> <div class="mask">
-        <span class="first-tips" data-show="">优秀的产品</span> <span>出色的设计</span> <span>高效的编程</span> <span data-up="">人性化的用户体验</span>
-        </div> </h2>
+      value: <div class="author-content-item-tips">一定</div> <h2>记得<br> 修改这块<span class="inline-word">代码</span> <div class="mask"> <span class="first-tips" data-show="">优秀的产品</span> <span>出色的设计</span> <span>高效的编程</span> <span data-up="">人性化的用户体验</span> </div> </h2>
       height: 200px
       language: html
       help: 支持 HTML 语法
@@ -2441,10 +2473,13 @@ spec:
         label: 生涯标题
         placeholder: 请输入内容
         value: 无限进步
-      - $formkit: repeater
+      - $formkit: array
         name: authorCareersTags
         label: 标签
         value: []
+        itemLabels:
+        - type: text
+          label: $value.desc
         children:
         - $formkit: color
           name: background
@@ -2498,7 +2533,7 @@ spec:
       name: authorCareersPhoto
       label: 图片
       value: https://liuzhihang.com/upload/recommend.png
-    - $formkit: repeater
+    - $formkit: array
       name: textarea
       label: 文本块
       value:
@@ -2511,6 +2546,9 @@ spec:
       min: 2
       max: 2
       help: 左边的一行10字 右面一行19字(设置两条数据，不然出不来)
+      itemLabels:
+      - type: text
+        label: $value.tittle
       children:
       - $formkit: text
         name: tittle
@@ -2581,12 +2619,17 @@ spec:
         name: game2_title
         label: 标题
         placeholder: 请输入内容
-      - $formkit: repeater
+      - $formkit: array
         name: comic_list
         id: comic_list
         key: comic_list
         if: $get(game2_type).value == 'comic'
         label: 追番列表
+        itemLabels:
+        - type: text
+          label: $value.tittle
+        - type: text
+          label: $value.url
         children:
         - $formkit: text
           name: title
@@ -2634,6 +2677,8 @@ spec:
       - $formkit: attachment
         name: like_bg
         label: 背景图片
+        width: 15rem
+        aspectRatio: 16/9
         placeholder: 请输入内容
     - $formkit: group
       name: music
@@ -2659,11 +2704,13 @@ spec:
       - $formkit: attachment
         name: music_bg
         label: 背景图片
+        width: 15rem
+        aspectRatio: 16/9
         placeholder: 请输入内容
     - $formkit: text
       name: LingQueMonitorID
-      label: 51la网站统计：https://51.la/
-      help: 填入统计ID。类型：3e8j7Si43kD2NNbv
+      label: 51la 网站统计
+      help: 统计ID
       placeholder: 请输入内容
     - $formkit: group
       name: map
@@ -2686,11 +2733,14 @@ spec:
         name: backgroundDark
         label: 地图暗色模式背景
         placeholder: 请输入内容
-      - $formkit: repeater
+      - $formkit: array
         name: authorInfo
         label: 个人信息
         min: 3
         max: 3
+        itemLabels:
+        - type: text
+          label: $value.authorInfoTitle
         children:
         - $formkit: text
           name: authorInfoTitle
@@ -2710,9 +2760,7 @@ spec:
     - $formkit: code
       name: xjlc
       label: 心路历程
-      value: <div class="author-content-item-tips">心路历程</div> <span class="author-content-item-title">为什么建站？</span> <br>创建这个站的时候，想要就是能够有一个自己能够<b>积累知识、积累兴趣</b>的地方。和他人分享，会让这些成为积累和沉淀。如果能够帮助到更多的人，帮助更多人解决问题，那一定是非常棒的事情。<br>
-        分享这件事我从很早就开始了，起初做的微信公众号，现在做的网站。因为我比较喜欢研究数码和软件，想要探究在互联网上的事物是如何被创造和发展。网络给我带来了非常多的知识和眼界，我也想力所能及的分享一些我生活的琐碎知识。<br>与大多数垂直类的技术博客不同，这里的种类会非常的繁杂，有<b>技能的教程干货</b>、有<b>生活上的吐槽和妙招</b>、有<b>话题上的思考和想法</b>。一般我研究什么、发现了什么都会分享在这里。<br>
-        这些就是创造这个小站的本意，<b>也是我分享生活的方式</b>。有幸能和你相遇在这里，相信我们能共同留下一段美好记忆。</p>
+      value: <div class="author-content-item-tips">心路历程</div> <span class="author-content-item-title">为什么建站？</span> <br>创建这个站的时候，想要就是能够有一个自己能够<b>积累知识、积累兴趣</b>的地方。和他人分享，会让这些成为积累和沉淀。如果能够帮助到更多的人，帮助更多人解决问题，那一定是非常棒的事情。<br> 分享这件事我从很早就开始了，起初做的微信公众号，现在做的网站。因为我比较喜欢研究数码和软件，想要探究在互联网上的事物是如何被创造和发展。网络给我带来了非常多的知识和眼界，我也想力所能及的分享一些我生活的琐碎知识。<br>与大多数垂直类的技术博客不同，这里的种类会非常的繁杂，有<b>技能的教程干货</b>、有<b>生活上的吐槽和妙招</b>、有<b>话题上的思考和想法</b>。一般我研究什么、发现了什么都会分享在这里。<br> 这些就是创造这个小站的本意，<b>也是我分享生活的方式</b>。有幸能和你相遇在这里，相信我们能共同留下一段美好记忆。</p>
       height: 200px
       language: html
       help: 支持 HTML 语法
@@ -2757,17 +2805,25 @@ spec:
   - group: aboutReward
     label: 关于（打赏）
     formSchema:
+    - $formkit: switch
+      name: aboutRewardEnable
+      id: aboutRewardEnable
+      key: aboutRewardEnable
+      value: true
     - $formkit: text
+      if: $get(aboutRewardEnable).value
       name: title
       label: 标题
       placeholder: 请输入内容
       value: 赞赏名单
     - $formkit: text
+      if: $get(aboutRewardEnable).value
       name: content
       label: 内容
       placeholder: 请输入内容
       value: 感谢赞赏的人，因为你们，让我感受到写博客这件事情能够给你们创造价值。这会让我在这条路上走得更远。
     - $formkit: group
+      if: $get(aboutRewardEnable).value
       name: reward
       label: 打赏按钮
       value:
@@ -2775,18 +2831,16 @@ spec:
         name: null
         wxPay: null
         alipay: null
-        enable_reward_wz: null
-        reward_md_url: null
+        enable_reward_wz: false
+        reward_md_url: /about
       children:
       - $formkit: url
         name: reward_md_url
         label: 名单地址
         placeholder: 请输入赞赏者名单地址
-        value: /about
       - $formkit: switch
         name: enable_reward_wz
         label: 文章页面打赏
-        value: false
       - $formkit: switch
         name: enable_reward
         label: 关于页面打赏
@@ -2800,16 +2854,32 @@ spec:
         name: wxPay
         label: 微信收款码
         help: 微信二维码图片链接
+        width: 15rem
         placeholder: 请填写微信二维码图片链接
       - $formkit: attachment
         name: alipay
         label: 支付宝收款码
         help: 支付宝二维码图片链接
+        width: 15rem
         placeholder: 请填写支付宝二维码图片链接
-    - $formkit: repeater
+    - $formkit: text
+      if: $get(aboutRewardEnable).value
+      name: rewardNumber
+      label: 标记金额
+      placeholder: 请输入标记金额，大于等于该值自动标记
+      value: 10
+    - $formkit: array
+      if: $get(aboutRewardEnable).value
       name: reward_list
       label: 打赏名单
       value: []
+      itemLabels:
+      - type: image
+        label: $value.avatar
+      - type: text
+        label: $value.name
+      - type: text
+        label: $value.amount
       children:
       - $formkit: text
         name: name
@@ -2823,15 +2893,10 @@ spec:
         name: datatime
         label: 时间
         placeholder: 请输入内容
-      - $formkit: radio
-        name: sign
-        label: 标记
-        value: N
-        options:
-        - label: 是
-          value: Y
-        - label: 否
-          value: N
+      - $formkit: attachment
+        name: avatar
+        label: 头像
+        placeholder: 请输入头像地址
   - group: envelope_comment
     label: 留言板
     formSchema:
@@ -3626,22 +3691,22 @@ spec:
           value: custom
       - $formkit: url
         name: cdn_link
-        if: "$get(use).value == 'custom'"
+        if: $get(use).value == 'custom'
         label: cdn地址，外链地址
         validation: required
-        value: 'https://npm.onmicrosoft.cn/hao-theme-static@1.3.7/templates/assets'
+        value: https://npm.onmicrosoft.cn/hao-theme-static@1.3.7/templates/assets
         help: '默认为npmJs的onmicrosoft加速地址，如果你有自己的cdn地址（请确保链接下assets文件夹下主题静态资源文件），可以填写，否则请勿修改！ '
     - $formkit: group
       name: opengraph
       label: Open Graph
       value:
-        image:
+        image: null
       children:
       - $formkit: attachment
         name: image
         label: 默认图片
-        width: "15rem"
-        aspectRatio: "16/9"
+        width: 15rem
+        aspectRatio: 16/9
         help: 如果页面没有设置图片，那么将会使用此图片作为 Open Graph 图片
     - $formkit: group
       name: vanillaLazyload
