@@ -159,13 +159,13 @@
 
 
 
-                <hr/>
+                <hr th:if="${theme.config.link.enable_comment == true && theme.config.comments.use != 'commentWidget'}"/>
                 <!--/* 评论组件 */-->
                 <th:block
                         th:replace="~{modules/comment :: comment(group = 'content.halo.run',
                   kind = 'SinglePage',
                   name = 'links',
-                  allowComment = true)}"/>
+                  allowComment = ${theme.config.link.enable_comment == true})}"/>
 
                 <style>
                     /*修复友链页面表情选择器无法显示完全的bug*/

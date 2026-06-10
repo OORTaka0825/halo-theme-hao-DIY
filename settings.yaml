@@ -2004,6 +2004,11 @@ spec:
       label: 互动友链
       value: false
     - $formkit: switch
+      name: enable_comment
+      label: 启用评论
+      help: 启用链接插件原生适配的评论组件，需要链接插件 >= 1.4.0 版本
+      value: false
+    - $formkit: switch
       name: linkSubmitEnable
       label: 友链自助提交插件
       help: 开启后，友链页“申请友链”按钮会调用 link-submit 插件的提交弹框；关闭时保持跳转评论区。
@@ -2050,6 +2055,11 @@ spec:
       height: 200px
       label: 底部显示内容
       language: html
+    - $formkit: text
+      name: fmomentsPageSize
+      label: 友链每页数量
+      help: 填写每页（滚动加载）展示的友链数量
+      value: 12
   - group: fcircle
     label: 友链鱼塘
     formSchema:
