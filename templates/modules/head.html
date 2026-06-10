@@ -8,11 +8,10 @@
     <title th:text="${siteTitle}"></title>
     <link rel="shortcut icon"
           th:href="@{${#strings.isEmpty(site.favicon) ? assets_link + '/images/hao-logo.jpg' : site.favicon}}"/>
-    <script src="/themes/theme-hao/assets/libs/jquery.min.js"></script>
+    <script th:src="${assets_link + '/libs/jquery.min.js'}"></script>
 
     <script th:src="${assets_link + '/js/heo.js' + theme_version}"></script>
 
-    <script th:src="${assets_link + '/js/halo.js' + theme_version}"></script>
 
     <link rel="stylesheet" th:href="${assets_link + '/libs/fancybox/jquery.fancybox.min.css'}">
 
@@ -32,10 +31,10 @@
     </style>
 
     <!-- swiper 在瞬间滚动时会使用 -->
-    <link th:if="${theme.config.top.moment}" rel="stylesheet" href="/themes/theme-hao/assets/libs/swiper-bundle.min.css"/>
+    <link th:if="${theme.config.top.moment}" rel="stylesheet" th:href="${assets_link + '/libs/swiper-bundle.min.css'}"/>
 
     <!-- 右下角通知 -->
-    <link href="/themes/theme-hao/assets/libs/snackbar.min.css"
+    <link th:href="${assets_link + '/libs/snackbar.min.css'}"
           media="print"
           onload='this.media="all"'
           rel="stylesheet"
@@ -249,62 +248,53 @@
 
 
 
-<!-- === Force font like your old snippet (single font applied globally with !important) === -->
-<link rel="preconnect" href="https://oortaka.top" crossorigin>
-<!-- preload selected font only -->
-<th:block th:switch="${theme.config.style.global_font}">
-  <link th:case="'zhankukuaile'" rel="preload" href="https://oortaka.top/ziti/zhankukuaile.woff2" as="font" type="font/woff2" crossorigin>
-  <link th:case="'zhankuyuyang'" rel="preload" href="https://oortaka.top/ziti/zhankuyuyang.woff2" as="font" type="font/woff2" crossorigin>
-  <link th:case="'zhuziawan'" rel="preload" href="https://oortaka.top/ziti/zhuziawan.woff2" as="font" type="font/woff2" crossorigin>
-  <link th:case="'dingdingjinbuti'" rel="preload" href="https://oortaka.top/ziti/dingdingjinbuti.woff2" as="font" type="font/woff2" crossorigin>
-  <link th:case="'jiangchengyuanti'" rel="preload" href="https://oortaka.top/ziti/jiangchengyuanti.woff2" as="font" type="font/woff2" crossorigin>
-</th:block>
-<!-- build the same effect as: * { font-family: "xxx" !important } -->
-<th:block th:if="${theme.config.style.global_font} != null and ${theme.config.style.global_font} != 'off'">
+<!-- === Optional global webfont. Disabled means no external connection. === -->
+<th:block th:if="${theme.config.style.global_font != null and theme.config.style.global_font != 'off'}">
+  <link rel="preconnect" href="https://oortaka.top" crossorigin>
+  <th:block th:switch="${theme.config.style.global_font}">
+    <link th:case="'zhankukuaile'" rel="preload" href="https://oortaka.top/ziti/zhankukuaile.woff2" as="font" type="font/woff2" crossorigin>
+    <link th:case="'zhankuyuyang'" rel="preload" href="https://oortaka.top/ziti/zhankuyuyang.woff2" as="font" type="font/woff2" crossorigin>
+    <link th:case="'zhuziawan'" rel="preload" href="https://oortaka.top/ziti/zhuziawan.woff2" as="font" type="font/woff2" crossorigin>
+    <link th:case="'dingdingjinbuti'" rel="preload" href="https://oortaka.top/ziti/dingdingjinbuti.woff2" as="font" type="font/woff2" crossorigin>
+    <link th:case="'jiangchengyuanti'" rel="preload" href="https://oortaka.top/ziti/jiangchengyuanti.woff2" as="font" type="font/woff2" crossorigin>
+  </th:block>
+
   <th:block th:switch="${theme.config.style.global_font}">
     <style th:case="'zhankukuaile'" id="webfonts-force-all-single">
       @font-face{font-family:'siteFontForce';src:url('https://oortaka.top/ziti/zhankukuaile.woff2') format('woff2');font-display:swap;}
       * { font-family:'siteFontForce' !important; }
     </style>
-
     <style th:case="'zhankuyuyang'" id="webfonts-force-all-single">
       @font-face{font-family:'siteFontForce';src:url('https://oortaka.top/ziti/zhankuyuyang.woff2') format('woff2');font-display:swap;}
       * { font-family:'siteFontForce' !important; }
     </style>
-
     <style th:case="'zhuziawan'" id="webfonts-force-all-single">
       @font-face{font-family:'siteFontForce';src:url('https://oortaka.top/ziti/zhuziawan.woff2') format('woff2');font-display:swap;}
       * { font-family:'siteFontForce' !important; }
     </style>
-
     <style th:case="'dingdingjinbuti'" id="webfonts-force-all-single">
       @font-face{font-family:'siteFontForce';src:url('https://oortaka.top/ziti/dingdingjinbuti.woff2') format('woff2');font-display:swap;}
       * { font-family:'siteFontForce' !important; }
     </style>
-
     <style th:case="'jiangchengyuanti'" id="webfonts-force-all-single">
       @font-face{font-family:'siteFontForce';src:url('https://oortaka.top/ziti/jiangchengyuanti.woff2') format('woff2');font-display:swap;}
       * { font-family:'siteFontForce' !important; }
     </style>
   </th:block>
-</th:block>
 
-<!-- keep the force style at the very end to win cascade (also after PJAX) -->
-<script>
-(function(){
-  function keepLast(){
-    var el = document.getElementById('webfonts-force-all-single');
-    if(!el) return;
-    document.head.appendChild(el); // move to the end
-  }
-  keepLast();
-  document.addEventListener('DOMContentLoaded', keepLast);
-  window.addEventListener('load', keepLast);
-  document.addEventListener('pjax:complete', keepLast);
-  document.addEventListener('pjax:success', keepLast);
-  document.addEventListener('page:loaded', keepLast);
-  setTimeout(keepLast, 0); setTimeout(keepLast, 300); setTimeout(keepLast, 800);
-})();
-</script>
+  <script>
+  (function(){
+    function keepLast(){
+      var el = document.getElementById('webfonts-force-all-single');
+      if(!el) return;
+      document.head.appendChild(el);
+    }
+    keepLast();
+    document.addEventListener('DOMContentLoaded', keepLast);
+    window.addEventListener('load', keepLast);
+    document.addEventListener('pjax:complete', keepLast);
+  })();
+  </script>
+</th:block>
 
 </th:block>

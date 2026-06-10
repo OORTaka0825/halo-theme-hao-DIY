@@ -118,17 +118,19 @@
 
 <div>
     <script th:src="${assets_link + '/js/utils.js' + theme_version}"></script>
+    <script th:src="${assets_link + '/js/halo.js' + theme_version}"></script>
     <script th:src="${assets_link + '/js/main.js' + theme_version}"></script>
     <script charset="utf-8" data-pjax th:src="${assets_link + '/zhheo/blogex.js' + theme_version}"></script>
     <script th:src="${assets_link + '/js/tw_cn.js' + theme_version}"></script>
+    <script th:src="${assets_link + '/js/custom.js' + theme_version}"></script>
 
-    <script src="/themes/theme-hao/assets/libs/instantpage.min.js" type="module"></script>
+    <script th:src="${assets_link + '/libs/instantpage.min.js'}" type="module"></script>
 
     <script th:src="${assets_link + '/libs/vanilla-lazyload/lazyload.iife.min.js'}"></script>
 
     <!-- 右下角通知 /themes/theme-hao/assets/libs/ -->
     <!-- todo head 中有它的 css，应该可以写一块，并改成后台可配置的功能，代码中应该还有他的 js -->
-    <script src="/themes/theme-hao/assets/libs/snackbar.min.js"></script>
+    <script th:src="${assets_link + '/libs/snackbar.min.js'}"></script>
 
     <!-- 深色模式下添加粒子效果canvas -->
     <canvas th:if="${theme.config.style.universe}" id="universe" width="1312" height="880"></canvas>
@@ -136,7 +138,7 @@
 
     <!-- https://davidshimjs.github.io/qrcodejs/ 生成二维码 -->
     <!-- 应该是文章页分享使用 -->
-    <script data-pjax defer src="https://cdn.bootcdn.net/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script data-pjax defer th:src="${assets_link + '/libs/qrcode/qrcode.min.js'}"></script>
 
 
     <!-- 评论 -->
@@ -239,7 +241,7 @@
     <script th:src="${assets_link + '/libs/pjax/pjax.min.js'}"></script>
 
     <!-- swiper 在瞬间滚动时会使用 -->
-    <script th:if="${theme.config.top.moment}" data-pjax  src="/themes/theme-hao/assets/libs/swiper-bundle.min.js"></script>
+    <script th:if="${theme.config.top.moment}" data-pjax th:src="${assets_link + '/libs/swiper-bundle.min.js'}"></script>
 
     <!-- 右键菜单 -->
     <script th:if="${theme.config.tool.rightMenu.rightMenuEnable}" th:src="${assets_link + '/zhheo/rightmenu.js'}"></script>
