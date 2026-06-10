@@ -194,10 +194,11 @@
     
     <!-- icon图标--仍用后台的 //at.alicdn.com/... 地址，这里自动转 https 并固定 id -->
 <script id="iconfont-symbol" defer
+        th:if="${theme.config.nav.menus.enable_ali_iconfont_symbol_header && !#strings.isEmpty(theme.config.nav.menus.iconfont_js)}"
         th:src="${#strings.startsWith(theme.config.nav.menus.iconfont_js, '//') 
                   ? 'https:' + theme.config.nav.menus.iconfont_js 
                   : theme.config.nav.menus.iconfont_js}"></script>
-<script>
+<script th:if="${theme.config.nav.menus.enable_ali_iconfont_symbol_header && !#strings.isEmpty(theme.config.nav.menus.iconfont_js)}">
   (function () {
     if (window.__ICONFONT_READY__) return;   // 防重复
     window.__ICONFONT_READY__ = true;
