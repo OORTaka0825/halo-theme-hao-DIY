@@ -3965,16 +3965,6 @@ spec:
       label: 其他设置
       formSchema:
 
-        - $formkit: radio
-          name: pjax_enable
-          label: PJAX加载
-          help: "控制站点是否启用 PJAX，无刷新页面切换；关闭后则整页刷新"
-          value: true          # ← 新增，默认开启（你也可以设为 false）
-          options:
-            - label: 开启
-              value: true
-            - label: 关闭
-              value: false
         - $formkit: group
           name: staticResource
           label: 静态资源文件设置

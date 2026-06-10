@@ -18,54 +18,6 @@
     <script th:if="${pluginFinder.available('plugin-katex')}" defer=""
             src="/plugins/plugin-katex/assets/static/katex.min.js"></script>
     <script th:src="${assets_link + '/js/custom.js' + theme_version}"></script>
-    <!-- 刷新/F5/Ctrl+F5 不恢复旧滚动位置：只影响 reload，不影响浏览器后退/前进 -->
-    <script>
-    (function () {
-        function getNavType() {
-            try {
-                var nav = performance.getEntriesByType && performance.getEntriesByType('navigation');
-                if (nav && nav[0] && nav[0].type) return nav[0].type;
-            } catch (e) {}
-            try {
-                if (performance.navigation && performance.navigation.type === 1) return 'reload';
-            } catch (e) {}
-            return '';
-        }
-
-        var navType = getNavType();
-        window.__haoInitialNavType = navType;
-        window.__haoReloadNoRestore = navType === 'reload';
-
-        if (!window.__haoReloadNoRestore) return;
-
-        if ('scrollRestoration' in history) {
-            try { history.scrollRestoration = 'manual'; } catch (e) {}
-        }
-
-        try {
-            var s = history.state || {};
-            if (s && s.scrollPos) {
-                delete s.scrollPos;
-                history.replaceState(s, document.title, location.href);
-            }
-        } catch (e) {}
-
-        function topNow() {
-            try { window.scrollTo(0, 0); } catch (e) {}
-            try { document.documentElement.scrollTop = 0; } catch (e) {}
-            try { document.body.scrollTop = 0; } catch (e) {}
-        }
-
-        topNow();
-        document.addEventListener('DOMContentLoaded', topNow, { once: true });
-        window.addEventListener('load', function () {
-            topNow();
-            setTimeout(topNow, 30);
-            setTimeout(topNow, 120);
-            setTimeout(topNow, 300);
-        }, { once: true });
-    })();
-    </script>
     <th:block th:if="${head != null}">
         <th:block th:replace="${head}"/>
     </th:block>
@@ -137,13 +89,7 @@
     postPermalink=${allPostList[randomIndex].status.permalink}">
   function toRandomPost() {
     var permalink = /*[[${postPermalink}]]*/ "/";
-    if (window.pjax && typeof pjax.loadUrl === 'function') {
-      // 开启 PJAX：无刷新跳转
-      pjax.loadUrl(permalink);
-    } else {
-      // 关闭 PJAX：整页跳转
-      window.location.href = permalink;
-    }
+    pjax.loadUrl(permalink);
   }
 </script>
     
@@ -175,104 +121,6 @@
     <script th:src="${assets_link + '/js/main.js' + theme_version}"></script>
     <script charset="utf-8" data-pjax th:src="${assets_link + '/zhheo/blogex.js' + theme_version}"></script>
     <script th:src="${assets_link + '/js/tw_cn.js' + theme_version}"></script>
-
-    <!-- ===== Keep PJAX-like behavior when PJAX is OFF (append-only, v5) ===== -->
-    <script th:if="${!theme.config.other.pjax_enable}">
-    (function () {
-      var KEY_PREFIX = 'hao:list:scroll:';
-      var NAV_FLAG = 'hao:from:index_pagination';
-
-      if ('scrollRestoration' in history) try { history.scrollRestoration = 'manual'; } catch (e) {}
-
-      function saveScroll() {
-        try {
-          var key = KEY_PREFIX + location.pathname + location.search;
-          sessionStorage.setItem(key, String(window.scrollY || document.documentElement.scrollTop || 0));
-          // 记录：当前是否为分页页，从而“上一页”跳回首页时也能下滚
-          sessionStorage.setItem(NAV_FLAG, isIndexPagination() ? '1' : '0');
-        } catch (e) {}
-      }
-      addEventListener('beforeunload', saveScroll, { passive: true });
-      addEventListener('pagehide', saveScroll, { passive: true });
-
-      function restoreScrollIfAny() {
-        try {
-          var key = KEY_PREFIX + location.pathname + location.search;
-          var y = sessionStorage.getItem(key);
-          if (y !== null) requestAnimationFrame(function(){ scrollTo(0, parseInt(y,10) || 0); });
-        } catch (e) {}
-      }
-
-      function pickListEl(){
-        var sels = ['#home_top', '#recent-posts', '.recent-posts', '#content-inner'];
-        for (var i=0;i<sels.length;i++){
-          var el = document.querySelector(sels[i]);
-          if (el) return el;
-        }
-        return null;
-      }
-
-      function scrollToListSmooth() {
-        var el = pickListEl();
-        if (!el) return;
-        if (window.btf && typeof window.btf.scrollToDest === 'function') {
-          window.btf.scrollToDest(el.offsetTop, 500); // 主题内部会 -70
-          return;
-        }
-        if (window.heo && window.heo.scroll && typeof window.heo.scroll.homeToList === 'function'){
-          try { window.heo.scroll.homeToList(); return; } catch(e){}
-        }
-        var y = el.getBoundingClientRect().top + pageYOffset - 70;
-        try { scrollTo({ top: Math.max(0, y), behavior: 'smooth' }); }
-        catch (e) { scrollTo(0, Math.max(0, y)); }
-      }
-
-      function isIndexPagination() {
-        if (/\/page\/\d+\/?$/i.test(location.pathname)) return true;
-        if (/[?&]page=\d+/i.test(location.search)) return true;
-        return false;
-      }
-
-      function isHomeLike(){
-        // 首页（上一页可能从 /page/2 跳回 / 或 ?page=1）
-        if (location.pathname === '/' || location.pathname === '') return true;
-        if (/[?&]page=1\b/i.test(location.search)) return true;
-        return false;
-      }
-
-      function cameFromPagination(){
-        try { return sessionStorage.getItem(NAV_FLAG) === '1'; } catch(e){}
-        return false;
-      }
-
-      function clearNavFlag(){ try { sessionStorage.removeItem(NAV_FLAG); } catch(e){} }
-
-      function isBackForwardNav() {
-        try { 
-          var entries = performance.getEntriesByType && performance.getEntriesByType('navigation');
-          if (entries && entries[0]) return entries[0].type === 'back_forward';
-        } catch (e) {}
-        return false;
-      }
-
-      addEventListener('pageshow', function (ev) {
-        // 回退：恢复滚动位置
-        if (ev.persisted || isBackForwardNav()) { restoreScrollIfAny(); clearNavFlag(); return; }
-
-        // 正常进入：分页页直接滚动；或者从分页回到首页也滚动
-        if (isIndexPagination() || (isHomeLike() && cameFromPagination())) {
-          setTimeout(scrollToListSmooth, 60);
-        }
-        clearNavFlag();
-      }, { passive: true });
-
-      document.addEventListener('DOMContentLoaded', function () {
-        if (isIndexPagination() || (isHomeLike() && cameFromPagination())) {
-          setTimeout(scrollToListSmooth, 0);
-        }
-      });
-    })();
-    </script>
 
     <script src="/themes/theme-hao/assets/libs/instantpage.min.js" type="module"></script>
 
@@ -388,8 +236,7 @@
     })();
     </script>
 
-    <script th:if="${theme.config.other.pjax_enable}"
-        th:src="${assets_link + '/libs/pjax/pjax.min.js'}"></script>
+    <script th:src="${assets_link + '/libs/pjax/pjax.min.js'}"></script>
 
     <!-- swiper 在瞬间滚动时会使用 -->
     <script th:if="${theme.config.top.moment}" data-pjax  src="/themes/theme-hao/assets/libs/swiper-bundle.min.js"></script>
@@ -423,103 +270,26 @@
 
 
 
-    <th:block th:if="${theme.config.other.pjax_enable}"><script>
+    <script>
         let pjaxSelectors = ['title', '#config-diff', '#body-wrap', '#rightside-config-hide', '#rightside-config-show', '.js-pjax', '#site-config']
 
         pjaxSelectors.unshift('meta[property="og:type"]', 'meta[property="og:image"]', 'meta[property="og:title"]', 'meta[property="og:url"]', 'meta[property="og:description"]'
                 , 'meta[name="twitter:title"]', 'meta[name="twitter:url"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]')
 
         var pjax = new Pjax({
-            elements: 'a[href]:not([target="_blank"]):not([data-no-pjax]):not([href^="/console"])',
+            elements: 'a:not([target="_blank"])',
             selectors: pjaxSelectors,
             cacheBust: false,
             analytics: false,
             scrollRestoration: false
         })
 
-        // BFCache / 普通回退兼容：后退/前进允许浏览器原生恢复；
-        // 但刷新 / F5 / Ctrl+F5 不恢复旧滚动位置，避免刷新后停在原位置。
-        if ('scrollRestoration' in history) {
-            try {
-                history.scrollRestoration = window.__haoReloadNoRestore ? 'manual' : 'auto';
-            } catch (e) {}
-        }
-
-        ;(function () {
-            function getY() {
-                return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
-            }
-            function saveCurrentScrollState() {
-                try {
-                    var s = history.state || {}
-                    s.url = s.url || window.location.href
-                    s.title = s.title || document.title
-                    s.uid = s.uid || ('hao' + Date.now())
-                    s.scrollPos = [document.documentElement.scrollLeft || document.body.scrollLeft || 0, getY()]
-                    history.replaceState(s, document.title, window.location.href)
-                } catch (e) {}
-            }
-            function delayedRestore(pos) {
-                if (!pos || pos.length < 2) return
-                var x = parseInt(pos[0], 10) || 0
-                var y = parseInt(pos[1], 10) || 0
-                var oldBehavior = document.documentElement.style.scrollBehavior
-                try { document.documentElement.style.scrollBehavior = 'auto' } catch (e) {}
-                function go() { try { window.scrollTo(x, y) } catch (e) {} }
-                // 关键优化：立即恢复一次。原来只放在 requestAnimationFrame 里，
-                // 浏览器有机会先绘制页面顶部，再下一帧跳回保存位置，导致“闪一下顶部”。
-                go()
-                requestAnimationFrame(go)
-                ;[30, 80, 150, 300, 600, 1000].forEach(function (ms) { setTimeout(go, ms) })
-                setTimeout(function () {
-                    try { document.documentElement.style.scrollBehavior = oldBehavior || '' } catch (e) {}
-                }, 1100)
-            }
-            function isBackForwardDocumentNavigation() {
-                try {
-                    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')
-                    return !!(nav && nav[0] && nav[0].type === 'back_forward')
-                } catch (e) { return false }
-            }
-
-            document.addEventListener('pjax:send', saveCurrentScrollState)
-            // 只在 PJAX 导航时记录滚动位置；普通浏览器刷新 / F5 / Ctrl+F5 不写入自定义位置。
-            // pagehide 在刷新时也会触发，若这里无条件保存，会让刷新被自定义回退逻辑影响。
-            window.addEventListener('pagehide', function (ev) {
-                // 进入 BFCache 时可安全保存；普通 reload / hard reload 的 ev.persisted 为 false，不处理。
-                if (ev && ev.persisted) saveCurrentScrollState()
-            }, { passive: true })
-
-            document.addEventListener('pjax:complete', function (e) {
-                if ((e.backward || e.forward) && e.scrollPos) {
-                    delayedRestore(e.scrollPos)
-                }
-            })
-
-            window.addEventListener('pageshow', function () {
-                // 刷新 / F5 / Ctrl+F5：不做回退恢复，保持正常刷新到顶部
-                if (window.__haoReloadNoRestore) {
-                    try { window.scrollTo(0, 0) } catch (e) {}
-                    return
-                }
-                if (isBackForwardDocumentNavigation() && history.state && history.state.scrollPos) {
-                    delayedRestore(history.state.scrollPos)
-                }
-            })
-        })()
-
-        document.addEventListener('pjax:send', function (e) {
-
-            // 浏览器后退/前进时不显示 loading-box。
-            // 否则回退成功前会先闪一下顶部加载层，视觉上像“回到顶部再跳回去”。
-            window.__haoPjaxBackForwardNav = !!(e && (e.backward || e.forward))
+        document.addEventListener('pjax:send', function () {
 
             // removeEventListener toc scroll
             window.removeEventListener('scroll', window.tocScrollFn)
 
-            if (!window.__haoPjaxBackForwardNav) {
-                typeof preloader === 'object' && preloader.initLoading()
-            }
+            typeof preloader === 'object' && preloader.initLoading()
 
             if (window.aplayers) {
                 for (let i = 0; i < window.aplayers.length; i++) {
@@ -572,7 +342,6 @@
             typeof Prism === 'object' && Prism.highlightAll()
 
             typeof preloader === 'object' && preloader.endLoading()
-            window.__haoPjaxBackForwardNav = false
         })
 
         document.addEventListener('pjax:error', (e) => {
@@ -581,7 +350,7 @@
                     }
                 }
         )
-    </script></th:block>
+    </script>
 
 
 </div>
@@ -629,7 +398,6 @@
     }
 </script>
 
-<!-- 自定义 PJAX 回退/滚动恢复脚本已关闭：仅保留主题 PJAX 开关与 PJAX 自带 scrollRestoration。 -->
     <!-- DIY × PLUS 一体化 Loader · v12-merge + DreamConfig + SnowRebuildByIdRange -->
 <script th:inline="javascript">
 (function(){
