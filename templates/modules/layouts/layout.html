@@ -41,7 +41,7 @@
         </div>
         
         <video th:if="${theme.config.top.global_background.enable_global_background_above_video}"
-               class="index-video"
+               class="index-video global_background_video"
                id="index-video"
                autoplay=""
                th:src="${theme.config.top.global_background.global_background_video}"
@@ -57,13 +57,19 @@
 <th:block th:if="${theme.config.top.global_background.enable_global_background_img}">
     <style>
         @media screen and (min-width: 1300px) {
-            .global_background_img {
+            .global_background_img,
+            .global_background_video {
                 width: 100vw;
                 height: 100vh;
                 top: 0;
                 left: 0;
                 position: fixed;
                 z-index: -999;
+                animation: global-background-clear 1.8s cubic-bezier(.62, .21, .25, 1) 0s 1 both;
+                will-change: transform, filter, opacity;
+            }
+
+            .global_background_img {
                 /* 关键渲染设置 */
                 background-size: cover;
                 background-position: center center;
@@ -71,6 +77,37 @@
                 /* 强制不显示由于缩放导致的杂边 */
                 image-rendering: -webkit-optimize-contrast;
                 image-rendering: high-quality;
+            }
+
+            .global_background_video {
+                object-fit: cover;
+                pointer-events: none;
+            }
+        }
+
+        @keyframes global-background-clear {
+            0% {
+                filter: blur(32px);
+                transform: scale(1.08) translateZ(0);
+                opacity: 0;
+            }
+            55% {
+                opacity: 1;
+            }
+            100% {
+                filter: blur(0);
+                transform: scale(1) translateZ(0);
+                opacity: 1;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .global_background_img,
+            .global_background_video {
+                animation: none !important;
+                filter: none !important;
+                transform: none !important;
+                opacity: 1 !important;
             }
         }
         
