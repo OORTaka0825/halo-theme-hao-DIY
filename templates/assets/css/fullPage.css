@@ -12,11 +12,11 @@
 }
 
 .page .back-home-button {
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--heo-fontcolor);
 }
 
 .page #nav #site-name span {
-    color: var(--light-grey);
+    color: var(--heo-fontcolor);
 }
 
 .nav-fixed #nav #site-name span{
@@ -24,7 +24,7 @@
 }
 
 #nav .site-page {
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--heo-fontcolor);
 }
 
 #page-header.full_page {
@@ -141,5 +141,5 @@
 }
 
 #nav a {
-    color: var(--light-grey);
+    color: var(--heo-fontcolor);
 }
