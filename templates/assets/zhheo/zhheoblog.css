@@ -4604,23 +4604,40 @@ blockquote.pullquote.right {
 }
 
 /* 全局页脚下沉：内容不足一屏时，footer 贴到底部；内容超过一屏时正常跟随内容 */
-#body-wrap {
+html,
+body {
+    min-height: 100%;
+}
+
+body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
 }
 
-#body-wrap > main#content-inner {
+body > #body-wrap,
+#body-wrap {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    flex: 1 0 auto;
+}
+
+#body-wrap > main#content-inner,
+#body-wrap > main.layout {
     flex: 1 0 auto;
 }
 
 #body-wrap > footer#footer,
+#body-wrap > footer,
 #body-wrap > #footer {
     margin-top: auto;
     flex-shrink: 0;
 }
 
 @media screen and (max-width: 768px) {
+    body,
+    body > #body-wrap,
     #body-wrap {
         min-height: 100svh;
     }

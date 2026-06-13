@@ -2970,7 +2970,7 @@ html[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-
 }
 
 
-/* PLUS 搜索页 v11：卡片铺满容器、结果卡片高亮 */
+/* PLUS 搜索页 v11：卡片铺满容器、结果卡片高亮、页脚贴底 */
 #body-wrap.hao-search-page > main#content-inner.layout {
     flex: 1 0 auto;
     width: min(1400px, calc(100% - 32px));
