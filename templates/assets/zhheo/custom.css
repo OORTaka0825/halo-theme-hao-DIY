@@ -2556,31 +2556,6 @@ p.p.gray,span.p.gray {
     border-radius: 50% !important;
 }
 
-/* ===== 分类 / 标签页页脚下沉修复 =====
-   这几个页面内容较少时，footer 会紧跟内容块出现在页面中部。
-   让 body-wrap 成为纵向 flex 容器，并让 main 自动占满剩余高度，footer 就会回到底部。 */
-#body-wrap.taxonomy-page {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-#body-wrap.taxonomy-page > main#content-inner {
-    flex: 1 0 auto;
-}
-
-#body-wrap.taxonomy-page > #footer,
-#body-wrap.taxonomy-page > footer {
-    margin-top: auto;
-    flex-shrink: 0;
-}
-
-@media screen and (max-width: 768px) {
-    #body-wrap.taxonomy-page {
-        min-height: 100svh;
-    }
-}
-
 /* ===== 首页顶部文章卡片底部空白与 meta 行位置修复 ===== */
 @media screen and (min-width: 1300px) {
     #recent-posts > .recent-post-item.top > .recent-post-info {
@@ -2995,24 +2970,13 @@ html[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-
 }
 
 
-/* PLUS 搜索页 v11：卡片铺满容器、结果卡片高亮、页脚贴底 */
-#body-wrap.hao-search-page {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
+/* PLUS 搜索页 v11：卡片铺满容器、结果卡片高亮 */
 #body-wrap.hao-search-page > main#content-inner.layout {
     flex: 1 0 auto;
     width: min(1400px, calc(100% - 32px));
     max-width: 1400px;
     padding-left: 0;
     padding-right: 0;
-}
-
-#body-wrap.hao-search-page > footer#footer {
-    margin-top: auto !important;
-    flex-shrink: 0;
 }
 
 #hao-search-page {
@@ -3101,12 +3065,6 @@ html[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-
     display: none !important;
 }
 
-#body-wrap.hao-search-page {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
 #body-wrap.hao-search-page > main#content-inner.layout {
     flex: 1 0 auto;
     width: 100% !important;
@@ -3116,11 +3074,6 @@ html[data-theme='dark'] #page-header #nav #nav-right .hao-plus-search .hao-plus-
     padding-left: 15px !important;
     padding-right: 15px !important;
     box-sizing: border-box;
-}
-
-#body-wrap.hao-search-page > footer#footer {
-    margin-top: auto !important;
-    flex-shrink: 0;
 }
 
 #hao-search-page {

@@ -4603,6 +4603,29 @@ blockquote.pullquote.right {
     min-height: calc(100vh - 464px);
 }
 
+/* 全局页脚下沉：内容不足一屏时，footer 贴到底部；内容超过一屏时正常跟随内容 */
+#body-wrap {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#body-wrap > main#content-inner {
+    flex: 1 0 auto;
+}
+
+#body-wrap > footer#footer,
+#body-wrap > #footer {
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+@media screen and (max-width: 768px) {
+    #body-wrap {
+        min-height: 100svh;
+    }
+}
+
 /* 滚动条 */
 *::-webkit-scrollbar {
     width: 6px;
